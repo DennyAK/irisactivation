@@ -1,0 +1,187 @@
+import { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
+import { db, auth } from '../../firebaseConfig';
+import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+
+export default function TaskQuickQuizScreen() {
+  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [formData, setFormData] = useState({
+    userId: '',
+    takeQuickQuizId: '',
+    quizDate: '', // Will be handled as a string for input
+    quickQuizResult: '',
+  });
+  const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        getDoc(userDocRef).then((docSnap: DocumentSnapshot) => {
+          if (docSnap.exists()) {
+            setUserRole(docSnap.data().role);
+          }
+        });
+      } else {
+        setUserRole(null);
+      }
+    });
+    fetchQuizzes();
+    return () => unsubscribe();
+  }, []);
+
+  const fetchQuizzes = async () => {
+    setLoading(true);
+    try {
+      const quizzesCollection = collection(db, 'task_quick_quiz');
+      const quizSnapshot = await getDocs(quizzesCollection);
+      const quizList = quizSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setQuizzes(quizList);
+    } catch (error) {
+      console.error("Error fetching quizzes: ", error);
+      Alert.alert("Error", "Failed to fetch quizzes.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetFormData = () => {
+    setFormData({
+      userId: '', takeQuickQuizId: '', quizDate: '', quickQuizResult: '',
+    });
+  };
+
+  const handleAddQuiz = () => {
+    addDoc(collection(db, "task_quick_quiz"), {
+      ...formData,
+      quizDate: new Date(formData.quizDate),
+      createdAt: serverTimestamp()
+    }).then(() => {
+      setIsAddModalVisible(false);
+      resetFormData();
+      fetchQuizzes();
+    }).catch(error => {
+      Alert.alert("Add Failed", error.message);
+    });
+  };
+
+  const handleEditQuiz = (quiz: any) => {
+    setSelectedQuiz(quiz);
+    setFormData({
+      userId: quiz.userId || '',
+      takeQuickQuizId: quiz.takeQuickQuizId || '',
+      quizDate: quiz.quizDate?.toDate().toISOString().split('T')[0] || '',
+      quickQuizResult: quiz.quickQuizResult || '',
+    });
+    setIsEditModalVisible(true);
+  };
+
+  const handleUpdateQuiz = () => {
+    if (selectedQuiz) {
+      const quizDoc = doc(db, "task_quick_quiz", selectedQuiz.id);
+      updateDoc(quizDoc, {
+        ...formData,
+        quizDate: new Date(formData.quizDate),
+      }).then(() => {
+        setIsEditModalVisible(false);
+        resetFormData();
+        setSelectedQuiz(null);
+        fetchQuizzes();
+      }).catch(error => {
+        Alert.alert("Update Failed", error.message);
+      });
+    }
+  };
+
+  const handleDeleteQuiz = (quizId: string) => {
+    Alert.alert("Delete Quiz", "Are you sure you want to delete this quiz record?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "OK", onPress: () => {
+        deleteDoc(doc(db, "task_quick_quiz", quizId)).then(() => {
+          fetchQuizzes();
+        });
+      }}
+    ]);
+  };
+
+  if (loading) {
+    return <ActivityIndicator />;
+  }
+
+  const canManage = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
+  const canUpdate = canManage || userRole === 'Iris - BA' || userRole === 'Iris - TL';
+
+  const renderQuiz = ({ item }: { item: any }) => (
+    <View style={styles.itemContainer}>
+      <Text style={styles.itemTitle}>Quiz ID: {item.takeQuickQuizId}</Text>
+      <Text>User ID: {item.userId}</Text>
+      <Text>Date: {item.quizDate?.toDate().toLocaleDateString()}</Text>
+      <Text>Result: {item.quickQuizResult}</Text>
+      {canUpdate && (
+        <View style={styles.buttonContainer}>
+          <Button title="Edit" onPress={() => handleEditQuiz(item)} />
+          {canManage && <Button title="Delete" onPress={() => handleDeleteQuiz(item.id)} />}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderModalFields = () => (
+    <>
+      <TextInput style={styles.input} value={formData.userId} onChangeText={(text) => setFormData({...formData, userId: text})} placeholder="User ID" />
+      <TextInput style={styles.input} value={formData.takeQuickQuizId} onChangeText={(text) => setFormData({...formData, takeQuickQuizId: text})} placeholder="Quiz ID" />
+      <TextInput style={styles.input} value={formData.quizDate} onChangeText={(text) => setFormData({...formData, quizDate: text})} placeholder="Quiz Date (YYYY-MM-DD)" />
+      <TextInput style={styles.input} value={formData.quickQuizResult} onChangeText={(text) => setFormData({...formData, quickQuizResult: text})} placeholder="Quiz Result" />
+    </>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Task Quick Quiz</Text>
+      {canUpdate && <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />}
+      <FlatList data={quizzes} keyExtractor={(item) => item.id} renderItem={renderQuiz} />
+      
+      <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>Add Quiz Record</Text>
+            {renderModalFields()}
+            <View style={styles.buttonContainer}>
+              <Button title="Add" onPress={handleAddQuiz} />
+              <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
+            </View>
+          </View>
+        </ScrollView>
+      </Modal>
+
+      <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>Edit Quiz Record</Text>
+            {renderModalFields()}
+            <View style={styles.buttonContainer}>
+              <Button title="Update" onPress={handleUpdateQuiz} />
+              <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+            </View>
+          </View>
+        </ScrollView>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  itemContainer: { marginBottom: 10, padding: 10, borderColor: 'gray', borderWidth: 1, borderRadius: 5 },
+  itemTitle: { fontSize: 16, fontWeight: 'bold' },
+  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10 },
+  input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8, borderRadius: 5 },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 }
+});
