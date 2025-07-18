@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
-import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import * as Location from 'expo-location';
+import { Picker } from '@react-native-picker/picker';
 
 export default function OutletsScreen() {
   const [outlets, setOutlets] = useState<any[]>([]);
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -38,21 +42,89 @@ export default function OutletsScreen() {
       }
     });
     fetchOutlets();
+    fetchProvinces();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (formData.outletProvince) {
+      fetchCities(formData.outletProvince);
+    } else {
+      setCities([]);
+    }
+  }, [formData.outletProvince]);
+
+  const getLocation = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission denied', 'Permission to access location was denied');
+      return;
+    }
+
+    let location = await Location.getCurrentPositionAsync({});
+    setFormData({
+      ...formData,
+      latitude: location.coords.latitude.toString(),
+      longitude: location.coords.longitude.toString(),
+    });
+  };
 
   const fetchOutlets = async () => {
     setLoading(true);
     try {
       const outletsCollection = collection(db, 'outlets');
       const outletSnapshot = await getDocs(outletsCollection);
-      const outletList = outletSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const outletList = await Promise.all(
+        outletSnapshot.docs.map(async (outletDoc) => {
+          const outletData = outletDoc.data();
+          let provinceName = 'Unknown';
+          if (outletData.outletProvince) {
+            const provinceDocRef = doc(db, 'provinces', outletData.outletProvince);
+            const provinceDocSnap = await getDoc(provinceDocRef);
+            if (provinceDocSnap.exists()) {
+              provinceName = provinceDocSnap.data().name;
+            }
+          }
+          let cityName = 'Unknown';
+          if (outletData.outletCity) {
+            const cityDocRef = doc(db, 'cities', outletData.outletCity);
+            const cityDocSnap = await getDoc(cityDocRef);
+            if (cityDocSnap.exists()) {
+              cityName = cityDocSnap.data().name;
+            }
+          }
+          return { id: outletDoc.id, ...outletData, provinceName, cityName };
+        })
+      );
       setOutlets(outletList);
     } catch (error) {
       console.error("Error fetching outlets: ", error);
       Alert.alert("Error", "Failed to fetch outlets.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProvinces = async () => {
+    try {
+      const provincesCollection = collection(db, 'provinces');
+      const provinceSnapshot = await getDocs(provincesCollection);
+      const provinceList = provinceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      setProvinces(provinceList.sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (error) {
+      console.error("Error fetching provinces: ", error);
+    }
+  };
+
+  const fetchCities = async (provinceId: string) => {
+    try {
+      const citiesCollection = collection(db, 'cities');
+      const q = query(citiesCollection, where("provinceId", "==", provinceId));
+      const citySnapshot = await getDocs(q);
+      const cityList = citySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      setCities(cityList.sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (error) {
+      console.error("Error fetching cities: ", error);
     }
   };
 
@@ -133,7 +205,7 @@ export default function OutletsScreen() {
   const renderOutlet = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
       <Text style={styles.itemTitle}>{item.outletName}</Text>
-      <Text>Address: {item.outletCompleteAddress}, {item.outletCity}, {item.outletProvince}</Text>
+      <Text>Address: {item.outletCompleteAddress}, {item.cityName}, {item.provinceName}</Text>
       <Text>Contact: {item.outletContactNo}</Text>
       <Text>PIC: {item.outletPicName} ({item.outletPicContactNumber})</Text>
       <Text>Social Media: {item.outletSocialMedia}</Text>
@@ -150,13 +222,31 @@ export default function OutletsScreen() {
   const renderModalFields = () => (
     <>
       <TextInput style={styles.input} value={formData.outletName} onChangeText={(text) => setFormData({...formData, outletName: text})} placeholder="Outlet Name" />
-      <TextInput style={styles.input} value={formData.outletProvince} onChangeText={(text) => setFormData({...formData, outletProvince: text})} placeholder="Province" />
-      <TextInput style={styles.input} value={formData.outletCity} onChangeText={(text) => setFormData({...formData, outletCity: text})} placeholder="City" />
+      <Picker
+        selectedValue={formData.outletProvince}
+        onValueChange={(itemValue) => setFormData({...formData, outletProvince: itemValue, outletCity: ''})}
+      >
+        <Picker.Item label="Select a Province" value="" />
+        {provinces.map(province => (
+          <Picker.Item key={province.id} label={province.name} value={province.id} />
+        ))}
+      </Picker>
+      <Picker
+        selectedValue={formData.outletCity}
+        onValueChange={(itemValue) => setFormData({...formData, outletCity: itemValue})}
+        enabled={!!formData.outletProvince}
+      >
+        <Picker.Item label="Select a City/Regency" value="" />
+        {cities.map(city => (
+          <Picker.Item key={city.id} label={city.name} value={city.id} />
+        ))}
+      </Picker>
       <TextInput style={styles.input} value={formData.outletCompleteAddress} onChangeText={(text) => setFormData({...formData, outletCompleteAddress: text})} placeholder="Complete Address" />
       <TextInput style={styles.input} value={formData.outletContactNo} onChangeText={(text) => setFormData({...formData, outletContactNo: text})} placeholder="Contact Number" />
       <TextInput style={styles.input} value={formData.outletPicName} onChangeText={(text) => setFormData({...formData, outletPicName: text})} placeholder="PIC Name" />
       <TextInput style={styles.input} value={formData.outletPicContactNumber} onChangeText={(text) => setFormData({...formData, outletPicContactNumber: text})} placeholder="PIC Contact Number" />
       <TextInput style={styles.input} value={formData.outletSocialMedia} onChangeText={(text) => setFormData({...formData, outletSocialMedia: text})} placeholder="Social Media" />
+      <Button title="Get Current Location" onPress={getLocation} />
       <TextInput style={styles.input} value={formData.latitude} onChangeText={(text) => setFormData({...formData, latitude: text})} placeholder="Latitude" />
       <TextInput style={styles.input} value={formData.longitude} onChangeText={(text) => setFormData({...formData, longitude: text})} placeholder="Longitude" />
     </>

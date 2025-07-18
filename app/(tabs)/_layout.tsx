@@ -207,6 +207,20 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabBarIcon name="bar-chart" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="province-list"
+        options={{
+          title: 'Provinces',
+          tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="city-list"
+        options={{
+          title: 'Cities',
+          tabBarIcon: ({ color }) => <TabBarIcon name="map-marker" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
