@@ -127,32 +127,38 @@ export default function TasksScreen() {
   };
 
   // Fetch all BA users for dropdown
-  const fetchBAUsers = async () => {
-    try {
-      const usersCollection = collection(db, 'users');
-      const usersSnapshot = await getDocs(usersCollection);
-      const baList = usersSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(user => user.role === 'Iris - BA');
-      setBAUsers(baList);
-    } catch (error) {
-      console.error('Error fetching BA users:', error);
-    }
-  };
+const fetchBAUsers = async () => {
+  try {
+    const usersCollection = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersCollection);
+    const baList = usersSnapshot.docs
+      .map(doc => {
+        const data = doc.data() as { role?: string; name?: string; email?: string };
+        return { id: doc.id, role: data.role || '', name: data.name || '', email: data.email || '' };
+      })
+      .filter(user => user.role === 'Iris - BA');
+    setBAUsers(baList);
+  } catch (error) {
+    console.error('Error fetching BA users:', error);
+  }
+};
 
-  // Fetch all TL users for dropdown
-  const fetchTLUsers = async () => {
-    try {
-      const usersCollection = collection(db, 'users');
-      const usersSnapshot = await getDocs(usersCollection);
-      const tlList = usersSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(user => user.role === 'Iris - TL');
-      setTLUsers(tlList);
-    } catch (error) {
-      console.error('Error fetching TL users:', error);
-    }
-  };
+// Fetch all TL users for dropdown
+const fetchTLUsers = async () => {
+  try {
+    const usersCollection = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersCollection);
+    const tlList = usersSnapshot.docs
+      .map(doc => {
+        const data = doc.data() as { role?: string; name?: string; email?: string };
+        return { id: doc.id, role: data.role || '', name: data.name || '', email: data.email || '' };
+      })
+      .filter(user => user.role === 'Iris - TL');
+    setTLUsers(tlList);
+  } catch (error) {
+    console.error('Error fetching TL users:', error);
+  }
+};
 
   // --- Utility: Reset Form Data ---
   // Clears the form fields to default values
