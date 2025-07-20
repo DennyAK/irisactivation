@@ -72,10 +72,21 @@ export default function TaskQuickQuizScreen() {
 
   const handleEditQuiz = (quiz: any) => {
     setSelectedQuiz(quiz);
+    let formattedDate = '';
+    if (quiz.quizDate) {
+      // Firestore Timestamp has toDate(), JS Date does not
+      if (typeof quiz.quizDate.toDate === 'function') {
+        formattedDate = quiz.quizDate.toDate().toISOString().split('T')[0];
+      } else if (quiz.quizDate instanceof Date) {
+        formattedDate = quiz.quizDate.toISOString().split('T')[0];
+      } else if (typeof quiz.quizDate === 'string') {
+        formattedDate = quiz.quizDate;
+      }
+    }
     setFormData({
       userId: quiz.userId || '',
       takeQuickQuizId: quiz.takeQuickQuizId || '',
-      quizDate: quiz.quizDate?.toDate().toISOString().split('T')[0] || '',
+      quizDate: formattedDate,
       quickQuizResult: quiz.quickQuizResult || '',
     });
     setIsEditModalVisible(true);
