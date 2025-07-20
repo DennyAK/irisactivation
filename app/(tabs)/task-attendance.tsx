@@ -173,7 +173,9 @@ export default function TaskAttendanceScreen() {
     ]);
   };
 
+  // Existing gallery upload
   const pickAndUploadImage = async () => {
+
     try {
       // 1. Pick Image
       let result = await ImagePicker.launchImageLibraryAsync({
@@ -190,14 +192,13 @@ export default function TaskAttendanceScreen() {
 
       const uri = result.assets[0].uri;
       Alert.alert('Step 1: Image Picked', `URI: ${uri}`);
-      setFormData(prev => ({ ...prev, selfieUrl: uri }));
+      // Do NOT set selfieUrl to cache URI here
 
       // 2. Upload to Firebase
       if (!auth.currentUser) {
         Alert.alert("Authentication Error", "You must be logged in to upload images.");
         return;
       }
-      
       Alert.alert('Step 2: Starting Upload', 'Preparing to upload to Firebase Storage...');
       const response = await fetch(uri);
       const blob = await response.blob();
@@ -213,6 +214,13 @@ export default function TaskAttendanceScreen() {
       // 3. Update form state with the final URL
       setFormData(prev => ({ ...prev, selfieUrl: downloadURL }));
 
+      // 4. If editing, update Firestore immediately
+      if (selectedAttendance) {
+        const attendanceDoc = doc(db, "task_attendance", selectedAttendance.id);
+        await updateDoc(attendanceDoc, { selfieUrl: downloadURL });
+        fetchAttendances();
+        Alert.alert("Success", "Selfie uploaded and saved.");
+      }
     } catch (error: any) {
       console.error("CRITICAL ERROR during image pick and upload: ", error);
       Alert.alert("Upload Failed", `An error occurred: ${error.message}. Check the console for more details.`);
@@ -234,7 +242,12 @@ export default function TaskAttendanceScreen() {
     return <ActivityIndicator />;
   }
 
-  const canManage = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
+  // Only these roles can CRUD
+  const canManage = [
+    'admin', 'superadmin', 'area manager'
+  ].includes(userRole || '');
+  // These roles can Read and Update
+  const canReadUpdate = canManage || ['Iris - BA', 'Iris - TL'].includes(userRole || '');
 
   const renderAttendance = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
@@ -243,10 +256,10 @@ export default function TaskAttendanceScreen() {
       <Text>Check-in: {item.checkIn?.toDate().toLocaleString()}</Text>
       <Text>Check-out: {item.checkOut?.toDate().toLocaleString()}</Text>
       {item.selfieUrl && item.selfieUrl !== '' ? <Image source={{ uri: item.selfieUrl }} style={styles.thumbnail} /> : <Text>No Selfie</Text>}
-      {canManage && (
+      {canReadUpdate && (
         <View style={styles.buttonContainer}>
           <Button title="Edit" onPress={() => handleEditAttendance(item)} />
-          <Button title="Delete" onPress={() => handleDeleteAttendance(item.id)} />
+          {canManage && <Button title="Delete" onPress={() => handleDeleteAttendance(item.id)} />}
         </View>
       )}
     </View>
@@ -271,6 +284,7 @@ export default function TaskAttendanceScreen() {
 
       <Button title="Upload Selfie" onPress={pickAndUploadImage} />
       {formData.selfieUrl ? <Image source={{ uri: formData.selfieUrl }} style={styles.selfieImage} /> : null}
+
     </>
   );
 
