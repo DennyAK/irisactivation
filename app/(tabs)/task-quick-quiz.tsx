@@ -6,6 +6,16 @@ import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function TaskQuickQuizScreen() {
+  // Quiz Questions CRUD states
+  const [allQuestions, setAllQuestions] = useState<any[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [isQuestionModalVisible, setIsQuestionModalVisible] = useState(false);
+  const [questionForm, setQuestionForm] = useState({
+    question: '',
+    options: { A: '', B: '', C: '', D: '' },
+    answer: 'A',
+    id: null,
+  });
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -28,6 +38,7 @@ export default function TaskQuickQuizScreen() {
   const [quizLoading, setQuizLoading] = useState(false);
 
   useEffect(() => {
+    fetchAllQuestions();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
@@ -43,6 +54,74 @@ export default function TaskQuickQuizScreen() {
     fetchQuizzes();
     return () => unsubscribe();
   }, []);
+
+  // Fetch all quiz questions for CRUD
+  const fetchAllQuestions = async () => {
+    setQuestionsLoading(true);
+    try {
+      const questionsCollection = collection(db, 'quiz_questions');
+      const snapshot = await getDocs(questionsCollection);
+      const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllQuestions(questions);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load quiz questions list.');
+    } finally {
+      setQuestionsLoading(false);
+    }
+  };
+
+  // Add or update question
+  const handleSaveQuestion = async () => {
+    try {
+      if (questionForm.id) {
+        // Update
+        const qDoc = doc(db, 'quiz_questions', questionForm.id);
+        await updateDoc(qDoc, {
+          question: questionForm.question,
+          options: questionForm.options,
+          answer: questionForm.answer,
+        });
+      } else {
+        // Add
+        await addDoc(collection(db, 'quiz_questions'), {
+          question: questionForm.question,
+          options: questionForm.options,
+          answer: questionForm.answer,
+        });
+      }
+      setIsQuestionModalVisible(false);
+      setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null });
+      fetchAllQuestions();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save question.');
+    }
+  };
+
+  // Edit question
+  const handleEditQuestion = (q: any) => {
+    setQuestionForm({
+      question: q.question,
+      options: { ...q.options },
+      answer: q.answer,
+      id: q.id,
+    });
+    setIsQuestionModalVisible(true);
+  };
+
+  // Delete question
+  const handleDeleteQuestion = async (id: string) => {
+    Alert.alert('Delete Question', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'OK', onPress: async () => {
+        try {
+          await deleteDoc(doc(db, 'quiz_questions', id));
+          fetchAllQuestions();
+        } catch (error) {
+          Alert.alert('Error', 'Failed to delete question.');
+        }
+      }}
+    ]);
+  };
 
   const fetchQuizzes = async () => {
     setLoading(true);
@@ -139,7 +218,7 @@ export default function TaskQuickQuizScreen() {
       let questions = snapshot.docs.map(doc => doc.data());
       // Shuffle and pick 10
       questions = questions.sort(() => Math.random() - 0.5).slice(0, 10);
-      setQuizQuestions(quizQuestions);
+      setQuizQuestions(questions);
       setCurrentQuestionIndex(0);
       setUserAnswers([]);
       setQuizScore(null);
@@ -217,7 +296,41 @@ export default function TaskQuickQuizScreen() {
       <Text style={styles.title}>Task Quick Quiz</Text>
       <Button title="Take Quiz" onPress={fetchQuizQuestions} disabled={quizLoading} />
       {canUpdate && <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />}
-      <FlatList data={quizzes} keyExtractor={(item) => item.id} renderItem={renderQuiz} />
+
+      {/* Quiz Questions List for Superadmin/Admin */}
+      {(userRole === 'superadmin' || userRole === 'admin') && (
+        <View style={{ marginTop: 30 }}>
+          <Text style={styles.title}>Quiz Questions (CRUD)</Text>
+          <Button title="Add New Question" onPress={() => setIsQuestionModalVisible(true)} />
+          {questionsLoading ? (
+            <ActivityIndicator />
+          ) : (
+            <FlatList
+              data={allQuestions}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <View style={styles.itemContainer}>
+                  <Text style={styles.itemTitle}>{item.question}</Text>
+                  {Object.entries(item.options).map(([key, value]) => (
+                    <Text key={key}>{key}: {String(value)}</Text>
+                  ))}
+                  <Text>Answer: {item.answer}</Text>
+                  <View style={styles.buttonContainer}>
+                    <Button title="Edit" onPress={() => handleEditQuestion(item)} />
+                    <Button title="Delete" onPress={() => handleDeleteQuestion(item.id)} />
+                  </View>
+                </View>
+              )}
+            />
+          )}
+        </View>
+      )}
+
+      {/* Quiz Results List - always visible below questions */}
+      <View style={{ marginTop: 30 }}>
+        <Text style={styles.title}>Quiz Results</Text>
+        <FlatList data={quizzes} keyExtractor={(item) => item.id} renderItem={renderQuiz} />
+      </View>
 
       {/* Quiz Modal */}
       <Modal visible={quizModalVisible} transparent={true} animationType="slide" onRequestClose={handleQuizModalClose}>
@@ -244,6 +357,41 @@ export default function TaskQuickQuizScreen() {
             )}
           </View>
         </View>
+      </Modal>
+
+      {/* Add/Edit Question Modal */}
+      <Modal visible={isQuestionModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsQuestionModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>{questionForm.id ? 'Edit' : 'Add'} Quiz Question</Text>
+            <TextInput
+              style={styles.input}
+              value={questionForm.question}
+              onChangeText={text => setQuestionForm({ ...questionForm, question: text })}
+              placeholder="Question"
+            />
+            {['A', 'B', 'C', 'D'].map(opt => (
+              <TextInput
+                key={opt}
+                style={styles.input}
+                value={questionForm.options[opt as keyof typeof questionForm.options]}
+                onChangeText={text => setQuestionForm({ ...questionForm, options: { ...questionForm.options, [opt as keyof typeof questionForm.options]: text } })}
+                placeholder={`Option ${opt}`}
+              />
+            ))}
+            <TextInput
+              style={styles.input}
+              value={questionForm.answer}
+              onChangeText={text => setQuestionForm({ ...questionForm, answer: text })}
+              placeholder="Answer (A/B/C/D)"
+              maxLength={1}
+            />
+            <View style={styles.buttonContainer}>
+              <Button title={questionForm.id ? 'Update' : 'Add'} onPress={handleSaveQuestion} />
+              <Button title="Cancel" onPress={() => { setIsQuestionModalVisible(false); setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null }); }} />
+            </View>
+          </View>
+        </ScrollView>
       </Modal>
 
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
