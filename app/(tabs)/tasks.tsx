@@ -267,10 +267,10 @@ const fetchTLUsers = async () => {
     <View style={styles.itemContainer}>
       {/* Display all task details, including outlet and assigned users */}
       <Text style={styles.itemTitle}>Outlet: {item.outletName}</Text>
+      <Text>Task Start Date: {item.startDate?.toDate().toLocaleDateString()}</Text>
       <Text>Assigned to BA: {baUsers.find(u => u.id === item.assignedToUserBA)?.name || item.assignedToUserBA}</Text>
       <Text>Assigned to TL: {tlUsers.find(u => u.id === item.assignedToUserTLID)?.name || item.assignedToUserTLID}</Text>
       <Text>Assigned by: {item.assignedBy}</Text>
-      <Text>Task Start Date: {item.startDate?.toDate().toLocaleDateString()}</Text>
       <Text>Created Time: {item.createdAt?.toDate().toLocaleString()}</Text>
       <Text>Remark: {item.remark}</Text>
       <Text>Task Attendance: {item.task_attendance} {item.taskAttendanceId ? `(ID: ${item.taskAttendanceId})` : ''}</Text>
@@ -418,16 +418,18 @@ const fetchTLUsers = async () => {
       
       {/* Add Modal: Form for adding a new task */}
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
-        <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Add New Task</Text>
-            {renderModalFields()}
-            <View style={styles.buttonContainer}>
-              <Button title="Add" onPress={handleAddTask} />
-              <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
-            </View>
+    <View style={styles.modalContainer}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.modalContent}>
+          <Text style={styles.title}>Add New Task</Text>
+          {renderModalFields()}
+          <View style={styles.buttonContainer}>
+            <Button title="Add" onPress={handleAddTask} />
+            <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
           </View>
-        </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
       </Modal>
 
       {/* Edit Modal: Form for editing an existing task */}
