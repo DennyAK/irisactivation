@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
+import { quizQuestions } from '../../data/quizQuestions';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -138,7 +139,7 @@ export default function TaskQuickQuizScreen() {
       let questions = snapshot.docs.map(doc => doc.data());
       // Shuffle and pick 10
       questions = questions.sort(() => Math.random() - 0.5).slice(0, 10);
-      setQuizQuestions(questions);
+      setQuizQuestions(quizQuestions);
       setCurrentQuestionIndex(0);
       setUserAnswers([]);
       setQuizScore(null);
