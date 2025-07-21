@@ -18,6 +18,14 @@ export default function TaskQuickQuizScreen() {
   const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
+  // Quiz modal states
+  const [quizModalVisible, setQuizModalVisible] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<string[]>([]);
+  const [quizScore, setQuizScore] = useState<number | null>(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -120,6 +128,58 @@ export default function TaskQuickQuizScreen() {
     ]);
   };
 
+  // --- Take Quiz Feature ---
+  // Fetch 10 random quiz questions from Firestore
+  const fetchQuizQuestions = async () => {
+    setQuizLoading(true);
+    try {
+      const questionsCollection = collection(db, 'quiz_questions');
+      const snapshot = await getDocs(questionsCollection);
+      let questions = snapshot.docs.map(doc => doc.data());
+      // Shuffle and pick 10
+      questions = questions.sort(() => Math.random() - 0.5).slice(0, 10);
+      setQuizQuestions(questions);
+      setCurrentQuestionIndex(0);
+      setUserAnswers([]);
+      setQuizScore(null);
+      setQuizModalVisible(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load quiz questions.');
+    } finally {
+      setQuizLoading(false);
+    }
+  };
+
+  // Handle answer selection
+  const handleAnswer = (answer: string) => {
+    setUserAnswers(prev => [...prev, answer]);
+    if (currentQuestionIndex < quizQuestions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // Quiz finished, calculate score
+      const score = quizQuestions.reduce((acc, q, idx) => acc + (userAnswers[idx] === q.answer ? 1 : 0), 0);
+      setQuizScore(score);
+      // Record score in Firestore
+      const userId = auth.currentUser?.uid || 'anonymous';
+      addDoc(collection(db, 'task_quick_quiz'), {
+        userId,
+        takeQuickQuizId: '',
+        quizDate: new Date(),
+        quickQuizResult: `${score}/10`,
+        createdAt: serverTimestamp()
+      });
+    }
+  };
+
+  // Reset quiz modal
+  const handleQuizModalClose = () => {
+    setQuizModalVisible(false);
+    setQuizQuestions([]);
+    setCurrentQuestionIndex(0);
+    setUserAnswers([]);
+    setQuizScore(null);
+  };
+
   if (loading) {
     return <ActivityIndicator />;
   }
@@ -131,7 +191,7 @@ export default function TaskQuickQuizScreen() {
     <View style={styles.itemContainer}>
       <Text style={styles.itemTitle}>Quiz ID: {item.takeQuickQuizId}</Text>
       <Text>User ID: {item.userId}</Text>
-      <Text>Date: {item.quizDate?.toDate().toLocaleDateString()}</Text>
+      <Text>Date: {item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate}</Text>
       <Text>Result: {item.quickQuizResult}</Text>
       {canUpdate && (
         <View style={styles.buttonContainer}>
@@ -154,9 +214,37 @@ export default function TaskQuickQuizScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Task Quick Quiz</Text>
+      <Button title="Take Quiz" onPress={fetchQuizQuestions} disabled={quizLoading} />
       {canUpdate && <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />}
       <FlatList data={quizzes} keyExtractor={(item) => item.id} renderItem={renderQuiz} />
-      
+
+      {/* Quiz Modal */}
+      <Modal visible={quizModalVisible} transparent={true} animationType="slide" onRequestClose={handleQuizModalClose}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {quizScore === null ? (
+              quizQuestions.length > 0 && currentQuestionIndex < quizQuestions.length ? (
+                <>
+                  <Text style={styles.title}>Question {currentQuestionIndex + 1} of {quizQuestions.length}</Text>
+                  <Text style={{ marginBottom: 16 }}>{quizQuestions[currentQuestionIndex].question}</Text>
+                  {Object.entries(quizQuestions[currentQuestionIndex].options).map(([key, value]) => (
+                    <Button key={key} title={`${key}: ${value}`} onPress={() => handleAnswer(key)} />
+                  ))}
+                </>
+              ) : (
+                <ActivityIndicator />
+              )
+            ) : (
+              <>
+                <Text style={styles.title}>Quiz Complete!</Text>
+                <Text>Your Score: {quizScore}/10</Text>
+                <Button title="Close" onPress={handleQuizModalClose} />
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>
