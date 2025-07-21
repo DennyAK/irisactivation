@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { TextInput } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, writeBatch, doc, DocumentSnapshot, getDoc } from 'firebase/firestore';
+import { addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { provinces as provinceData } from '../../data/indonesian-regions';
 
 export default function ProvinceListScreen() {
+  // Add Province modal state
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [newProvinceName, setNewProvinceName] = useState('');
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -91,8 +96,43 @@ export default function ProvinceListScreen() {
       <Text style={styles.title}>Indonesian Provinces</Text>
       {isAdmin && (
         <View style={styles.buttonContainer}>
-            <Button title="Populate All Provinces" onPress={handlePopulateProvinces} />
-            <Button title="Clear All Provinces" onPress={handleClearProvinces} color="red" />
+          {/*
+          <Button title="Populate Provinces" onPress={handlePopulateProvinces} />
+          <Button title="Clear All" onPress={handleClearAllProvinces} />
+          */}
+          <Button title="Add Province" onPress={() => setIsAddModalVisible(true)} />
+        </View>
+      )}
+      {/* Add Province Modal */}
+      {isAddModalVisible && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, width: '80%' }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Add Province</Text>
+            <TextInput
+              style={{ borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8, height: 40 }}
+              value={newProvinceName}
+              onChangeText={setNewProvinceName}
+              placeholder="Province Name"
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+              <Button title="Add" onPress={async () => {
+                if (newProvinceName.trim() === '') {
+                  Alert.alert('Invalid Name', 'Province name cannot be empty.');
+                  return;
+                }
+                try {
+                  const provincesCollection = collection(db, 'provinces');
+                  await addDoc(provincesCollection, { name: newProvinceName.trim() });
+                  setNewProvinceName('');
+                  setIsAddModalVisible(false);
+                  fetchProvinces();
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to add province.');
+                }
+              }} />
+              <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); setNewProvinceName(''); }} />
+            </View>
+          </View>
         </View>
       )}
       <FlatList
