@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, writeBatch, doc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -7,6 +7,8 @@ import { Picker } from '@react-native-picker/picker';
 import { provinces as provinceData, citiesAndRegencies } from '../../data/indonesian-regions';
 
 export default function CityListScreen() {
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
   const [cities, setCities] = useState<any[]>([]);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
@@ -141,15 +143,25 @@ export default function CityListScreen() {
       )}
       {loadingCities ? <ActivityIndicator /> : (
         cities.length > 0 ? (
-            <FlatList
-                data={cities}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                <View style={styles.itemContainer}>
-                    <Text>{item.name}</Text>
-                </View>
-                )}
+      <FlatList
+          data={cities}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+          <View style={styles.itemContainer}>
+              <Text>{item.name}</Text>
+          </View>
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                if(selectedProvince) await fetchCities(selectedProvince);
+                setRefreshing(false);
+              }}
             />
+          }
+      />
         ) : (
             <Text style={styles.infoText}>
                 {selectedProvince ? 'No cities found for this province.' : 'Please select a province to view the list of cities.'}

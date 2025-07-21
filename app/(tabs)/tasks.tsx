@@ -1,7 +1,7 @@
 // --- Imports ---
 // React hooks, UI components, Firebase config, Firestore functions, Auth, Picker, DateTimePicker
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -10,6 +10,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 // --- Main Component ---
 export default function TasksScreen() {
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
   // --- State Variables ---
   // tasks: List of all tasks fetched from Firestore
   const [tasks, setTasks] = useState<any[]>([]);
@@ -398,7 +400,21 @@ const fetchTLUsers = async () => {
       {/* Add Task Button (only for managers) */}
       {canManage && <Button title="Add New Task" onPress={() => setIsAddModalVisible(true)} />}
       {/* List of tasks */}
-      <FlatList data={tasks} keyExtractor={(item) => item.id} renderItem={renderTask} />
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTask}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchTasks();
+              setRefreshing(false);
+            }}
+          />
+        }
+      />
       
       {/* Add Modal: Form for adding a new task */}
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>

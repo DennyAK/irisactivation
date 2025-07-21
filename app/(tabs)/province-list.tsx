@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, writeBatch, doc, DocumentSnapshot, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { provinces as provinceData } from '../../data/indonesian-regions';
 
 export default function ProvinceListScreen() {
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -101,6 +103,16 @@ export default function ProvinceListScreen() {
             <Text>{item.name}</Text>
           </View>
         )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchProvinces();
+              setRefreshing(false);
+            }}
+          />
+        }
       />
     </View>
   );

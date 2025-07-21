@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
-import { quizQuestions } from '../../data/quizQuestions';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function TaskQuickQuizScreen() {
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
   // Quiz Questions CRUD states
   const [allQuestions, setAllQuestions] = useState<any[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
@@ -23,7 +24,7 @@ export default function TaskQuickQuizScreen() {
   const [formData, setFormData] = useState({
     userId: '',
     takeQuickQuizId: '',
-    quizDate: '', // Will be handled as a string for input
+    quizDate: '',
     quickQuizResult: '',
   });
   const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
@@ -149,10 +150,13 @@ export default function TaskQuickQuizScreen() {
       ...formData,
       quizDate: new Date(formData.quizDate),
       createdAt: serverTimestamp()
-    }).then(() => {
-      setIsAddModalVisible(false);
-      resetFormData();
-      fetchQuizzes();
+    }).then((docRef) => {
+      // Update the just-created document to set takeQuickQuizId to its own id
+      updateDoc(docRef, { takeQuickQuizId: docRef.id }).then(() => {
+        setIsAddModalVisible(false);
+        resetFormData();
+        fetchQuizzes();
+      });
     }).catch(error => {
       Alert.alert("Add Failed", error.message);
     });
@@ -162,7 +166,6 @@ export default function TaskQuickQuizScreen() {
     setSelectedQuiz(quiz);
     let formattedDate = '';
     if (quiz.quizDate) {
-      // Firestore Timestamp has toDate(), JS Date does not
       if (typeof quiz.quizDate.toDate === 'function') {
         formattedDate = quiz.quizDate.toDate().toISOString().split('T')[0];
       } else if (quiz.quizDate instanceof Date) {
@@ -209,14 +212,12 @@ export default function TaskQuickQuizScreen() {
   };
 
   // --- Take Quiz Feature ---
-  // Fetch 10 random quiz questions from Firestore
   const fetchQuizQuestions = async () => {
     setQuizLoading(true);
     try {
       const questionsCollection = collection(db, 'quiz_questions');
       const snapshot = await getDocs(questionsCollection);
       let questions = snapshot.docs.map(doc => doc.data());
-      // Shuffle and pick 10
       questions = questions.sort(() => Math.random() - 0.5).slice(0, 10);
       setQuizQuestions(questions);
       setCurrentQuestionIndex(0);
@@ -230,16 +231,13 @@ export default function TaskQuickQuizScreen() {
     }
   };
 
-  // Handle answer selection
   const handleAnswer = (answer: string) => {
     setUserAnswers(prev => [...prev, answer]);
     if (currentQuestionIndex < quizQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      // Quiz finished, calculate score
       const score = quizQuestions.reduce((acc, q, idx) => acc + (userAnswers[idx] === q.answer ? 1 : 0), 0);
       setQuizScore(score);
-      // Record score in Firestore
       const userId = auth.currentUser?.uid || 'anonymous';
       addDoc(collection(db, 'task_quick_quiz'), {
         userId,
@@ -251,7 +249,6 @@ export default function TaskQuickQuizScreen() {
     }
   };
 
-  // Reset quiz modal
   const handleQuizModalClose = () => {
     setQuizModalVisible(false);
     setQuizQuestions([]);
@@ -293,7 +290,19 @@ export default function TaskQuickQuizScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 60 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchQuizzes();
+              setRefreshing(false);
+            }}
+          />
+        }
+      >
         <Text style={styles.title}>Task Quick Quiz</Text>
         <Button title="Take Quiz" onPress={fetchQuizQuestions} disabled={quizLoading} />
         {canUpdate && <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />}
@@ -329,7 +338,11 @@ export default function TaskQuickQuizScreen() {
           {quizzes.length === 0 ? (
             <Text>No quiz records found.</Text>
           ) : (
-            quizzes.map(item => renderQuiz({ item }))
+            quizzes.map(item => (
+              <View key={item.id}>
+                {renderQuiz({ item })}
+              </View>
+            ))
           )}
         </View>
       </ScrollView>
@@ -396,6 +409,7 @@ export default function TaskQuickQuizScreen() {
         </ScrollView>
       </Modal>
 
+      {/* Add Quiz Record Modal */}
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -409,95 +423,7 @@ export default function TaskQuickQuizScreen() {
         </ScrollView>
       </Modal>
 
-      <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
-        <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Edit Quiz Record</Text>
-            {renderModalFields()}
-            <View style={styles.buttonContainer}>
-              <Button title="Update" onPress={handleUpdateQuiz} />
-              <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
-            </View>
-          </View>
-        </ScrollView>
-      </Modal>
-    </View>
-
-      {/* Quiz Modal */}
-      <Modal visible={quizModalVisible} transparent={true} animationType="slide" onRequestClose={handleQuizModalClose}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {quizScore === null ? (
-              quizQuestions.length > 0 && currentQuestionIndex < quizQuestions.length ? (
-                <>
-                  <Text style={styles.title}>Question {currentQuestionIndex + 1} of {quizQuestions.length}</Text>
-                  <Text style={{ marginBottom: 16 }}>{quizQuestions[currentQuestionIndex].question}</Text>
-                  {Object.entries(quizQuestions[currentQuestionIndex].options).map(([key, value]) => (
-                    <Button key={key} title={`${key}: ${value}`} onPress={() => handleAnswer(key)} />
-                  ))}
-                </>
-              ) : (
-                <ActivityIndicator />
-              )
-            ) : (
-              <>
-                <Text style={styles.title}>Quiz Complete!</Text>
-                <Text>Your Score: {quizScore}/10</Text>
-                <Button title="Close" onPress={handleQuizModalClose} />
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Add/Edit Question Modal */}
-      <Modal visible={isQuestionModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsQuestionModalVisible(false)}>
-        <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>{questionForm.id ? 'Edit' : 'Add'} Quiz Question</Text>
-            <TextInput
-              style={styles.input}
-              value={questionForm.question}
-              onChangeText={text => setQuestionForm({ ...questionForm, question: text })}
-              placeholder="Question"
-            />
-            {['A', 'B', 'C', 'D'].map(opt => (
-              <TextInput
-                key={opt}
-                style={styles.input}
-                value={questionForm.options[opt as keyof typeof questionForm.options]}
-                onChangeText={text => setQuestionForm({ ...questionForm, options: { ...questionForm.options, [opt as keyof typeof questionForm.options]: text } })}
-                placeholder={`Option ${opt}`}
-              />
-            ))}
-            <TextInput
-              style={styles.input}
-              value={questionForm.answer}
-              onChangeText={text => setQuestionForm({ ...questionForm, answer: text })}
-              placeholder="Answer (A/B/C/D)"
-              maxLength={1}
-            />
-            <View style={styles.buttonContainer}>
-              <Button title={questionForm.id ? 'Update' : 'Add'} onPress={handleSaveQuestion} />
-              <Button title="Cancel" onPress={() => { setIsQuestionModalVisible(false); setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null }); }} />
-            </View>
-          </View>
-        </ScrollView>
-      </Modal>
-
-      <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
-        <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Add Quiz Record</Text>
-            {renderModalFields()}
-            <View style={styles.buttonContainer}>
-              <Button title="Add" onPress={handleAddQuiz} />
-              <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
-            </View>
-          </View>
-        </ScrollView>
-      </Modal>
-
+      {/* Edit Quiz Record Modal */}
       <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>

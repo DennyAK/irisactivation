@@ -2,7 +2,7 @@
 // You can undo to this version if any crash happens today.
 
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl } from 'react-native';
 import { db, auth, storage } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, Timestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -11,6 +11,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function TaskAttendanceScreen() {
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
   const [attendances, setAttendances] = useState<any[]>([]);
   const [outlets, setOutlets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -296,7 +298,21 @@ export default function TaskAttendanceScreen() {
           resetFormData();
           setIsAddModalVisible(true);
       }} />}
-      <FlatList data={attendances} keyExtractor={(item) => item.id} renderItem={renderAttendance} />
+      <FlatList
+        data={attendances}
+        keyExtractor={(item) => item.id}
+        renderItem={renderAttendance}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchAttendances();
+              setRefreshing(false);
+            }}
+          />
+        }
+      />
       
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>

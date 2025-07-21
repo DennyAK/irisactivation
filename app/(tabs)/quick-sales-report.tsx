@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function QuickSalesReportScreen() {
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -158,7 +160,21 @@ export default function QuickSalesReportScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Quick Sales Report</Text>
       {canUpdate && <Button title="Add New Report" onPress={() => handleOpenModal('add')} />}
-      <FlatList data={reports} keyExtractor={(item) => item.id} renderItem={renderItem} />
+      <FlatList
+        data={reports}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchReports();
+              setRefreshing(false);
+            }}
+          />
+        }
+      />
       {renderModal()}
     </View>
   );

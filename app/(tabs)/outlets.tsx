@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -7,6 +7,8 @@ import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
 
 export default function OutletsScreen() {
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
   const [outlets, setOutlets] = useState<any[]>([]);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -256,7 +258,21 @@ export default function OutletsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Outlets</Text>
       {canCreateOrEdit && <Button title="Add New Outlet" onPress={() => setIsAddModalVisible(true)} />}
-      <FlatList data={outlets} keyExtractor={(item) => item.id} renderItem={renderOutlet} />
+      <FlatList
+        data={outlets}
+        keyExtractor={(item) => item.id}
+        renderItem={renderOutlet}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchOutlets();
+              setRefreshing(false);
+            }}
+          />
+        }
+      />
       
       {/* Add Modal */}
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>

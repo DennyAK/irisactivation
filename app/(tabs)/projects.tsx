@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ProjectsScreen() {
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -146,12 +148,10 @@ export default function ProjectsScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.projectContainer}>
-            <Text>Activation Name: {item.activationName}</Text>
-            <Text>Project Name: {item.projectName}</Text>
-            <Text>Project Type: {item.projectType}</Text>
-            <Text>Project Tier: {item.projectTier}</Text>
-            <Text>Created By: {item.createdByName}</Text>
-            <Text>Created Time: {item.createdAt?.toDate().toLocaleString()}</Text>
+            <Text style={styles.itemTitle}>{item.projectName}</Text>
+            <Text>Type: {item.projectType}</Text>
+            <Text>Tier: {item.projectTier}</Text>
+            <Text>Activation: {item.activationName}</Text>
             {canEdit && (
               <View style={styles.buttonContainer}>
                 <Button title="Edit" onPress={() => handleEditProject(item)} />
@@ -160,39 +160,51 @@ export default function ProjectsScreen() {
             )}
           </View>
         )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchProjects();
+              setRefreshing(false);
+            }}
+          />
+        }
       />
-      {/* Add Modal */}
-      <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
-        <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Add New Project</Text>
-            <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({...formData, activationName: text})} placeholder="Activation Name" />
-            <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({...formData, projectName: text})} placeholder="Project Name" />
-            <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({...formData, projectType: text})} placeholder="Project Type" />
-            <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({...formData, projectTier: text})} placeholder="Project Tier" />
-            <View style={styles.buttonContainer}>
-              <Button title="Add" onPress={handleAddProject} />
-              <Button title="Cancel" onPress={() => setIsAddModalVisible(false)} />
+      <>
+        {/* Add Modal */}
+        <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
+          <ScrollView contentContainerStyle={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.title}>Add Project</Text>
+              <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({...formData, activationName: text})} placeholder="Activation Name" />
+              <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({...formData, projectName: text})} placeholder="Project Name" />
+              <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({...formData, projectType: text})} placeholder="Project Type" />
+              <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({...formData, projectTier: text})} placeholder="Project Tier" />
+              <View style={styles.buttonContainer}>
+                <Button title="Add" onPress={handleAddProject} />
+                <Button title="Cancel" onPress={() => setIsAddModalVisible(false)} />
+              </View>
             </View>
-          </View>
-        </ScrollView>
-      </Modal>
-      {/* Edit Modal */}
-      <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
-        <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Edit Project</Text>
-            <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({...formData, activationName: text})} placeholder="Activation Name" />
-            <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({...formData, projectName: text})} placeholder="Project Name" />
-            <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({...formData, projectType: text})} placeholder="Project Type" />
-            <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({...formData, projectTier: text})} placeholder="Project Tier" />
-            <View style={styles.buttonContainer}>
-              <Button title="Update" onPress={handleUpdateProject} />
-              <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); setFormData({ activationName: '', projectName: '', projectType: '', projectTier: '' }); }} />
+          </ScrollView>
+        </Modal>
+        {/* Edit Modal */}
+        <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
+          <ScrollView contentContainerStyle={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.title}>Edit Project</Text>
+              <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({...formData, activationName: text})} placeholder="Activation Name" />
+              <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({...formData, projectName: text})} placeholder="Project Name" />
+              <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({...formData, projectType: text})} placeholder="Project Type" />
+              <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({...formData, projectTier: text})} placeholder="Project Tier" />
+              <View style={styles.buttonContainer}>
+                <Button title="Update" onPress={handleUpdateProject} />
+                <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); setFormData({ activationName: '', projectName: '', projectType: '', projectTier: '' }); }} />
+              </View>
             </View>
-          </View>
-        </ScrollView>
-      </Modal>
+          </ScrollView>
+        </Modal>
+      </>
     </View>
   );
 }
