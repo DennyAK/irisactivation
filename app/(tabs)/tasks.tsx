@@ -479,11 +479,10 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
-    width: '90%',
+    width: '95%',
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 12,
