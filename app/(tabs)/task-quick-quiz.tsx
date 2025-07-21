@@ -293,23 +293,21 @@ export default function TaskQuickQuizScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Task Quick Quiz</Text>
-      <Button title="Take Quiz" onPress={fetchQuizQuestions} disabled={quizLoading} />
-      {canUpdate && <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />}
+      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+        <Text style={styles.title}>Task Quick Quiz</Text>
+        <Button title="Take Quiz" onPress={fetchQuizQuestions} disabled={quizLoading} />
+        {canUpdate && <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />}
 
-      {/* Quiz Questions List for Superadmin/Admin */}
-      {(userRole === 'superadmin' || userRole === 'admin') && (
-        <View style={{ marginTop: 30 }}>
-          <Text style={styles.title}>Quiz Questions (CRUD)</Text>
-          <Button title="Add New Question" onPress={() => setIsQuestionModalVisible(true)} />
-          {questionsLoading ? (
-            <ActivityIndicator />
-          ) : (
-            <FlatList
-              data={allQuestions}
-              keyExtractor={item => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.itemContainer}>
+        {/* Quiz Questions List for Superadmin/Admin */}
+        {(userRole === 'superadmin' || userRole === 'admin') && (
+          <View style={{ marginTop: 30 }}>
+            <Text style={styles.title}>Quiz Questions (CRUD)</Text>
+            <Button title="Add New Question" onPress={() => setIsQuestionModalVisible(true)} />
+            {questionsLoading ? (
+              <ActivityIndicator />
+            ) : (
+              allQuestions.map(item => (
+                <View style={styles.itemContainer} key={item.id}>
                   <Text style={styles.itemTitle}>{item.question}</Text>
                   {Object.entries(item.options).map(([key, value]) => (
                     <Text key={key}>{key}: {String(value)}</Text>
@@ -320,17 +318,110 @@ export default function TaskQuickQuizScreen() {
                     <Button title="Delete" onPress={() => handleDeleteQuestion(item.id)} />
                   </View>
                 </View>
-              )}
-            />
+              ))
+            )}
+          </View>
+        )}
+
+        {/* Quiz Results List - always visible below questions */}
+        <View style={{ marginTop: 30 }}>
+          <Text style={styles.title}>Quiz Results</Text>
+          {quizzes.length === 0 ? (
+            <Text>No quiz records found.</Text>
+          ) : (
+            quizzes.map(item => renderQuiz({ item }))
           )}
         </View>
-      )}
+      </ScrollView>
 
-      {/* Quiz Results List - always visible below questions */}
-      <View style={{ marginTop: 30 }}>
-        <Text style={styles.title}>Quiz Results</Text>
-        <FlatList data={quizzes} keyExtractor={(item) => item.id} renderItem={renderQuiz} />
-      </View>
+      {/* Quiz Modal */}
+      <Modal visible={quizModalVisible} transparent={true} animationType="slide" onRequestClose={handleQuizModalClose}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {quizScore === null ? (
+              quizQuestions.length > 0 && currentQuestionIndex < quizQuestions.length ? (
+                <>
+                  <Text style={styles.title}>Question {currentQuestionIndex + 1} of {quizQuestions.length}</Text>
+                  <Text style={{ marginBottom: 16 }}>{quizQuestions[currentQuestionIndex].question}</Text>
+                  {Object.entries(quizQuestions[currentQuestionIndex].options).map(([key, value]) => (
+                    <Button key={key} title={`${key}: ${value}`} onPress={() => handleAnswer(key)} />
+                  ))}
+                </>
+              ) : (
+                <ActivityIndicator />
+              )
+            ) : (
+              <>
+                <Text style={styles.title}>Quiz Complete!</Text>
+                <Text>Your Score: {quizScore}/10</Text>
+                <Button title="Close" onPress={handleQuizModalClose} />
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add/Edit Question Modal */}
+      <Modal visible={isQuestionModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsQuestionModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>{questionForm.id ? 'Edit' : 'Add'} Quiz Question</Text>
+            <TextInput
+              style={styles.input}
+              value={questionForm.question}
+              onChangeText={text => setQuestionForm({ ...questionForm, question: text })}
+              placeholder="Question"
+            />
+            {['A', 'B', 'C', 'D'].map(opt => (
+              <TextInput
+                key={opt}
+                style={styles.input}
+                value={questionForm.options[opt as keyof typeof questionForm.options]}
+                onChangeText={text => setQuestionForm({ ...questionForm, options: { ...questionForm.options, [opt as keyof typeof questionForm.options]: text } })}
+                placeholder={`Option ${opt}`}
+              />
+            ))}
+            <TextInput
+              style={styles.input}
+              value={questionForm.answer}
+              onChangeText={text => setQuestionForm({ ...questionForm, answer: text })}
+              placeholder="Answer (A/B/C/D)"
+              maxLength={1}
+            />
+            <View style={styles.buttonContainer}>
+              <Button title={questionForm.id ? 'Update' : 'Add'} onPress={handleSaveQuestion} />
+              <Button title="Cancel" onPress={() => { setIsQuestionModalVisible(false); setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null }); }} />
+            </View>
+          </View>
+        </ScrollView>
+      </Modal>
+
+      <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>Add Quiz Record</Text>
+            {renderModalFields()}
+            <View style={styles.buttonContainer}>
+              <Button title="Add" onPress={handleAddQuiz} />
+              <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
+            </View>
+          </View>
+        </ScrollView>
+      </Modal>
+
+      <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>Edit Quiz Record</Text>
+            {renderModalFields()}
+            <View style={styles.buttonContainer}>
+              <Button title="Update" onPress={handleUpdateQuiz} />
+              <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+            </View>
+          </View>
+        </ScrollView>
+      </Modal>
+    </View>
 
       {/* Quiz Modal */}
       <Modal visible={quizModalVisible} transparent={true} animationType="slide" onRequestClose={handleQuizModalClose}>
