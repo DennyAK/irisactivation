@@ -144,11 +144,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="user-management"
         options={{
           title: 'Users',
           tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
-          href: (userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager' || userRole === 'Iris - BA' || userRole === 'Iris - TL') ? '/two' : null,
+          href: (userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager' || userRole === 'Iris - BA' || userRole === 'Iris - TL') ? '/user-management' : null,
         }}
       />
       <Tabs.Screen
