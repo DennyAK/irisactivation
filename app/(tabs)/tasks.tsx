@@ -1,15 +1,55 @@
 // --- Imports ---
 // React hooks, UI components, Firebase config, Firestore functions, Auth, Picker, DateTimePicker
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl, Switch } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation } from '@react-navigation/native';
 
 // --- Main Component ---
 export default function TasksScreen() {
+  const navigation = useNavigation();
+  // State for editing task attendance
+  const [isEditAttendanceModalVisible, setIsEditAttendanceModalVisible] = useState(false);
+  const [attendanceForm, setAttendanceForm] = useState<any>(null);
+  const [editingAttendanceId, setEditingAttendanceId] = useState<string | null>(null);
+
+  // Fetch attendance document by ID
+  const fetchAttendanceById = async (attendanceId: string) => {
+    try {
+      const docRef = doc(db, 'task_attendance', attendanceId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setAttendanceForm({ id: docSnap.id, ...docSnap.data() });
+        setEditingAttendanceId(attendanceId);
+        setIsEditAttendanceModalVisible(true);
+      } else {
+        Alert.alert('Error', 'Attendance document not found.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch attendance document.');
+    }
+  };
+
+  // Update attendance document
+  const handleUpdateAttendance = async () => {
+    if (editingAttendanceId && attendanceForm) {
+      try {
+        const docRef = doc(db, 'task_attendance', editingAttendanceId);
+        await updateDoc(docRef, attendanceForm);
+        setIsEditAttendanceModalVisible(false);
+        setEditingAttendanceId(null);
+        setAttendanceForm(null);
+        fetchTasks();
+      } catch (error) {
+        Alert.alert('Error', 'Failed to update attendance.');
+      }
+    }
+  };
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   // --- State Variables ---
@@ -273,7 +313,80 @@ const fetchTLUsers = async () => {
       <Text>Assigned by: {item.assignedBy}</Text>
       <Text>Created Time: {item.createdAt?.toDate().toLocaleString()}</Text>
       <Text>Remark: {item.remark}</Text>
-      <Text>Task Attendance: {item.task_attendance} {item.taskAttendanceId ? `(ID: ${item.taskAttendanceId})` : ''}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Attendance: {item.task_attendance} </Text>
+        {item.taskAttendanceId ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.taskAttendanceId})</Text>
+            <TouchableOpacity
+              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
+              onPress={() => (navigation as any).navigate('task-attendance', { attendanceId: item.taskAttendanceId })}
+            >
+              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Task Attendance</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
+      {/* Task Assessment Button */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Assessment: {item.task_assesment} </Text>
+        {item.task_assesmentId ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_assesmentId})</Text>
+            <TouchableOpacity
+              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
+              onPress={() => (navigation as any).navigate('task-early-assessment', { assessmentId: item.task_assesmentId })}
+            >
+              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Task Assessment</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
+      {/* Task Quick Quiz Button */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Quick Quiz: {item.task_quick_quiz} </Text>
+        {item.task_quick_quizId ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_quick_quizId})</Text>
+            <TouchableOpacity
+              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
+              onPress={() => (navigation as any).navigate('task-quick-quiz', { quizId: item.task_quick_quizId })}
+            >
+              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Task Quick Quiz</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
+      {/* Task Quick Sales Report Button */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Quick Sales Report: {item.task_quick_sales_report} </Text>
+        {item.task_quick_sales_reportId ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_quick_sales_reportId})</Text>
+            <TouchableOpacity
+              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
+              onPress={() => (navigation as any).navigate('quick-sales-report', { reportId: item.task_quick_sales_reportId })}
+            >
+              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Quick Sales Report</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
+      {/* Task Sales Report Detail Button */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Sales Report Detail: {item.task_sales_report_detail} </Text>
+        {item.task_sales_report_detailId ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_sales_report_detailId})</Text>
+            <TouchableOpacity
+              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
+              onPress={() => (navigation as any).navigate('sales-report-detail', { detailId: item.task_sales_report_detailId })}
+            >
+              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Sales Report Detail</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
       <Text>Task Assessment: {item.task_assesment} {item.task_assesmentId ? `(ID: ${item.task_assesmentId})` : ''}</Text>
       <Text>Task Quick Quiz: {item.task_quick_quiz} {item.task_quick_quizId ? `(ID: ${item.task_quick_quizId})` : ''}</Text>
       <Text>Task Quick Sales Report: {item.task_quick_sales_report} {item.task_quick_sales_reportId ? `(ID: ${item.task_quick_sales_reportId})` : ''}</Text>
@@ -308,72 +421,7 @@ const fetchTLUsers = async () => {
           <Picker.Item key={outlet.id} label={outlet.outletName} value={outlet.id} />
         ))}
       </Picker>
-      {/* BA user dropdown */}
-      <Picker
-        selectedValue={formData.assignedToUserBA}
-        onValueChange={(itemValue) => setFormData({...formData, assignedToUserBA: itemValue})}
-      >
-        <Picker.Item label="Select BA" value="" />
-        {baUsers.map(user => (
-          <Picker.Item key={user.id} label={user.name} value={user.id} />
-        ))}
-      </Picker>
-      {/* TL user dropdown */}
-      <Picker
-        selectedValue={formData.assignedToUserTLID}
-        onValueChange={(itemValue) => setFormData({...formData, assignedToUserTLID: itemValue})}
-      >
-        <Picker.Item label="Select TL" value="" />
-        {tlUsers.map(user => (
-          <Picker.Item key={user.id} label={user.name} value={user.id} />
-        ))}
-      </Picker>
-      {/* Task Attendance dropdown and ID */}
-      <Picker
-        selectedValue={formData.task_attendance}
-        onValueChange={(itemValue) => setFormData({...formData, task_attendance: itemValue})}
-      >
-        <Picker.Item label="Task Attendance: No" value="No" />
-        <Picker.Item label="Task Attendance: Yes" value="Yes" />
-      </Picker>
-      <TextInput style={styles.input} value={formData.taskAttendanceId} onChangeText={(text) => setFormData({...formData, taskAttendanceId: text})} placeholder="Task Attendance ID" />
-      {/* Task Assessment dropdown and ID */}
-      <Picker
-        selectedValue={formData.task_assesment}
-        onValueChange={(itemValue) => setFormData({...formData, task_assesment: itemValue})}
-      >
-        <Picker.Item label="Task Assessment: No" value="No" />
-        <Picker.Item label="Task Assessment: Yes" value="Yes" />
-      </Picker>
-      <TextInput style={styles.input} value={formData.task_assesmentId} onChangeText={(text) => setFormData({...formData, task_assesmentId: text})} placeholder="Task Assessment ID" />
-      {/* Task Quick Quiz dropdown and ID */}
-      <Picker
-        selectedValue={formData.task_quick_quiz}
-        onValueChange={(itemValue) => setFormData({...formData, task_quick_quiz: itemValue})}
-      >
-        <Picker.Item label="Task Quick Quiz: No" value="No" />
-        <Picker.Item label="Task Quick Quiz: Yes" value="Yes" />
-      </Picker>
-      <TextInput style={styles.input} value={formData.task_quick_quizId} onChangeText={(text) => setFormData({...formData, task_quick_quizId: text})} placeholder="Task Quick Quiz ID" />
-      {/* Task Quick Sales Report dropdown and ID */}
-      <Picker
-        selectedValue={formData.task_quick_sales_report}
-        onValueChange={(itemValue) => setFormData({...formData, task_quick_sales_report: itemValue})}
-      >
-        <Picker.Item label="Task Quick Sales Report: No" value="No" />
-        <Picker.Item label="Task Quick Sales Report: Yes" value="Yes" />
-      </Picker>
-      <TextInput style={styles.input} value={formData.task_quick_sales_reportId} onChangeText={(text) => setFormData({...formData, task_quick_sales_reportId: text})} placeholder="Task Quick Sales Report ID" />
-      {/* Task Sales Report Detail dropdown and ID */}
-      <Picker
-        selectedValue={formData.task_sales_report_detail}
-        onValueChange={(itemValue) => setFormData({...formData, task_sales_report_detail: itemValue})}
-      >
-        <Picker.Item label="Task Sales Report Detail: No" value="No" />
-        <Picker.Item label="Task Sales Report Detail: Yes" value="Yes" />
-      </Picker>
-      <TextInput style={styles.input} value={formData.task_sales_report_detailId} onChangeText={(text) => setFormData({...formData, task_sales_report_detailId: text})} placeholder="Task Sales Report Detail ID" />
-      {/* Date picker for start date */}
+      {/* Task Start Date below Outlet */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
         <Text style={styles.input}>{`Task Start Date: ${formData.startDate.toLocaleDateString()}`}</Text>
       </TouchableOpacity>
@@ -387,6 +435,186 @@ const fetchTLUsers = async () => {
           onChange={onDateChange}
         />
       )}
+      {/* BA user dropdown */}
+      <Picker
+        selectedValue={String(formData.assignedToUserBA)}
+        onValueChange={(itemValue) => setFormData({...formData, assignedToUserBA: String(itemValue)})}
+      >
+        <Picker.Item label="Select BA" value="" />
+        {baUsers.map(user => (
+          <Picker.Item key={String(user.id)} label={user.name || user.email || String(user.id)} value={String(user.id)} />
+        ))}
+      </Picker>
+      {/* TL user dropdown */}
+      <Picker
+        selectedValue={String(formData.assignedToUserTLID)}
+        onValueChange={(itemValue) => setFormData({...formData, assignedToUserTLID: String(itemValue)})}
+      >
+        <Picker.Item label="Select TL" value="" />
+        {tlUsers.map(user => (
+          <Picker.Item key={String(user.id)} label={user.name || user.email || String(user.id)} value={String(user.id)} />
+        ))}
+      </Picker>
+      {/* Task Attendance dropdown and ID */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ marginRight: 10 }}>Task Attendance:</Text>
+        <Switch
+          value={formData.task_attendance === 'Yes'}
+          onValueChange={async (isChecked: boolean) => {
+            const itemValue = isChecked ? 'Yes' : 'No';
+            if (itemValue === 'Yes' && formData.task_attendance !== 'Yes') {
+              try {
+                const docRef = await addDoc(collection(db, 'task_attendance'), {
+                  createdAt: serverTimestamp(),
+                  createdBy: currentUserId,
+                  // Add more fields if needed
+                });
+                setFormData({
+                  ...formData,
+                  task_attendance: itemValue,
+                  taskAttendanceId: docRef.id,
+                });
+              } catch (error) {
+                const errMsg = (error as any)?.message || String(error);
+                Alert.alert('Error', `Failed to create task attendance: ${errMsg}`);
+                setFormData({ ...formData, task_attendance: itemValue });
+              }
+            } else {
+              setFormData({ ...formData, task_attendance: itemValue });
+            }
+          }}
+        />
+        <Text style={{ marginLeft: 10 }}>{formData.task_attendance === 'Yes' ? 'Yes' : 'No'}</Text>
+      </View>
+      <TextInput style={styles.input} value={formData.taskAttendanceId} editable={false} placeholder="Task Attendance ID" />
+      {/* Task Assessment dropdown and ID */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ marginRight: 10 }}>Task Assessment:</Text>
+        <Switch
+          value={formData.task_assesment === 'Yes'}
+          onValueChange={async (isChecked: boolean) => {
+            const itemValue = isChecked ? 'Yes' : 'No';
+            if (itemValue === 'Yes' && formData.task_assesment !== 'Yes') {
+              try {
+                const docRef = await addDoc(collection(db, 'task_early_assessment'), {
+                  createdAt: serverTimestamp(),
+                  createdBy: currentUserId,
+                  // You can add more fields here if needed
+                });
+                setFormData({
+                  ...formData,
+                  task_assesment: itemValue,
+                  task_assesmentId: docRef.id,
+                });
+              } catch (error) {
+                const errMsg = (error as any)?.message || String(error);
+                Alert.alert('Error', `Failed to create early assessment: ${errMsg}`);
+                setFormData({ ...formData, task_assesment: itemValue });
+              }
+            } else {
+              setFormData({ ...formData, task_assesment: itemValue });
+            }
+          }}
+        />
+        <Text style={{ marginLeft: 10 }}>{formData.task_assesment === 'Yes' ? 'Yes' : 'No'}</Text>
+      </View>
+      <TextInput style={styles.input} value={formData.task_assesmentId} editable={false} placeholder="Task Assessment ID" />
+      {/* Task Quick Quiz dropdown and ID */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ marginRight: 10 }}>Task Quick Quiz:</Text>
+        <Switch
+          value={formData.task_quick_quiz === 'Yes'}
+          onValueChange={async (isChecked: boolean) => {
+            const itemValue = isChecked ? 'Yes' : 'No';
+            if (itemValue === 'Yes' && formData.task_quick_quiz !== 'Yes') {
+              try {
+                const docRef = await addDoc(collection(db, 'task_quick_quiz'), {
+                  createdAt: serverTimestamp(),
+                  createdBy: currentUserId,
+                  // Add more fields if needed
+                });
+                setFormData({
+                  ...formData,
+                  task_quick_quiz: itemValue,
+                  task_quick_quizId: docRef.id,
+                });
+              } catch (error) {
+                const errMsg = (error as any)?.message || String(error);
+                Alert.alert('Error', `Failed to create task quick quiz: ${errMsg}`);
+                setFormData({ ...formData, task_quick_quiz: itemValue });
+              }
+            } else {
+              setFormData({ ...formData, task_quick_quiz: itemValue });
+            }
+          }}
+        />
+        <Text style={{ marginLeft: 10 }}>{formData.task_quick_quiz === 'Yes' ? 'Yes' : 'No'}</Text>
+      </View>
+      <TextInput style={styles.input} value={formData.task_quick_quizId} editable={false} placeholder="Task Quick Quiz ID" />
+      {/* Task Quick Sales Report dropdown and ID */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ marginRight: 10 }}>Task Quick Sales Report:</Text>
+        <Switch
+          value={formData.task_quick_sales_report === 'Yes'}
+          onValueChange={async (isChecked: boolean) => {
+            const itemValue = isChecked ? 'Yes' : 'No';
+            if (itemValue === 'Yes' && formData.task_quick_sales_report !== 'Yes') {
+              try {
+                const docRef = await addDoc(collection(db, 'sales_report_quick'), {
+                  createdAt: serverTimestamp(),
+                  createdBy: currentUserId,
+                  // Add more fields if needed
+                });
+                setFormData({
+                  ...formData,
+                  task_quick_sales_report: itemValue,
+                  task_quick_sales_reportId: docRef.id,
+                });
+              } catch (error) {
+                const errMsg = (error as any)?.message || String(error);
+                Alert.alert('Error', `Failed to create quick sales report: ${errMsg}`);
+                setFormData({ ...formData, task_quick_sales_report: itemValue });
+              }
+            } else {
+              setFormData({ ...formData, task_quick_sales_report: itemValue });
+            }
+          }}
+        />
+        <Text style={{ marginLeft: 10 }}>{formData.task_quick_sales_report === 'Yes' ? 'Yes' : 'No'}</Text>
+      </View>
+      <TextInput style={styles.input} value={formData.task_quick_sales_reportId} editable={false} placeholder="Task Quick Sales Report ID" />
+      {/* Task Sales Report Detail dropdown and ID */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ marginRight: 10 }}>Task Sales Report Detail:</Text>
+        <Switch
+          value={formData.task_sales_report_detail === 'Yes'}
+          onValueChange={async (isChecked: boolean) => {
+            const itemValue = isChecked ? 'Yes' : 'No';
+            if (itemValue === 'Yes' && formData.task_sales_report_detail !== 'Yes') {
+              try {
+                const docRef = await addDoc(collection(db, 'sales_report_detail'), {
+                  createdAt: serverTimestamp(),
+                  createdBy: currentUserId,
+                  // Add more fields if needed
+                });
+                setFormData({
+                  ...formData,
+                  task_sales_report_detail: itemValue,
+                  task_sales_report_detailId: docRef.id,
+                });
+              } catch (error) {
+                const errMsg = (error as any)?.message || String(error);
+                Alert.alert('Error', `Failed to create sales report detail: ${errMsg}`);
+                setFormData({ ...formData, task_sales_report_detail: itemValue });
+              }
+            } else {
+              setFormData({ ...formData, task_sales_report_detail: itemValue });
+            }
+          }}
+        />
+        <Text style={{ marginLeft: 10 }}>{formData.task_sales_report_detail === 'Yes' ? 'Yes' : 'No'}</Text>
+      </View>
+      <TextInput style={styles.input} value={formData.task_sales_report_detailId} editable={false} placeholder="Task Sales Report Detail ID" />
       {/* Remark field */}
       <TextInput style={styles.input} value={formData.remark} onChangeText={(text) => setFormData({...formData, remark: text})} placeholder="Remark" />
     </>
@@ -416,7 +644,29 @@ const fetchTLUsers = async () => {
         }
       />
       
-      {/* Add Modal: Form for adding a new task */}
+      {/* Edit Attendance Modal */}
+      <Modal visible={isEditAttendanceModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditAttendanceModalVisible(false)}>
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>Edit Task Attendance</Text>
+            {attendanceForm && (
+              <>
+                {/* Only allow editing remark field, as before */}
+                <TextInput
+                  style={styles.input}
+                  value={attendanceForm.remark || ''}
+                  onChangeText={text => setAttendanceForm({ ...attendanceForm, remark: text })}
+                  placeholder="Remark"
+                />
+              </>
+            )}
+            <View style={styles.buttonContainer}>
+              <Button title="Update" onPress={handleUpdateAttendance} />
+              <Button title="Cancel" onPress={() => { setIsEditAttendanceModalVisible(false); setAttendanceForm(null); setEditingAttendanceId(null); }} />
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
     <View style={styles.modalContainer}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -434,16 +684,18 @@ const fetchTLUsers = async () => {
 
       {/* Edit Modal: Form for editing an existing task */}
       <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
-        <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Edit Task</Text>
-            {renderModalFields()}
-            <View style={styles.buttonContainer}>
-              <Button title="Update" onPress={handleUpdateTask} />
-              <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+        <View style={styles.modalContainer}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={styles.modalContent}>
+              <Text style={styles.title}>Edit Task</Text>
+              {renderModalFields()}
+              <View style={styles.buttonContainer}>
+                <Button title="Update" onPress={handleUpdateTask} />
+                <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+              </View>
             </View>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </View>
       </Modal>
     </View>
   );

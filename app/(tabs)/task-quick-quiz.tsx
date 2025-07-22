@@ -5,6 +5,12 @@ import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function TaskQuickQuizScreen() {
+  // Handler for 'Take Quiz Now' button
+  const handleTakeQuizNow = (quizId: string, docId: string) => {
+    setActiveQuizId(quizId);
+    setActiveQuizDocId(docId);
+    fetchQuizQuestions();
+  };
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   // Quiz Questions CRUD states
@@ -37,6 +43,8 @@ export default function TaskQuickQuizScreen() {
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [quizScore, setQuizScore] = useState<number | null>(null);
   const [quizLoading, setQuizLoading] = useState(false);
+  const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const [activeQuizDocId, setActiveQuizDocId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAllQuestions();
@@ -239,13 +247,27 @@ export default function TaskQuickQuizScreen() {
       const score = quizQuestions.reduce((acc, q, idx) => acc + (userAnswers[idx] === q.answer ? 1 : 0), 0);
       setQuizScore(score);
       const userId = auth.currentUser?.uid || 'anonymous';
-      addDoc(collection(db, 'task_quick_quiz'), {
-        userId,
-        takeQuickQuizId: '',
-        quizDate: new Date(),
-        quickQuizResult: `${score}/10`,
-        createdAt: serverTimestamp()
-      });
+      // If activeQuizDocId is set, update the result for that quiz record
+      if (activeQuizDocId) {
+        const quizDoc = doc(db, 'task_quick_quiz', activeQuizDocId);
+        updateDoc(quizDoc, {
+          userId,
+          takeQuickQuizId: activeQuizId || '',
+          quizDate: new Date(),
+          quickQuizResult: `${score}/10`,
+        }).then(() => {
+          fetchQuizzes();
+        });
+      } else {
+        // fallback: create new record
+        addDoc(collection(db, 'task_quick_quiz'), {
+          userId,
+          takeQuickQuizId: activeQuizId || '',
+          quizDate: new Date(),
+          quickQuizResult: `${score}/10`,
+          createdAt: serverTimestamp()
+        });
+      }
     }
   };
 
@@ -255,6 +277,8 @@ export default function TaskQuickQuizScreen() {
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
     setQuizScore(null);
+    setActiveQuizId(null);
+    setActiveQuizDocId(null);
   };
 
   if (loading) {
@@ -272,6 +296,7 @@ export default function TaskQuickQuizScreen() {
       <Text>Result: {item.quickQuizResult}</Text>
       {canUpdate && (
         <View style={styles.buttonContainer}>
+          <Button title="Take Quiz Now" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} />
           <Button title="Edit" onPress={() => handleEditQuiz(item)} />
           {canManage && <Button title="Delete" onPress={() => handleDeleteQuiz(item.id)} />}
         </View>
@@ -360,9 +385,7 @@ export default function TaskQuickQuizScreen() {
                     <Button key={key} title={`${key}: ${value}`} onPress={() => handleAnswer(key)} />
                   ))}
                 </>
-              ) : (
-                <ActivityIndicator />
-              )
+              ) : <ActivityIndicator />
             ) : (
               <>
                 <Text style={styles.title}>Quiz Complete!</Text>
