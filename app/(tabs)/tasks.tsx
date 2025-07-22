@@ -128,7 +128,14 @@ export default function TasksScreen() {
     try {
       const tasksCollection = collection(db, 'tasks');
       const taskSnapshot = await getDocs(tasksCollection);
-      const taskList = taskSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      let taskList = taskSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+
+      // Filter tasks for Iris TL and Iris BA roles (strict match, fallback for missing fields)
+      if (userRole === 'Iris - TL' && currentUserId) {
+        taskList = taskList.filter(task => String(task.assignedToUserTLID || '') === String(currentUserId));
+      } else if (userRole === 'Iris - BA' && currentUserId) {
+        taskList = taskList.filter(task => String(task.assignedToUserBA || '') === String(currentUserId));
+      }
 
       // For each task, fetch the outlet name for display
       const tasksWithOutletNames = await Promise.all(taskList.map(async (task) => {
