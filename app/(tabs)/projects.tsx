@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'expo-router';
 
 export default function ProjectsScreen() {
+  const router = useRouter();
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);

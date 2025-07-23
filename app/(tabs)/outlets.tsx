@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
+import { useRouter } from 'expo-router';
 
 export default function OutletsScreen() {
+  const router = useRouter();
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [outlets, setOutlets] = useState<any[]>([]);

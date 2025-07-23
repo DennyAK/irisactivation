@@ -1,6 +1,7 @@
 // --- Imports ---
 // React hooks, UI components, Firebase config, Firestore functions, Auth, Picker, DateTimePicker
 import { useState, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { db, auth } from '../../firebaseConfig';
@@ -10,9 +11,11 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 
 // --- Main Component ---
 export default function TasksScreen() {
+  const router = useRouter();
   const navigation = useNavigation();
   // State for editing task attendance
   const [isEditAttendanceModalVisible, setIsEditAttendanceModalVisible] = useState(false);

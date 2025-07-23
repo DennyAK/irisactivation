@@ -1,12 +1,15 @@
 
 import { useState, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { auth, db } from '../../firebaseConfig';
 import { collection, getDocs, doc, updateDoc, query, where, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'expo-router';
 
 export default function UserManagementScreen() {
+  const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -46,7 +49,7 @@ export default function UserManagementScreen() {
       const usersCollection = collection(db, 'users');
       let q;
       if (role === 'area manager') {
-        q = query(usersCollection, where("role", "in", ["guest"]));
+        q = query(usersCollection, where("role", "in", ["guest","Iris - TL", "Iris - BA"]));
       } else {
         q = query(usersCollection, where("role", "!=", "superadmin"));
       }

@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ActivityIndicator, Button, Modal, TextInput, Alert, Image, Platform } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { auth, db, storage } from '../../firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useRouter } from 'expo-router';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function TabOneScreen() {
+  const router = useRouter();
+  const [latestRoleRequest, setLatestRoleRequest] = useState<any>(null);
+  const [isRoleRequestModalVisible, setIsRoleRequestModalVisible] = useState(false);
+  const [requestedRole, setRequestedRole] = useState('');
+  const [roleReason, setRoleReason] = useState('');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -54,8 +62,30 @@ export default function TabOneScreen() {
         }
       }
     })();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      fetchUserData(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      await fetchUserData(currentUser);
+      // Fetch latest role request for this user
+      if (currentUser) {
+        try {
+          const { getDocs, collection, query, where, orderBy, limit } = await import('firebase/firestore');
+          const q = query(
+            collection(db, 'role_requests'),
+            where('userId', '==', currentUser.uid),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+          );
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            setLatestRoleRequest(snapshot.docs[0].data());
+          } else {
+            setLatestRoleRequest(null);
+          }
+        } catch (e) {
+          setLatestRoleRequest(null);
+        }
+      } else {
+        setLatestRoleRequest(null);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -108,11 +138,102 @@ export default function TabOneScreen() {
 
   return (
     <View style={styles.container}>
+      <Ionicons
+        name="information-circle-outline"
+        size={32}
+        color="#007bff"
+        style={{ position: 'absolute', top: 40, right: 24, zIndex: 10 }}
+        onPress={() => router.push('/modal')}
+      />
       <Text style={styles.title}>Welcome User Profile Page</Text>
       {image && <Image source={{ uri: image }} style={styles.image} />}
       <Button title="Change Profile Picture" onPress={pickImage} />
       <Text>Email: {user.email}</Text>
-      <Text>Role: {user.role}</Text>
+      {/* Display latest role request status */}
+      {latestRoleRequest && (
+        <View style={{ marginBottom: 8, alignItems: 'center' }}>
+          <Text style={{ fontWeight: 'bold' }}>Role Request Status:</Text>
+          <Text>Requested Role: {latestRoleRequest.requestedRole}</Text>
+          <Text>Status: {latestRoleRequest.status}</Text>
+          {latestRoleRequest.reason ? <Text>Reason: {latestRoleRequest.reason}</Text> : null}
+        </View>
+      )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+        <Text>Role: {user.role}</Text>
+        <Button title="Ask New Role?" onPress={() => setIsRoleRequestModalVisible(true)} />
+      </View>
+
+      {/* Role Request Modal */}
+      <Modal
+        visible={isRoleRequestModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsRoleRequestModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>Request New Role</Text>
+            <Text>Select Role</Text>
+            <View style={{ borderWidth: 1, borderColor: 'gray', borderRadius: 5, marginBottom: 12 }}>
+              <Picker
+                selectedValue={requestedRole}
+                onValueChange={(itemValue) => setRequestedRole(itemValue)}
+                style={{ height: 40 }}
+              >
+                <Picker.Item label="Select a role..." value="" />
+                <Picker.Item label="admin" value="admin" />
+                <Picker.Item label="area manager" value="area manager" />
+                <Picker.Item label="Iris - TL" value="Iris - TL" />
+                <Picker.Item label="Iris - BA" value="Iris - BA" />
+                <Picker.Item label="guest" value="guest" />
+              </Picker>
+            </View>
+            <Text>Reason</Text>
+            <TextInput
+              style={[styles.input, { minHeight: 40, textAlignVertical: 'top' }]}
+              value={roleReason}
+              onChangeText={setRoleReason}
+              placeholder="Why do you need this role?"
+              multiline={true}
+              numberOfLines={3}
+            />
+            <View style={styles.buttonContainer}>
+              <Button title="Submit Request" onPress={async () => {
+                if (!requestedRole) {
+                  Alert.alert('Error', 'Please enter a role to request.');
+                  return;
+                }
+                try {
+                  const roleRequestDoc = {
+                    userId: auth.currentUser?.uid || '',
+                    email: user.email || '',
+                    currentRole: user.role || '',
+                    requestedRole,
+                    reason: roleReason,
+                    status: 'pending',
+                    createdAt: new Date(),
+                  };
+                  await import('../../firebaseConfig').then(({ db }) => {
+                    import('firebase/firestore').then(({ collection, addDoc }) => {
+                      addDoc(collection(db, 'role_requests'), roleRequestDoc).then(() => {
+                        Alert.alert('Request Sent', 'Your request for a new role has been submitted.');
+                        setIsRoleRequestModalVisible(false);
+                        setRequestedRole('');
+                        setRoleReason('');
+                      }).catch((error) => {
+                        Alert.alert('Error', error.message);
+                      });
+                    });
+                  });
+                } catch (error: any) {
+                  Alert.alert('Error', error.message);
+                }
+              }} />
+              <Button title="Cancel" onPress={() => setIsRoleRequestModalVisible(false)} />
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Text>First Name: {user.firstName}</Text>
       <Text>Last Name: {user.lastName}</Text>
       <Text>Phone: {user.phone}</Text>
