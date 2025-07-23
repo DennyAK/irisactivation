@@ -20,6 +20,7 @@ export default function TaskAttendanceScreen() {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [formData, setFormData] = useState({
     userId: '',
+    assignedToBA: '',
     outletId: '',
     checkIn: null as Date | null,
     checkOut: null as Date | null,
@@ -62,7 +63,22 @@ export default function TaskAttendanceScreen() {
     try {
       const attendancesCollection = collection(db, 'task_attendance');
       const attendanceSnapshot = await getDocs(attendancesCollection);
-      const attendanceList = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const attendanceList = attendanceSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { id: doc.id, ...data } as { id: string; createdAt?: any };
+      });
+      // Sort by createdAt descending (newest first)
+      attendanceList.sort((a, b) => {
+        let aTime = 0;
+        let bTime = 0;
+        if (a.createdAt && typeof a.createdAt.toDate === 'function') {
+          aTime = a.createdAt.toDate().getTime();
+        }
+        if (b.createdAt && typeof b.createdAt.toDate === 'function') {
+          bTime = b.createdAt.toDate().getTime();
+        }
+        return bTime - aTime;
+      });
       setAttendances(attendanceList);
     } catch (error) {
       console.error("Error fetching attendances: ", error);
@@ -74,7 +90,7 @@ export default function TaskAttendanceScreen() {
 
   const resetFormData = () => {
     setFormData({
-      userId: '', outletId: '', checkIn: null, checkOut: null,
+      userId: '', assignedToBA: '', outletId: '', checkIn: null, checkOut: null,
       checkInLatitude: '', checkInLongitude: '', checkOutLatitude: '', checkOutLongitude: '', selfieUrl: '',
     });
   };
@@ -100,6 +116,7 @@ export default function TaskAttendanceScreen() {
     setSelectedAttendance(attendance);
     setFormData({
       userId: attendance.userId || '',
+      assignedToBA: attendance.assignedToBA || '',
       outletId: attendance.outletId || '',
       checkIn: attendance.checkIn?.toDate() || null,
       checkOut: attendance.checkOut?.toDate() || null,
@@ -253,10 +270,15 @@ export default function TaskAttendanceScreen() {
 
   const renderAttendance = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>User: {item.userId}</Text>
+      <Text style={styles.itemTitle}>Assigned to BA:</Text>
+      <Text style={styles.longText}>{item.assignedToBA || '-'}</Text>
       <Text>Outlet: {item.outletId}</Text>
       <Text>Check-in: {item.checkIn?.toDate().toLocaleString()}</Text>
       <Text>Check-out: {item.checkOut?.toDate().toLocaleString()}</Text>
+      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
+      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
+      <Text>Created By: {item.createdBy || '-'}</Text>
+      <Text>Task ID: {item.tasksId || '-'}</Text>
       {item.selfieUrl && item.selfieUrl !== '' ? <Image source={{ uri: item.selfieUrl }} style={styles.thumbnail} /> : <Text>No Selfie</Text>}
       {canReadUpdate && (
         <View style={styles.buttonContainer}>
@@ -269,35 +291,40 @@ export default function TaskAttendanceScreen() {
 
   const renderModalFields = () => (
     <>
-      <TextInput style={styles.input} value={formData.userId} onChangeText={(text) => setFormData({...formData, userId: text})} placeholder="User ID" />
-      <TextInput style={styles.input} value={formData.outletId} onChangeText={(text) => setFormData({...formData, outletId: text})} placeholder="Outlet ID" />
-      
+      {/* Assigned to BA (id) - non-editable */}
+      <Text style={styles.input}>Assigned to BA:</Text>
+      <TextInput
+        style={[styles.input, styles.multiLineInput]}
+        value={formData.assignedToBA || '-'}
+        editable={false}
+        multiline={true}
+      />
+      <Text style={styles.input}>Outlet ID:</Text>
+      <TextInput
+        style={[styles.input, styles.multiLineInput]}
+        value={formData.outletId}
+        placeholder="Outlet ID"
+        multiline={true}
+        editable={false}
+      />
       <View style={styles.checkInOutContainer}>
         <Button title="Check In Now" onPress={confirmCheckIn} disabled={!!formData.checkIn} />
         {formData.checkIn && <Text>{formData.checkIn.toLocaleString()}</Text>}
       </View>
       {formData.checkInLatitude && <Text>Check-in Location: {formData.checkInLatitude}, {formData.checkInLongitude}</Text>}
-      
       <View style={styles.checkInOutContainer}>
         <Button title="Check Out Now" onPress={confirmCheckOut} disabled={!formData.checkIn || !!formData.checkOut} />
         {formData.checkOut && <Text>{formData.checkOut.toLocaleString()}</Text>}
       </View>
       {formData.checkOutLatitude && <Text>Check-out Location: {formData.checkOutLatitude}, {formData.checkOutLongitude}</Text>}
-
       <Button title="Upload Selfie" onPress={pickAndUploadImage} />
       {formData.selfieUrl ? <Image source={{ uri: formData.selfieUrl }} style={styles.selfieImage} /> : null}
-
     </>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Task Attendance</Text>
-      {canManage && <Button title="Add New Record" onPress={() => {
-          setSelectedAttendance(null);
-          resetFormData();
-          setIsAddModalVisible(true);
-      }} />}
       <FlatList
         data={attendances}
         keyExtractor={(item) => item.id}
@@ -313,7 +340,6 @@ export default function TaskAttendanceScreen() {
           />
         }
       />
-      
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -326,7 +352,6 @@ export default function TaskAttendanceScreen() {
           </View>
         </ScrollView>
       </Modal>
-
       <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -348,9 +373,11 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   itemContainer: { marginBottom: 10, padding: 10, borderColor: 'gray', borderWidth: 1, borderRadius: 5 },
   itemTitle: { fontSize: 16, fontWeight: 'bold' },
+  longText: { fontSize: 15, marginBottom: 8, color: '#333', flexWrap: 'wrap' },
   modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10 },
   input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8, borderRadius: 5 },
+  multiLineInput: { minHeight: 40, maxHeight: 80, textAlignVertical: 'top' },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
   checkInOutContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingHorizontal: 10 },
   selfieImage: { width: 100, height: 100, alignSelf: 'center', marginVertical: 10, borderRadius: 5 },

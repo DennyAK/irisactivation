@@ -110,6 +110,12 @@ export default function QuickSalesReportScreen() {
       <Text style={styles.itemTitle}>{item.outletName} - {item.guardDate?.toDate().toLocaleDateString()}</Text>
       <Text>Leader: {item.teamLeaderName}</Text>
       <Text>City: {item.city}</Text>
+      {/* New fields from Tasks */}
+      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
+      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
+      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
+      <Text>Created By: {item.createdBy || '-'}</Text>
+      <Text>Task ID: {item.tasksId || '-'}</Text>
       {canUpdate && (
         <View style={styles.buttonContainer}>
           <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />

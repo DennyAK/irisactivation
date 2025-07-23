@@ -131,6 +131,12 @@ export default function TaskEarlyAssessmentScreen() {
       <Text style={styles.itemTitle}>{item.outletName}</Text>
       <Text>PG: {item.pgFullName}</Text>
       <Text>Date: {item.reportTimestamp?.toDate().toLocaleDateString()}</Text>
+      {/* New fields from Tasks */}
+      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
+      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
+      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
+      <Text>Created By: {item.createdBy || '-'}</Text>
+      <Text>Task ID: {item.tasksId || '-'}</Text>
       {canUpdate && (
         <View style={styles.buttonContainer}>
           <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />

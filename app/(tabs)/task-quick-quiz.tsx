@@ -294,13 +294,19 @@ export default function TaskQuickQuizScreen() {
       <Text>User ID: {item.userId}</Text>
       <Text>Date: {item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate}</Text>
       <Text>Result: {item.quickQuizResult}</Text>
-      {canManage && (
-        <View style={styles.buttonContainer}>
-          <Button title="Take Quiz Now" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} />
+      {/* New fields from Tasks */}
+      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
+      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
+      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
+      <Text>Created By: {item.createdBy || '-'}</Text>
+      <Text>Task ID: {item.tasksId || '-'}</Text>
+      <View style={styles.buttonContainer}>
+        <Button title="Take Quiz Now" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} />
+        {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager') && (
           <Button title="Edit" onPress={() => handleEditQuiz(item)} />
-          <Button title="Delete" onPress={() => handleDeleteQuiz(item.id)} />
-        </View>
-      )}
+        )}
+        {canManage && <Button title="Delete" onPress={() => handleDeleteQuiz(item.id)} />}
+      </View>
     </View>
   );
 
@@ -329,8 +335,12 @@ export default function TaskQuickQuizScreen() {
         }
       >
         <Text style={styles.title}>Task Quick Quiz</Text>
-        <Button title="Take Quiz" onPress={fetchQuizQuestions} disabled={quizLoading} />
-        {canUpdate && <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />}
+        {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager') && (
+          <Button title="Take Quiz" onPress={fetchQuizQuestions} disabled={quizLoading} />
+        )}
+        {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager') && (
+          <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />
+        )}
 
         {/* Quiz Questions List for Superadmin/Admin */}
         {(userRole === 'superadmin' || userRole === 'admin') && (

@@ -132,6 +132,12 @@ export default function SalesReportDetailScreen() {
       <Text style={styles.itemTitle}>{item.activityName} @ {item.outletVenueName}</Text>
       <Text>Date: {item.date?.toDate().toLocaleDateString()}</Text>
       <Text>Leader: {item.teamLeaderName}</Text>
+      {/* New fields from Tasks */}
+      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
+      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
+      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
+      <Text>Created By: {item.createdBy || '-'}</Text>
+      <Text>Task ID: {item.tasksId || '-'}</Text>
       {canUpdate && (
         <View style={styles.buttonContainer}>
           <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
