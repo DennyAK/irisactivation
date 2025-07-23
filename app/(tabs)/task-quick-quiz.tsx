@@ -137,7 +137,11 @@ export default function TaskQuickQuizScreen() {
     try {
       const quizzesCollection = collection(db, 'task_quick_quiz');
       const quizSnapshot = await getDocs(quizzesCollection);
-      const quizList = quizSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let quizList = quizSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Filter for BA role: only show records assigned to current user
+      if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
+        quizList = quizList.filter(q => q.assignedToBA === auth.currentUser.uid);
+      }
       setQuizzes(quizList);
     } catch (error) {
       console.error("Error fetching quizzes: ", error);
@@ -290,13 +294,10 @@ export default function TaskQuickQuizScreen() {
 
   const renderQuiz = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>Quiz ID: {item.takeQuickQuizId}</Text>
-      <Text>User ID: {item.userId}</Text>
+      <Text style={styles.itemTitle}>Quiz ID: {item.id}</Text>
+      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
       <Text>Date: {item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate}</Text>
       <Text>Result: {item.quickQuizResult}</Text>
-      {/* New fields from Tasks */}
-      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
-      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
       <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
       <Text>Created By: {item.createdBy || '-'}</Text>
       <Text>Task ID: {item.tasksId || '-'}</Text>

@@ -63,10 +63,14 @@ export default function TaskAttendanceScreen() {
     try {
       const attendancesCollection = collection(db, 'task_attendance');
       const attendanceSnapshot = await getDocs(attendancesCollection);
-      const attendanceList = attendanceSnapshot.docs.map(doc => {
+      let attendanceList = attendanceSnapshot.docs.map(doc => {
         const data = doc.data();
         return { id: doc.id, ...data } as { id: string; createdAt?: any };
       });
+      // Filter for BA role: only show records assigned to current user
+      if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
+        attendanceList = attendanceList.filter(a => a.assignedToBA === auth.currentUser.uid);
+      }
       // Sort by createdAt descending (newest first)
       attendanceList.sort((a, b) => {
         let aTime = 0;

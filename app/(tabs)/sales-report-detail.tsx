@@ -65,7 +65,11 @@ export default function SalesReportDetailScreen() {
     try {
       const collectionRef = collection(db, 'sales_report_detail');
       const snapshot = await getDocs(collectionRef);
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Filter for BA role: only show records assigned to current user
+      if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
+        list = list.filter(a => a.assignedToBA === auth.currentUser.uid);
+      }
       setReports(list);
     } catch (error) {
       console.error("Error fetching reports: ", error);

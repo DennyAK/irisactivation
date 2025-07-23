@@ -1,6 +1,7 @@
 // --- Imports ---
 // React hooks, UI components, Firebase config, Firestore functions, Auth, Picker, DateTimePicker
 import { useState, useEffect } from 'react';
+import { Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,8 +14,82 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
+// --- Styles ---
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: '#f7f7f7',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  itemContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    elevation: 2,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    width: '95%',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    elevation: 4,
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 12,
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+});
+
+// Animated TouchableOpacity for blinking effect
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
 // --- Main Component ---
 export default function TasksScreen() {
+  // --- Animated blinking for action buttons ---
+  const blinkAnim = useState(new Animated.Value(0))[0];
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(blinkAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: false,
+        }),
+        Animated.timing(blinkAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+  }, [blinkAnim]);
   const router = useRouter();
   const navigation = useNavigation();
   // State for editing task attendance
@@ -431,14 +506,28 @@ const fetchTLUsers = async () => {
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Attendance: {item.task_attendance} </Text>
         {item.taskAttendanceId ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.taskAttendanceId})</Text>
-            <TouchableOpacity
-              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
-              onPress={() => (navigation as any).navigate('task-attendance', { attendanceId: item.taskAttendanceId })}
-            >
-              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Task Attendance</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <AnimatedTouchable
+                style={{
+                  width: '90%',
+                  minWidth: 100,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  backgroundColor: blinkAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#786a35', '#ffe066'],
+                  }),
+                  borderRadius: 4,
+                  alignItems: 'center',
+                  alignSelf: 'flex-end',
+                }}
+                onPress={() => (navigation as any).navigate('task-attendance', { attendanceId: item.taskAttendanceId })}
+              >
+                <Text style={{ fontSize: 12, color: '#fff' }}>Do Task Attendance</Text>
+              </AnimatedTouchable>
+            </View>
           </View>
         ) : null}
       </View>
@@ -446,14 +535,28 @@ const fetchTLUsers = async () => {
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Assessment: {item.task_assesment} </Text>
         {item.task_assesmentId ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_assesmentId})</Text>
-            <TouchableOpacity
-              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
-              onPress={() => (navigation as any).navigate('task-early-assessment', { assessmentId: item.task_assesmentId })}
-            >
-              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Task Assessment</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <AnimatedTouchable
+                style={{
+                  width: '90%',
+                  minWidth: 100,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  backgroundColor: blinkAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#786a35', '#ffe066'],
+                  }),
+                  borderRadius: 4,
+                  alignItems: 'center',
+                  alignSelf: 'flex-end',
+                }}
+                onPress={() => (navigation as any).navigate('task-early-assessment', { assessmentId: item.task_assesmentId })}
+              >
+                <Text style={{ fontSize: 12, color: '#fff' }}>Do Task Assessment</Text>
+              </AnimatedTouchable>
+            </View>
           </View>
         ) : null}
       </View>
@@ -461,14 +564,28 @@ const fetchTLUsers = async () => {
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Quick Quiz: {item.task_quick_quiz} </Text>
         {item.task_quick_quizId ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_quick_quizId})</Text>
-            <TouchableOpacity
-              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
-              onPress={() => (navigation as any).navigate('task-quick-quiz', { quizId: item.task_quick_quizId })}
-            >
-              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Task Quick Quiz</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <AnimatedTouchable
+                style={{
+                  width: '90%',
+                  minWidth: 100,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  backgroundColor: blinkAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#786a35', '#ffe066'],
+                  }),
+                  borderRadius: 4,
+                  alignItems: 'center',
+                  alignSelf: 'flex-end',
+                }}
+                onPress={() => (navigation as any).navigate('task-quick-quiz', { quizId: item.task_quick_quizId })}
+              >
+                <Text style={{ fontSize: 12, color: '#fff' }}>Do Task Quick Quiz</Text>
+              </AnimatedTouchable>
+            </View>
           </View>
         ) : null}
       </View>
@@ -476,14 +593,28 @@ const fetchTLUsers = async () => {
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Quick Sales Report: {item.task_quick_sales_report} </Text>
         {item.task_quick_sales_reportId ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_quick_sales_reportId})</Text>
-            <TouchableOpacity
-              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
-              onPress={() => (navigation as any).navigate('quick-sales-report', { reportId: item.task_quick_sales_reportId })}
-            >
-              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Quick Sales Report</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <AnimatedTouchable
+                style={{
+                  width: '90%',
+                  minWidth: 100,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  backgroundColor: blinkAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#786a35', '#ffe066'],
+                  }),
+                  borderRadius: 4,
+                  alignItems: 'center',
+                  alignSelf: 'flex-end',
+                }}
+                onPress={() => (navigation as any).navigate('quick-sales-report', { reportId: item.task_quick_sales_reportId })}
+              >
+                <Text style={{ fontSize: 12, color: '#fff' }}>Do Quick Sales Report</Text>
+              </AnimatedTouchable>
+            </View>
           </View>
         ) : null}
       </View>
@@ -491,21 +622,31 @@ const fetchTLUsers = async () => {
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Sales Report Detail: {item.task_sales_report_detail} </Text>
         {item.task_sales_report_detailId ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_sales_report_detailId})</Text>
-            <TouchableOpacity
-              style={{ marginLeft: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#e0e0e0', borderRadius: 4 }}
-              onPress={() => (navigation as any).navigate('sales-report-detail', { detailId: item.task_sales_report_detailId })}
-            >
-              <Text style={{ fontSize: 12, color: '#007AFF' }}>Do Sales Report Detail</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <AnimatedTouchable
+                style={{
+                  width: '90%',
+                  minWidth: 100,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  backgroundColor: blinkAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#786a35', '#ffe066'],
+                  }),
+                  borderRadius: 4,
+                  alignItems: 'center',
+                  alignSelf: 'flex-end',
+                }}
+                onPress={() => (navigation as any).navigate('sales-report-detail', { detailId: item.task_sales_report_detailId })}
+              >
+                <Text style={{ fontSize: 12, color: '#fff' }}>Do Sales Report Detail</Text>
+              </AnimatedTouchable>
+            </View>
           </View>
         ) : null}
       </View>
-      <Text>Task Assessment: {item.task_assesment} {item.task_assesmentId ? `(ID: ${item.task_assesmentId})` : ''}</Text>
-      <Text>Task Quick Quiz: {item.task_quick_quiz} {item.task_quick_quizId ? `(ID: ${item.task_quick_quizId})` : ''}</Text>
-      <Text>Task Quick Sales Report: {item.task_quick_sales_report} {item.task_quick_sales_reportId ? `(ID: ${item.task_quick_sales_reportId})` : ''}</Text>
-      <Text>Task Sales Report Detail: {item.task_sales_report_detail} {item.task_sales_report_detailId ? `(ID: ${item.task_sales_report_detailId})` : ''}</Text>
       {/* Show Edit/Delete buttons only for managers */}
       {canManage && (
         <View style={styles.buttonContainer}>
@@ -515,12 +656,11 @@ const fetchTLUsers = async () => {
       )}
     </View>
   );
-
-  // Handle date selection for the task start date
+  // --- Date Picker Handler (move inside function body)
   const onDateChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || formData.startDate;
     setShowDatePicker(Platform.OS === 'ios');
-    setFormData({...formData, startDate: currentDate});
+    setFormData({ ...formData, startDate: currentDate });
   };
 
   // Render all fields for Add/Edit modals (dropdowns, text inputs, date picker)
@@ -530,7 +670,7 @@ const fetchTLUsers = async () => {
       {/* Outlet dropdown */}
       <Picker
         selectedValue={formData.outletId}
-        onValueChange={(itemValue) => setFormData({...formData, outletId: itemValue})}
+        onValueChange={(itemValue) => setFormData({ ...formData, outletId: itemValue })}
       >
         <Picker.Item label="Select an Outlet" value="" />
         {outlets.map(outlet => (
@@ -554,7 +694,7 @@ const fetchTLUsers = async () => {
       {/* BA user dropdown */}
       <Picker
         selectedValue={String(formData.assignedToUserBA)}
-        onValueChange={(itemValue) => setFormData({...formData, assignedToUserBA: String(itemValue)})}
+        onValueChange={(itemValue) => setFormData({ ...formData, assignedToUserBA: String(itemValue) })}
       >
         <Picker.Item label="Select BA" value="" />
         {baUsers.map(user => (
@@ -564,7 +704,7 @@ const fetchTLUsers = async () => {
       {/* TL user dropdown */}
       <Picker
         selectedValue={String(formData.assignedToUserTLID)}
-        onValueChange={(itemValue) => setFormData({...formData, assignedToUserTLID: String(itemValue)})}
+        onValueChange={(itemValue) => setFormData({ ...formData, assignedToUserTLID: String(itemValue) })}
       >
         <Picker.Item label="Select TL" value="" />
         {tlUsers.map(user => (
@@ -572,7 +712,7 @@ const fetchTLUsers = async () => {
         ))}
       </Picker>
       {/* Remark field */}
-      <TextInput style={styles.input} value={formData.remark} onChangeText={(text) => setFormData({...formData, remark: text})} placeholder="Remark" />
+      <TextInput style={styles.input} value={formData.remark} onChangeText={(text) => setFormData({ ...formData, remark: text })} placeholder="Remark" />
     </>
   );
 
@@ -660,7 +800,6 @@ const fetchTLUsers = async () => {
           />
         }
       />
-      
       {/* Edit Attendance Modal */}
       <Modal visible={isEditAttendanceModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditAttendanceModalVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
@@ -699,7 +838,6 @@ const fetchTLUsers = async () => {
           </ScrollView>
         </View>
       </Modal>
-
       {/* Step 2: Add Child Features Modal (switches only) */}
       <Modal visible={isAddChildModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddChildModalVisible(false)}>
         <View style={styles.modalContainer}>
@@ -715,7 +853,6 @@ const fetchTLUsers = async () => {
           </ScrollView>
         </View>
       </Modal>
-
       {/* Edit Modal: Form for editing an existing task */}
       <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <View style={styles.modalContainer}>
@@ -733,60 +870,6 @@ const fetchTLUsers = async () => {
       </Modal>
     </View>
   );
-}
+// (styles moved to top)
 
-// --- Styles ---
-// --- Styles ---
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  itemContainer: {
-    marginBottom: 12,
-    padding: 15,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-  },
-  itemTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '95%',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 12,
-    elevation: 4,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#fff',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-    marginBottom: 10,
-  },
-});
+}
