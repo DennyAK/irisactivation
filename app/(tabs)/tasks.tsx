@@ -5,6 +5,7 @@ import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
+import { query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -113,13 +114,18 @@ export default function TasksScreen() {
         setCurrentUserId(null);
       }
     });
-    // Fetch all tasks, outlets, BA users, TL users
-    fetchTasks();
+    // Only fetch outlets, BA users, TL users on mount
     fetchOutlets();
     fetchBAUsers();
     fetchTLUsers();
     return () => unsubscribe();
   }, []);
+  // Fetch tasks only after userRole and currentUserId are loaded
+  useEffect(() => {
+    if (userRole && currentUserId) {
+      fetchTasks();
+    }
+  }, [userRole, currentUserId]);
 
   // --- Data Fetching Functions ---
   // Fetch all tasks from Firestore, attach outlet names
@@ -127,15 +133,23 @@ export default function TasksScreen() {
     setLoading(true);
     try {
       const tasksCollection = collection(db, 'tasks');
-      const taskSnapshot = await getDocs(tasksCollection);
-      let taskList = taskSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-
-      // Filter tasks for Iris TL and Iris BA roles (strict match, fallback for missing fields)
+      let taskSnapshot;
+      // Use Firestore query for TL/BA roles to avoid permission errors
       if (userRole === 'Iris - TL' && currentUserId) {
-        taskList = taskList.filter(task => String(task.assignedToUserTLID || '') === String(currentUserId));
+        const q = query(tasksCollection, where('assignedToUserTLID', '==', currentUserId));
+        taskSnapshot = await getDocs(q);
       } else if (userRole === 'Iris - BA' && currentUserId) {
-        taskList = taskList.filter(task => String(task.assignedToUserBA || '') === String(currentUserId));
+        const q = query(tasksCollection, where('assignedToUserBA', '==', currentUserId));
+        taskSnapshot = await getDocs(q);
+      } else {
+        // Managers and other roles: fetch all tasks
+        taskSnapshot = await getDocs(tasksCollection);
       }
+      let taskList = taskSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        // Explicitly type as any to allow all expected fields
+        return { id: doc.id, ...(data as any) };
+      });
 
       // For each task, fetch the outlet name for display
       const tasksWithOutletNames = await Promise.all(taskList.map(async (task) => {
@@ -320,9 +334,11 @@ const fetchTLUsers = async () => {
       <Text>Assigned by: {item.assignedBy}</Text>
       <Text>Created Time: {item.createdAt?.toDate().toLocaleString()}</Text>
       <Text>Remark: {item.remark}</Text>
+
+      {/* Task Attendance Button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Attendance: {item.task_attendance} </Text>
-        {item.taskAttendanceId ? (
+        {item.taskAttendanceId && canManage ? (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.taskAttendanceId})</Text>
             <TouchableOpacity
@@ -334,10 +350,11 @@ const fetchTLUsers = async () => {
           </View>
         ) : null}
       </View>
+
       {/* Task Assessment Button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Assessment: {item.task_assesment} </Text>
-        {item.task_assesmentId ? (
+        {item.task_assesmentId && canManage ? (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_assesmentId})</Text>
             <TouchableOpacity
@@ -349,6 +366,7 @@ const fetchTLUsers = async () => {
           </View>
         ) : null}
       </View>
+
       {/* Task Quick Quiz Button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Quick Quiz: {item.task_quick_quiz} </Text>
@@ -364,10 +382,11 @@ const fetchTLUsers = async () => {
           </View>
         ) : null}
       </View>
+
       {/* Task Quick Sales Report Button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Quick Sales Report: {item.task_quick_sales_report} </Text>
-        {item.task_quick_sales_reportId ? (
+        {item.task_quick_sales_reportId && canManage ? (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_quick_sales_reportId})</Text>
             <TouchableOpacity
@@ -379,10 +398,11 @@ const fetchTLUsers = async () => {
           </View>
         ) : null}
       </View>
+
       {/* Task Sales Report Detail Button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
         <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Sales Report Detail: {item.task_sales_report_detail} </Text>
-        {item.task_sales_report_detailId ? (
+        {item.task_sales_report_detailId && canManage ? (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_sales_report_detailId})</Text>
             <TouchableOpacity
@@ -394,17 +414,17 @@ const fetchTLUsers = async () => {
           </View>
         ) : null}
       </View>
+
       <Text>Task Assessment: {item.task_assesment} {item.task_assesmentId ? `(ID: ${item.task_assesmentId})` : ''}</Text>
       <Text>Task Quick Quiz: {item.task_quick_quiz} {item.task_quick_quizId ? `(ID: ${item.task_quick_quizId})` : ''}</Text>
       <Text>Task Quick Sales Report: {item.task_quick_sales_report} {item.task_quick_sales_reportId ? `(ID: ${item.task_quick_sales_reportId})` : ''}</Text>
       <Text>Task Sales Report Detail: {item.task_sales_report_detail} {item.task_sales_report_detailId ? `(ID: ${item.task_sales_report_detailId})` : ''}</Text>
-      {/* Show Edit/Delete buttons only for managers */}
-      {canManage && (
-        <View style={styles.buttonContainer}>
-          <Button title="Edit" onPress={() => handleEditTask(item)} />
-          <Button title="Delete" onPress={() => handleDeleteTask(item.id)} />
-        </View>
-      )}
+
+      {/* Show Edit/Delete buttons for all users */}
+      <View style={styles.buttonContainer}>
+        <Button title="Edit" onPress={() => handleEditTask(item)} />
+        <Button title="Delete" onPress={() => handleDeleteTask(item.id)} />
+      </View>
     </View>
   );
 

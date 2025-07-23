@@ -294,11 +294,11 @@ export default function TaskQuickQuizScreen() {
       <Text>User ID: {item.userId}</Text>
       <Text>Date: {item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate}</Text>
       <Text>Result: {item.quickQuizResult}</Text>
-      {canUpdate && (
+      {canManage && (
         <View style={styles.buttonContainer}>
           <Button title="Take Quiz Now" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} />
           <Button title="Edit" onPress={() => handleEditQuiz(item)} />
-          {canManage && <Button title="Delete" onPress={() => handleDeleteQuiz(item.id)} />}
+          <Button title="Delete" onPress={() => handleDeleteQuiz(item.id)} />
         </View>
       )}
     </View>
