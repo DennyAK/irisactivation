@@ -2,6 +2,7 @@
 // You can undo to this version if any crash happens today.
 
 import { useState, useEffect } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl } from 'react-native';
 import { db, auth, storage } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, Timestamp } from 'firebase/firestore';
@@ -65,11 +66,12 @@ export default function TaskAttendanceScreen() {
     return () => unsubscribe();
   }, []);
 
+  const isFocused = useIsFocused();
   useEffect(() => {
-    if (userRole) {
+    if (userRole && isFocused) {
       fetchAttendances();
     }
-  }, [userRole]);
+  }, [userRole, isFocused]);
 
   const fetchAttendances = async () => {
     setLoading(true);

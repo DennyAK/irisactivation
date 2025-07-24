@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, FlatList, Button, Alert, ActivityIndicator } fr
 import { db } from '../../firebaseConfig';
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore';
 import { auth } from '../../firebaseConfig';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function AdminRoleRequestsScreen() {
   type RoleRequestItem = {

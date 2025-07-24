@@ -1,6 +1,7 @@
 // --- Imports ---
 // React hooks, UI components, Firebase config, Firestore functions, Auth, Picker, DateTimePicker
 import { useState, useEffect } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl, Switch } from 'react-native';
@@ -185,6 +186,7 @@ export default function TasksScreen() {
   const [userRole, setUserRole] = useState<string | null>(null);
   // currentUserId: Current user's ID
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const isFocused = useIsFocused();
 
   // --- useEffect: Initial Data Fetch & Auth ---
   // Runs once on mount: sets up auth listener, fetches all needed data
@@ -212,10 +214,10 @@ export default function TasksScreen() {
   }, []);
   // Fetch tasks only after userRole and currentUserId are loaded
   useEffect(() => {
-    if (userRole && currentUserId) {
+    if (userRole && currentUserId && isFocused) {
       fetchTasks();
     }
-  }, [userRole, currentUserId]);
+  }, [userRole, currentUserId, isFocused]);
 
   // --- Data Fetching Functions ---
   // Fetch all tasks from Firestore, attach outlet names

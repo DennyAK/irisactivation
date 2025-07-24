@@ -4,10 +4,12 @@ import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, Tex
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 export default function ProjectsScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
@@ -43,12 +45,14 @@ export default function ProjectsScreen() {
   }, []);
 
   useEffect(() => {
-    if (userRole) {
+    if (userRole && isFocused) {
       fetchProjects();
     }
-  }, [userRole]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userRole, isFocused]);
 
   const fetchProjects = async () => {
+    if (!isFocused) return;
     setLoading(true);
     try {
       const projectsCollection = collection(db, 'projects');
@@ -257,5 +261,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 10,
-  }
+  },
+  itemTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
+  },
 });

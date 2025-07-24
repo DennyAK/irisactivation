@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -34,7 +35,9 @@ export default function UserManagementScreen() {
   });
   const [userRole, setUserRole] = useState<string | null>(null);
 
+  const isFocused = useIsFocused();
   useEffect(() => {
+    if (!isFocused) return;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
@@ -51,7 +54,7 @@ export default function UserManagementScreen() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [isFocused]);
 
   const fetchUsers = async (role: string) => {
     setLoading(true);

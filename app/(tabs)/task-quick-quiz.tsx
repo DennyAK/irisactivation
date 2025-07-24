@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
@@ -62,12 +63,18 @@ export default function TaskQuickQuizScreen() {
     return () => unsubscribe();
   }, []);
 
+  const isFocused = useIsFocused();
   useEffect(() => {
     if (userRole) {
       fetchAllQuestions();
-      fetchQuizzes();
     }
   }, [userRole]);
+
+  useEffect(() => {
+    if (userRole && isFocused) {
+      fetchQuizzes();
+    }
+  }, [userRole, isFocused]);
 
   // Fetch all quiz questions for CRUD
   const fetchAllQuestions = async () => {
