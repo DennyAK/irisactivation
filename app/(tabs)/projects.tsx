@@ -39,9 +39,14 @@ export default function ProjectsScreen() {
         setCurrentUserId(null);
       }
     });
-    fetchProjects();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchProjects();
+    }
+  }, [userRole]);
 
   const fetchProjects = async () => {
     setLoading(true);

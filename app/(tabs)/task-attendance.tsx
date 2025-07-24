@@ -13,7 +13,14 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 export default function TaskAttendanceScreen() {
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
-  const [attendances, setAttendances] = useState<any[]>([]);
+  type AttendanceItem = {
+    id: string;
+    assignedToBA?: string;
+    createdAt?: any;
+    // add other relevant fields as needed
+    [key: string]: any;
+  };
+  const [attendances, setAttendances] = useState<AttendanceItem[]>([]);
   const [outlets, setOutlets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -54,9 +61,15 @@ export default function TaskAttendanceScreen() {
         setUserRole(null);
       }
     });
-    fetchAttendances();
+    // fetchAttendances();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchAttendances();
+    }
+  }, [userRole]);
 
   const fetchAttendances = async () => {
     setLoading(true);
@@ -65,11 +78,15 @@ export default function TaskAttendanceScreen() {
       const attendanceSnapshot = await getDocs(attendancesCollection);
       let attendanceList = attendanceSnapshot.docs.map(doc => {
         const data = doc.data();
-        return { id: doc.id, ...data } as { id: string; createdAt?: any };
+        return { id: doc.id, assignedToBA: data.assignedToBA, createdAt: data.createdAt, ...data } as AttendanceItem;
       });
       // Filter for BA role: only show records assigned to current user
       if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
-        attendanceList = attendanceList.filter(a => a.assignedToBA === auth.currentUser.uid);
+        attendanceList = attendanceList.filter(a => a?.assignedToBA === auth.currentUser?.uid);
+      }
+      // Filter for TL role: only show records assigned to current TL
+      if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
+        attendanceList = attendanceList.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
       // Sort by createdAt descending (newest first)
       attendanceList.sort((a, b) => {

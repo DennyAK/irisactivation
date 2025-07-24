@@ -5,7 +5,15 @@ import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/fi
 import { auth } from '../../firebaseConfig';
 
 export default function AdminRoleRequestsScreen() {
-  const [requests, setRequests] = useState<any[]>([]);
+  type RoleRequestItem = {
+    id: string;
+    userId?: string;
+    requestedRole?: string;
+    status?: string;
+    createdAt?: any;
+    [key: string]: any;
+  };
+  const [requests, setRequests] = useState<RoleRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchRequests = async () => {
@@ -13,7 +21,10 @@ export default function AdminRoleRequestsScreen() {
     try {
       const q = query(collection(db, 'role_requests'), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
-      setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setRequests(snapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        return { id: doc.id, userId: data.userId, requestedRole: data.requestedRole, status: data.status, createdAt: data.createdAt, ...data } as RoleRequestItem;
+      }));
     } catch (e) {
       setRequests([]);
     }
@@ -30,7 +41,7 @@ export default function AdminRoleRequestsScreen() {
       if (status === 'approved') {
         // Find the request to get userId and requestedRole
         const req = requests.find(r => r.id === id);
-        if (req) {
+        if (req && req.userId) {
           await updateDoc(doc(db, 'users', req.userId), { role: req.requestedRole });
         }
       }

@@ -28,9 +28,14 @@ export default function ProvinceListScreen() {
         setUserRole(null);
       }
     });
-    fetchProvinces();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchProvinces();
+    }
+  }, [userRole]);
 
   const fetchProvinces = async () => {
     setLoading(true);

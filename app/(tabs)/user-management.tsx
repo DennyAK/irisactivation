@@ -9,8 +9,18 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 
 export default function UserManagementScreen() {
+  type UserItem = {
+    id: string;
+    role?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    province?: string;
+    city?: string;
+    [key: string]: any;
+  };
   const router = useRouter();
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -54,7 +64,10 @@ export default function UserManagementScreen() {
         q = query(usersCollection, where("role", "!=", "superadmin"));
       }
       const userSnapshot = await getDocs(q);
-      const userList = userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const userList = userSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        return { id: doc.id, role: data.role, firstName: data.firstName, lastName: data.lastName, phone: data.phone, province: data.province, city: data.city, ...data } as UserItem;
+      });
       setUsers(userList);
     } catch (error) {
       console.error("Error fetching users: ", error);

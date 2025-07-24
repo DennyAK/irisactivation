@@ -27,9 +27,14 @@ export default function CityListScreen() {
         setUserRole(null);
       }
     });
-    fetchProvinces();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchProvinces();
+    }
+  }, [userRole]);
 
   const fetchProvinces = async () => {
     setLoadingProvinces(true);

@@ -46,10 +46,15 @@ export default function OutletsScreen() {
         setUserRole(null);
       }
     });
-    fetchOutlets();
     fetchProvinces();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchOutlets();
+    }
+  }, [userRole]);
 
   useEffect(() => {
     if (formData.outletProvince) {

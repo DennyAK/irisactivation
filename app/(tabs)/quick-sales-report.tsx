@@ -34,19 +34,28 @@ export default function QuickSalesReportScreen() {
         setUserRole(null);
       }
     });
-    fetchReports();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchReports();
+    }
+  }, [userRole]);
 
   const fetchReports = async () => {
     setLoading(true);
     try {
       const collectionRef = collection(db, 'sales_report_quick');
       const snapshot = await getDocs(collectionRef);
-      let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let list = snapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
       // Filter for BA role: only show records assigned to current user
       if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
-        list = list.filter(a => a.assignedToBA === auth.currentUser.uid);
+        list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
+      }
+      // Filter for TL role: only show records assigned to current TL
+      if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
+        list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
       setReports(list);
     } catch (error) {

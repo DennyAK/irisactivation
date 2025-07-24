@@ -7,7 +7,13 @@ import { onAuthStateChanged } from 'firebase/auth';
 export default function TaskEarlyAssessmentScreen() {
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
-  const [assessments, setAssessments] = useState<any[]>([]);
+  type AssessmentItem = {
+    id: string;
+    assignedToBA?: string;
+    // add other relevant fields as needed
+    [key: string]: any;
+  };
+  const [assessments, setAssessments] = useState<AssessmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'add' | 'edit'>('add');
@@ -43,19 +49,28 @@ export default function TaskEarlyAssessmentScreen() {
         setUserRole(null);
       }
     });
-    fetchAssessments();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchAssessments();
+    }
+  }, [userRole]);
 
   const fetchAssessments = async () => {
     setLoading(true);
     try {
       const collectionRef = collection(db, 'task_early_assessment');
       const snapshot = await getDocs(collectionRef);
-      let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let list = snapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
       // Filter for BA role: only show records assigned to current user
       if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
-        list = list.filter(a => a.assignedToBA === auth.currentUser.uid);
+        list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
+      }
+      // Filter for TL role: only show records assigned to current TL
+      if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
+        list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
       setAssessments(list);
     } catch (error) {

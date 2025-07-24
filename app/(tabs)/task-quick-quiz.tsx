@@ -47,7 +47,6 @@ export default function TaskQuickQuizScreen() {
   const [activeQuizDocId, setActiveQuizDocId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAllQuestions();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
@@ -60,9 +59,15 @@ export default function TaskQuickQuizScreen() {
         setUserRole(null);
       }
     });
-    fetchQuizzes();
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchAllQuestions();
+      fetchQuizzes();
+    }
+  }, [userRole]);
 
   // Fetch all quiz questions for CRUD
   const fetchAllQuestions = async () => {
@@ -137,10 +142,14 @@ export default function TaskQuickQuizScreen() {
     try {
       const quizzesCollection = collection(db, 'task_quick_quiz');
       const quizSnapshot = await getDocs(quizzesCollection);
-      let quizList = quizSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let quizList = quizSnapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
       // Filter for BA role: only show records assigned to current user
       if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
-        quizList = quizList.filter(q => q.assignedToBA === auth.currentUser.uid);
+        quizList = quizList.filter(q => q?.assignedToBA === auth.currentUser?.uid);
+      }
+      // Filter for TL role: only show records assigned to current TL
+      if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
+        quizList = quizList.filter(q => q?.assignedToTL === auth.currentUser?.uid);
       }
       setQuizzes(quizList);
     } catch (error) {

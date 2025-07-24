@@ -72,6 +72,15 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 // --- Main Component ---
 export default function TasksScreen() {
+  type TaskItem = {
+    id: string;
+    assignedToUserBA?: string;
+    assignedToUserTLID?: string;
+    createdAt?: any;
+    outletId?: string;
+    // add other relevant fields as needed
+    [key: string]: any;
+  };
   // --- Animated blinking for action buttons ---
   const blinkAnim = useState(new Animated.Value(0))[0];
   useEffect(() => {
@@ -133,7 +142,7 @@ export default function TasksScreen() {
   const [refreshing, setRefreshing] = useState(false);
   // --- State Variables ---
   // tasks: List of all tasks fetched from Firestore
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
   // outlets: List of outlets for dropdown selection
   const [outlets, setOutlets] = useState<any[]>([]);
   // loading: Controls loading spinner visibility
@@ -228,8 +237,7 @@ export default function TasksScreen() {
       }
       let taskList = taskSnapshot.docs.map(doc => {
         const data = doc.data() || {};
-        // Explicitly type as any to allow all expected fields
-        return { id: doc.id, ...(data as any) };
+        return { id: doc.id, assignedToUserBA: data.assignedToUserBA, assignedToUserTLID: data.assignedToUserTLID, createdAt: data.createdAt, outletId: data.outletId, ...data } as TaskItem;
       });
 
       // Sort by createdAt descending (newest first)
@@ -513,12 +521,6 @@ const fetchTLUsers = async () => {
                 style={{
                   width: '90%',
                   minWidth: 100,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  backgroundColor: blinkAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#786a35', '#ffe066'],
-                  }),
                   borderRadius: 4,
                   alignItems: 'center',
                   alignSelf: 'flex-end',
