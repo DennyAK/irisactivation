@@ -38,27 +38,7 @@ export default function TaskEarlyAssessmentScreen() {
   };
 
   const [formData, setFormData] = useState(initialFormData);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        getDoc(userDocRef).then((docSnap: DocumentSnapshot) => {
-          if (docSnap.exists()) setUserRole(docSnap.data().role);
-        });
-      } else {
-        setUserRole(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const isFocused = useIsFocused();
-  useEffect(() => {
-    if (userRole && isFocused) {
-      fetchAssessments();
-    }
-  }, [userRole, isFocused]);
+  // Track if modal was opened via 'ASSES' button
 
   const fetchAssessments = async () => {
     setLoading(true);
@@ -82,6 +62,11 @@ export default function TaskEarlyAssessmentScreen() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAssessments();
+    // Optionally, fetch user role here if needed
+  }, [userRole]);
 
   const handleOpenModal = (type: 'add' | 'edit', item?: any) => {
     setModalType(type);
@@ -150,16 +135,17 @@ export default function TaskEarlyAssessmentScreen() {
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
       <Text style={styles.itemTitle}>{item.outletName}</Text>
-      <Text>PG: {item.pgFullName}</Text>
-      <Text>Date: {item.reportTimestamp?.toDate().toLocaleDateString()}</Text>
-      {/* New fields from Tasks */}
-      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
+      {/* Assigned to BA (bold) */}
+      <Text style={{ fontWeight: 'bold' }}>Assigned to BA: {item.assignedToBA || '-'}</Text>
       <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
       <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
       <Text>Created By: {item.createdBy || '-'}</Text>
       <Text>Task ID: {item.tasksId || '-'}</Text>
+      {/* Task Early Assessment Status */}
+      <Text>Task Early Assessment Status: {item.status || '-'}</Text>
       {canUpdate && (
         <View style={styles.buttonContainer}>
+          <Button title="ASSES" onPress={() => handleOpenModal('edit', item)} />
           <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
           {canManage && <Button title="Delete" onPress={() => handleDelete(item.id)} />}
         </View>

@@ -283,7 +283,7 @@ export default function SalesReportDetailScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sales Report Detail</Text>
-      {canUpdate && <Button title="Add New Report" onPress={() => handleOpenModal('add')} />}
+
       <FlatList
         data={reports}
         keyExtractor={(item) => item.id}

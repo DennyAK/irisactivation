@@ -267,6 +267,11 @@ export default function TaskQuickQuizScreen() {
       const score = quizQuestions.reduce((acc, q, idx) => acc + (userAnswers[idx] === q.answer ? 1 : 0), 0);
       setQuizScore(score);
       const userId = auth.currentUser?.uid || 'anonymous';
+      // Determine status
+      let status = 'Pending';
+      if (score >= 8) {
+        status = 'Done';
+      }
       // If activeQuizDocId is set, update the result for that quiz record
       if (activeQuizDocId) {
         const quizDoc = doc(db, 'task_quick_quiz', activeQuizDocId);
@@ -275,6 +280,7 @@ export default function TaskQuickQuizScreen() {
           takeQuickQuizId: activeQuizId || '',
           quizDate: new Date(),
           quickQuizResult: `${score}/10`,
+          taskQuickQuizStatus: status,
         }).then(() => {
           fetchQuizzes();
         });
@@ -285,6 +291,7 @@ export default function TaskQuickQuizScreen() {
           takeQuickQuizId: activeQuizId || '',
           quizDate: new Date(),
           quickQuizResult: `${score}/10`,
+          taskQuickQuizStatus: status,
           createdAt: serverTimestamp()
         });
       }
@@ -314,15 +321,39 @@ export default function TaskQuickQuizScreen() {
       <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
       <Text>Date: {item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate}</Text>
       <Text>Result: {item.quickQuizResult}</Text>
+      {/* Task Quick Quiz Status logic */}
+      <Text>Task Quick Quiz Status: {item.taskQuickQuizStatus || (() => {
+        let status = 'Pending';
+        let score = 0;
+        if (typeof item.quickQuizResult === 'string') {
+          const match = item.quickQuizResult.match(/(\d+)[^\d]*/);
+          if (match) {
+            score = parseInt(match[1], 10);
+          }
+        }
+        if (score >= 8) {
+          status = 'Done';
+        }
+        return status;
+      })()}</Text>
       <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
       <Text>Created By: {item.createdBy || '-'}</Text>
       <Text>Task ID: {item.tasksId || '-'}</Text>
       <View style={styles.buttonContainer}>
-        <Button title="Take Quiz Now" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} />
-        {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager') && (
-          <Button title="Edit" onPress={() => handleEditQuiz(item)} />
-        )}
-        {canManage && <Button title="Delete" onPress={() => handleDeleteQuiz(item.id)} />}
+        {/* Hide Take Quiz Now if status is Done */}
+        {(() => {
+          let score = 0;
+          if (typeof item.quickQuizResult === 'string') {
+            const match = item.quickQuizResult.match(/(\d+)[^\d]*/);
+            if (match) {
+              score = parseInt(match[1], 10);
+            }
+          }
+          if (score < 8) {
+            return <Button title="Take Quiz Now" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} />;
+          }
+          return null;
+        })()}
       </View>
     </View>
   );
@@ -352,12 +383,7 @@ export default function TaskQuickQuizScreen() {
         }
       >
         <Text style={styles.title}>Task Quick Quiz</Text>
-        {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager') && (
-          <Button title="Take Quiz" onPress={fetchQuizQuestions} disabled={quizLoading} />
-        )}
-        {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager') && (
-          <Button title="Add New Quiz Record" onPress={() => setIsAddModalVisible(true)} />
-        )}
+
 
         {/* Quiz Questions List for Superadmin/Admin */}
         {(userRole === 'superadmin' || userRole === 'admin') && (

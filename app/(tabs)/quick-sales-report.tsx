@@ -180,7 +180,7 @@ export default function QuickSalesReportScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Quick Sales Report</Text>
-      {canUpdate && <Button title="Add New Report" onPress={() => handleOpenModal('add')} />}
+      {/* Removed Add New Report button as requested */}
       <FlatList
         data={reports}
         keyExtractor={(item) => item.id}

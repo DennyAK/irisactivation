@@ -37,6 +37,7 @@ export default function TaskAttendanceScreen() {
     checkOutLatitude: '',
     checkOutLongitude: '',
     selfieUrl: '',
+    taskAttendanceStatus: '', // New field
   });
   const [selectedAttendance, setSelectedAttendance] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -113,8 +114,17 @@ export default function TaskAttendanceScreen() {
 
   const resetFormData = () => {
     setFormData({
-      userId: '', assignedToBA: '', outletId: '', checkIn: null, checkOut: null,
-      checkInLatitude: '', checkInLongitude: '', checkOutLatitude: '', checkOutLongitude: '', selfieUrl: '',
+      userId: '',
+      assignedToBA: '',
+      outletId: '',
+      checkIn: null,
+      checkOut: null,
+      checkInLatitude: '',
+      checkInLongitude: '',
+      checkOutLatitude: '',
+      checkOutLongitude: '',
+      selfieUrl: '',
+      taskAttendanceStatus: '',
     });
   };
 
@@ -148,6 +158,7 @@ export default function TaskAttendanceScreen() {
       checkOutLatitude: attendance.checkOutLatitude?.toString() || '',
       checkOutLongitude: attendance.checkOutLongitude?.toString() || '',
       selfieUrl: attendance.selfieUrl || '',
+      taskAttendanceStatus: attendance.taskAttendanceStatus || '',
     });
     setIsEditModalVisible(true);
   };
@@ -162,6 +173,7 @@ export default function TaskAttendanceScreen() {
         checkInLongitude: parseFloat(formData.checkInLongitude) || 0,
         checkOutLatitude: parseFloat(formData.checkOutLatitude) || 0,
         checkOutLongitude: parseFloat(formData.checkOutLongitude) || 0,
+        taskAttendanceStatus: 'pending', // Set to pending after edit
       };
 
       const attendanceDoc = doc(db, "task_attendance", selectedAttendance.id);
@@ -291,22 +303,148 @@ export default function TaskAttendanceScreen() {
   // These roles can Read and Update
   const canReadUpdate = canManage || ['Iris - BA', 'Iris - TL'].includes(userRole || '');
 
+  const handleApproveByTL = async (attendanceId: string) => {
+    try {
+      const attendanceDoc = doc(db, "task_attendance", attendanceId);
+      await updateDoc(attendanceDoc, { taskAttendanceStatus: 'approved by TL' });
+      fetchAttendances();
+      Alert.alert('Success', 'Attendance approved by TL.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
+  };
+
+  const handleApproveByAM = async (attendanceId: string) => {
+    try {
+      const attendanceDoc = doc(db, "task_attendance", attendanceId);
+      await updateDoc(attendanceDoc, { taskAttendanceStatus: 'approved by AM' });
+      fetchAttendances();
+      Alert.alert('Success', 'Attendance approved by Area Manager.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
+  };
+
   const renderAttendance = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
       <Text style={styles.itemTitle}>Assigned to BA:</Text>
       <Text style={styles.longText}>{item.assignedToBA || '-'}</Text>
       <Text>Outlet: {item.outletId}</Text>
-      <Text>Check-in: {item.checkIn?.toDate().toLocaleString()}</Text>
-      <Text>Check-out: {item.checkOut?.toDate().toLocaleString()}</Text>
+      {/* Check-in fields */}
+      <Text>Check-in: {item.checkIn?.toDate ? item.checkIn.toDate().toLocaleString() : '-'}</Text>
+      <Text>Check-in Latitude: {item.checkInLatitude || '-'}</Text>
+      <Text>Check-in Longitude: {item.checkInLongitude || '-'}</Text>
+      {/* Check-out fields */}
+      <Text>Check-out: {item.checkOut?.toDate ? item.checkOut.toDate().toLocaleString() : '-'}</Text>
+      <Text>Check-out Latitude: {item.checkOutLatitude || '-'}</Text>
+      <Text>Check-out Longitude: {item.checkOutLongitude || '-'}</Text>
       <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
       <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
       <Text>Created By: {item.createdBy || '-'}</Text>
       <Text>Task ID: {item.tasksId || '-'}</Text>
+      <Text>Task Attendance Status: {item.taskAttendanceStatus || '-'}</Text>
       {item.selfieUrl && item.selfieUrl !== '' ? <Image source={{ uri: item.selfieUrl }} style={styles.thumbnail} /> : <Text>No Selfie</Text>}
       {canReadUpdate && (
         <View style={styles.buttonContainer}>
-          <Button title="Edit" onPress={() => handleEditAttendance(item)} />
-          {canManage && <Button title="Delete" onPress={() => handleDeleteAttendance(item.id)} />}
+          {/* Check In Now button for BA, only if not checked in yet */}
+          {userRole === 'Iris - BA' && !item.checkIn && (
+            <Button title="Check In Now" onPress={async () => {
+              let { status } = await Location.requestForegroundPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permission denied', 'Permission to access location was denied');
+                return;
+              }
+              let location = await Location.getCurrentPositionAsync({});
+              Alert.alert("Confirm Check-In", "Are you sure you want to check in now?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "OK", onPress: async () => {
+                  try {
+                    const attendanceDoc = doc(db, "task_attendance", item.id);
+                    await updateDoc(attendanceDoc, {
+                      checkIn: new Date(),
+                      checkInLatitude: location.coords.latitude.toString(),
+                      checkInLongitude: location.coords.longitude.toString(),
+                    });
+                    fetchAttendances();
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to check in.');
+                  }
+                }}
+              ]);
+            }} />
+          )}
+          {/* Check Out Now button for BA, only if checked in and not checked out yet */}
+          {userRole === 'Iris - BA' && item.checkIn && !item.checkOut && (
+            <Button title="Check Out Now" onPress={async () => {
+              let { status } = await Location.requestForegroundPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permission denied', 'Permission to access location was denied');
+                return;
+              }
+              let location = await Location.getCurrentPositionAsync({});
+              Alert.alert("Confirm Check-Out", "Are you sure you want to check out now?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "OK", onPress: async () => {
+                  try {
+                    const attendanceDoc = doc(db, "task_attendance", item.id);
+                    await updateDoc(attendanceDoc, {
+                      checkOut: new Date(),
+                      checkOutLatitude: location.coords.latitude.toString(),
+                      checkOutLongitude: location.coords.longitude.toString(),
+                    });
+                    fetchAttendances();
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to check out.');
+                  }
+                }}
+              ]);
+            }} />
+          )}
+          {/* Upload Selfie button for BA, only if not uploaded yet */}
+          {userRole === 'Iris - BA' && (!item.selfieUrl || item.selfieUrl === '') && (
+            <Button title="Upload Selfie" onPress={async () => {
+              try {
+                let result = await ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                  allowsEditing: true,
+                  aspect: [1, 1],
+                  quality: 0.5,
+                });
+                if (result.canceled || !result.assets || result.assets.length === 0) {
+                  Alert.alert('Cancelled', 'Image selection was cancelled.');
+                  return;
+                }
+                const uri = result.assets[0].uri;
+                if (!auth.currentUser) {
+                  Alert.alert("Authentication Error", "You must be logged in to upload images.");
+                  return;
+                }
+                const response = await fetch(uri);
+                const blob = await response.blob();
+                const storageRef = ref(storage, `task_attendance/${auth.currentUser.uid}/${new Date().getTime()}.jpg`);
+                const snapshot = await uploadBytes(storageRef, blob);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+                const attendanceDoc = doc(db, "task_attendance", item.id);
+                await updateDoc(attendanceDoc, { selfieUrl: downloadURL });
+                fetchAttendances();
+                Alert.alert("Success", "Selfie uploaded and saved.");
+              } catch (error) {
+                Alert.alert("Upload Failed", `An error occurred. Check the console for more details.`);
+              }
+            }} />
+          )}
+          {(userRole === 'admin' || userRole === 'superadmin' || (userRole === 'Iris - BA' && item.taskAttendanceStatus !== 'pending')) && (
+            <Button title="Edit" onPress={() => handleEditAttendance(item)} />
+          )}
+          {(userRole === 'admin' || userRole === 'superadmin') && (
+            <Button title="Delete" onPress={() => handleDeleteAttendance(item.id)} />
+          )}
+          {userRole === 'Iris - TL' && item.taskAttendanceStatus !== 'approved by TL' && item.taskAttendanceStatus !== 'approved by AM' && (
+            <Button title="Approved by TL" onPress={() => handleApproveByTL(item.id)} />
+          )}
+          {userRole === 'area manager' && item.taskAttendanceStatus === 'approved by TL' && (
+            <Button title="Approved by AM" onPress={() => handleApproveByAM(item.id)} />
+          )}
         </View>
       )}
     </View>
@@ -330,17 +468,20 @@ export default function TaskAttendanceScreen() {
         multiline={true}
         editable={false}
       />
-      <View style={styles.checkInOutContainer}>
-        <Button title="Check In Now" onPress={confirmCheckIn} disabled={!!formData.checkIn} />
-        {formData.checkIn && <Text>{formData.checkIn.toLocaleString()}</Text>}
-      </View>
+      {/* Check-in info (now only display, not button) */}
+      {formData.checkIn && (
+        <View style={styles.checkInOutContainer}>
+          <Text>{formData.checkIn.toLocaleString()}</Text>
+        </View>
+      )}
       {formData.checkInLatitude && <Text>Check-in Location: {formData.checkInLatitude}, {formData.checkInLongitude}</Text>}
-      <View style={styles.checkInOutContainer}>
-        <Button title="Check Out Now" onPress={confirmCheckOut} disabled={!formData.checkIn || !!formData.checkOut} />
-        {formData.checkOut && <Text>{formData.checkOut.toLocaleString()}</Text>}
-      </View>
+      {/* Check-out info (now only display, not button) */}
+      {formData.checkOut && (
+        <View style={styles.checkInOutContainer}>
+          <Text>{formData.checkOut.toLocaleString()}</Text>
+        </View>
+      )}
       {formData.checkOutLatitude && <Text>Check-out Location: {formData.checkOutLatitude}, {formData.checkOutLongitude}</Text>}
-      <Button title="Upload Selfie" onPress={pickAndUploadImage} />
       {formData.selfieUrl ? <Image source={{ uri: formData.selfieUrl }} style={styles.selfieImage} /> : null}
     </>
   );

@@ -36,6 +36,7 @@ export default function Login() {
         secureTextEntry
       />
       <Button title="Login" onPress={handleLogin} />
+      <View style={{ height: 16 }} />
       <Button title="Sign Up" onPress={() => router.push('/signup')} />
     </View>
   );

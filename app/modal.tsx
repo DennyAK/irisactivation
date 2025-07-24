@@ -42,7 +42,7 @@ export default function ModalScreen() {
   };
 
   // Menu items for all tabs/screens
-  const menuItems = [
+  let menuItems = [
     { label: 'Profile', route: '/(tabs)/index' },
     { label: 'Tasks', route: '/(tabs)/tasks' },
     { label: 'User Management', route: '/(tabs)/user-management' },
@@ -64,19 +64,26 @@ export default function ModalScreen() {
     menuItems.push({ label: 'Admin Role Requests', route: '/(tabs)/admin-role-requests' });
   }
 
+  // If guest, only show Profile
+  if (role === 'guest') {
+    menuItems = [
+      { label: 'Profile', route: '/(tabs)/index' }
+    ];
+  }
+
   return (
     <View style={styles.menuContainer}>
       <Text style={styles.title}>Menu</Text>
       <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
       <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={styles.menuButtonWrapper}>
+          <Button title="Logout" onPress={handleLogout} color="#d9534f" />
+        </View>
         {menuItems.map((item) => (
           <View key={item.route} style={styles.menuButtonWrapper}>
             <Button title={item.label} onPress={() => router.push(item.route as any)} color="#007bff" />
           </View>
         ))}
-        <View style={styles.menuButtonWrapper}>
-          <Button title="Logout" onPress={handleLogout} color="#d9534f" />
-        </View>
       </ScrollView>
       <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
     </View>

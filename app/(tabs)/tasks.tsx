@@ -523,6 +523,12 @@ const fetchTLUsers = async () => {
                 style={{
                   width: '90%',
                   minWidth: 100,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  backgroundColor: blinkAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#786a35', '#ffe066'],
+                  }),
                   borderRadius: 4,
                   alignItems: 'center',
                   alignSelf: 'flex-end',

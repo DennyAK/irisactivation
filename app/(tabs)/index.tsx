@@ -160,7 +160,9 @@ export default function TabOneScreen() {
       )}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
         <Text>Role: {user.role}</Text>
-        <Button title="Ask New Role?" onPress={() => setIsRoleRequestModalVisible(true)} />
+        {user.role === 'guest' && (
+          <Button title="Ask New Role?" onPress={() => setIsRoleRequestModalVisible(true)} />
+        )}
       </View>
 
       {/* Role Request Modal */}
@@ -178,7 +180,7 @@ export default function TabOneScreen() {
               <Picker
                 selectedValue={requestedRole}
                 onValueChange={(itemValue) => setRequestedRole(itemValue)}
-                style={{ height: 40 }}
+                style={{ height: 60, minHeight: 60 }}
               >
                 <Picker.Item label="Select a role..." value="" />
                 <Picker.Item label="admin" value="admin" />
@@ -190,7 +192,7 @@ export default function TabOneScreen() {
             </View>
             <Text>Reason</Text>
             <TextInput
-              style={[styles.input, { minHeight: 40, textAlignVertical: 'top' }]}
+              style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]}
               value={roleReason}
               onChangeText={setRoleReason}
               placeholder="Why do you need this role?"
@@ -252,11 +254,40 @@ export default function TabOneScreen() {
             <Text style={styles.title}>Edit Profile</Text>
             <TextInput style={styles.input} value={formData.firstName} onChangeText={(text) => setFormData({...formData, firstName: text})} placeholder="First Name" />
             <TextInput style={styles.input} value={formData.lastName} onChangeText={(text) => setFormData({...formData, lastName: text})} placeholder="Last Name" />
-            <TextInput style={styles.input} value={formData.phone} onChangeText={(text) => setFormData({...formData, phone: text})} placeholder="Phone" />
+            <TextInput
+              style={styles.input}
+              value={formData.phone.startsWith('+62') ? formData.phone.slice(3) : (formData.phone.startsWith('0') ? formData.phone.slice(1) : formData.phone)}
+              onChangeText={(text) => {
+                // Remove any leading zero
+                let clean = text.replace(/^0+/, '');
+                setFormData({ ...formData, phone: '+62' + clean });
+              }}
+              placeholder="81234567890"
+              keyboardType="phone-pad"
+              maxLength={13}
+            />
+            <Text style={{position:'absolute', left:22, top:160, fontSize:16, color:'#333', zIndex:2}}>+62</Text>
+            <Text style={{fontSize:12, color:'#888', marginBottom:8, marginTop:8}}>
+              Format: +6281234567890 (Indonesia)
+            </Text>
             <TextInput style={styles.input} value={formData.province} onChangeText={(text) => setFormData({...formData, province: text})} placeholder="Province" />
             <TextInput style={styles.input} value={formData.city} onChangeText={(text) => setFormData({...formData, city: text})} placeholder="City" />
             <View style={styles.buttonContainer}>
-              <Button title="Update" onPress={handleUpdate} />
+              <Button title="Update" onPress={() => {
+                // Always ensure phone starts with +62
+                let phone = formData.phone;
+                if (phone.startsWith('0')) {
+                  phone = '+62' + phone.slice(1);
+                } else if (!phone.startsWith('+62')) {
+                  phone = '+62' + phone.replace(/^\+?/, '');
+                }
+                if (!/^\+62\d{9,13}$/.test(phone)) {
+                  Alert.alert('Invalid Phone', 'Please enter a valid Indonesian phone number, e.g. 81234567890');
+                  return;
+                }
+                setFormData({ ...formData, phone });
+                setTimeout(() => handleUpdate(), 0);
+              }} />
               <Button title="Cancel" onPress={() => setIsModalVisible(false)} />
             </View>
           </View>
@@ -294,6 +325,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 10,
+    minHeight: 320,
+    justifyContent: 'center',
   },
   input: {
     height: 40,
