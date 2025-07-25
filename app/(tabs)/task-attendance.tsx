@@ -433,12 +433,7 @@ export default function TaskAttendanceScreen() {
               }
             }} />
           )}
-          {(userRole === 'admin' || userRole === 'superadmin' || (userRole === 'Iris - BA' && item.taskAttendanceStatus !== 'pending')) && (
-            <Button title="Edit" onPress={() => handleEditAttendance(item)} />
-          )}
-          {(userRole === 'admin' || userRole === 'superadmin') && (
-            <Button title="Delete" onPress={() => handleDeleteAttendance(item.id)} />
-          )}
+          {/* Edit and Delete buttons removed as requested */}
           {userRole === 'Iris - TL' && item.taskAttendanceStatus !== 'approved by TL' && item.taskAttendanceStatus !== 'approved by AM' && (
             <Button title="Approved by TL" onPress={() => handleApproveByTL(item.id)} />
           )}

@@ -17,9 +17,38 @@ export default function TaskEarlyAssessmentScreen() {
   const [assessments, setAssessments] = useState<AssessmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'add' | 'edit'>('add');
+  const [modalType, setModalType] = useState<'add' | 'edit' | 'reviewAM'>('add');
   const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
+  const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Fetch user role on mount and on auth state change
+  useEffect(() => {
+    const fetchUserRole = async (uid: string) => {
+      try {
+        // Example: assuming user roles are stored in a 'users' collection with a 'role' field
+        const userDoc = await getDoc(doc(collection(db, 'users'), uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role || null);
+          console.log('User role:', userDoc.data().role);
+        } else {
+          setUserRole(null);
+          console.log('User doc not found');
+        }
+      } catch (e) {
+        setUserRole(null);
+        console.log('Error fetching user role', e);
+      }
+    };
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchUserRole(user.uid);
+      } else {
+        setUserRole(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const initialFormData = {
     personnelEmail: '', teamLeaderName: '', pgFullName: '',
@@ -129,8 +158,9 @@ export default function TaskEarlyAssessmentScreen() {
 
   if (loading) return <ActivityIndicator />;
 
-  const canManage = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
-  const canUpdate = canManage || userRole === 'Iris - BA' || userRole === 'Iris - TL';
+  const canManage = ['admin', 'superadmin'].includes(userRole || '');
+  const isAreaManager = userRole === 'area manager';
+  const canUpdate = canManage || isAreaManager || userRole === 'Iris - BA' || userRole === 'Iris - TL';
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
@@ -143,15 +173,97 @@ export default function TaskEarlyAssessmentScreen() {
       <Text>Task ID: {item.tasksId || '-'}</Text>
       {/* Task Early Assessment Status */}
       <Text>Task Early Assessment Status: {item.status || '-'}</Text>
-      {canUpdate && (
-        <View style={styles.buttonContainer}>
-          <Button title="ASSES" onPress={() => handleOpenModal('edit', item)} />
-          <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
-          {canManage && <Button title="Delete" onPress={() => handleDelete(item.id)} />}
-        </View>
-      )}
+      <View style={styles.buttonContainer}>
+        {(canUpdate || canManage) && <Button title="ASSES" onPress={() => handleOpenModal('edit', item)} />}
+        {/* Only admin and superadmin see Edit/Delete, not area manager */}
+        {canManage && <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />}
+        {canManage && <Button title="Delete" onPress={() => handleDelete(item.id)} />}
+        {isAreaManager && (
+          <Button title="Review by AM" onPress={() => { setSelectedAssessment(item); setIsReviewModalVisible(true); }} />
+        )}
+      </View>
     </View>
   );
+  // Render review modal for area manager
+  const renderReviewModal = () => {
+    if (!selectedAssessment) return null;
+    const item = selectedAssessment;
+    return (
+      <Modal visible={isReviewModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsReviewModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>Review by Area Manager</Text>
+            <Text style={styles.sectionTitle}>Personnel Information</Text>
+            <Text>Personnel Email: {item.personnelEmail}</Text>
+            <Text>Team Leader Name: {item.teamLeaderName}</Text>
+            <Text>PG Full Name: {item.pgFullName}</Text>
+            <Text style={styles.sectionTitle}>Outlet/Venue Details</Text>
+            <Text>Report Date: {item.reportTimestamp?.toDate ? item.reportTimestamp.toDate().toLocaleDateString() : item.reportTimestamp || '-'}</Text>
+            <Text>Province: {item.locationProvince}</Text>
+            <Text>City: {item.locationCity}</Text>
+            <Text>Outlet Type: {item.outletType}</Text>
+            <Text>Outlet Name: {item.outletName}</Text>
+            <Text>Tier Outlet: {item.outletTier}</Text>
+            <Text style={styles.sectionTitle}>Outlet Facilities</Text>
+            <Text>KEGS Available: {item.kegsAvailable ? 'Yes' : 'No'}</Text>
+            <Text>Microdraught Available: {item.microdraughtAvailable ? 'Yes' : 'No'}</Text>
+            <Text style={styles.sectionTitle}>Activity Tracking</Text>
+            <Text>Activity Stoutie Running: {item.activityStoutieRunning ? 'Yes' : 'No'}</Text>
+            <Text>Activity Stoutie Result: {item.activityStoutieResult}</Text>
+            <Text>Activity Stoutie Photos: {item.activityStoutiePhotos}</Text>
+            <Text style={styles.sectionTitle}>Product Stock</Text>
+            <Text>KEGS Stock: {item.stockKegs}</Text>
+            <Text>Microdraught Stock: {item.stockMicrodraught}</Text>
+            <Text>GDIC Stock: {item.stockGdic}</Text>
+            <Text>Smooth Pint/Can 330ml Stock: {item.stockSmoothPintCan330}</Text>
+            <Text>GFES Pint/Can 330ml Stock: {item.stockGfesPintCan330}</Text>
+            <Text>GFES 620ml Stock: {item.stockGfes620}</Text>
+            <Text>GFES Can Big 500ml Stock: {item.stockGfesCanBig500}</Text>
+            <Text style={styles.sectionTitle}>Product Expiry Dates</Text>
+            <Text>KEGS Expiry: {item.expiryKegs}</Text>
+            <Text>Microdraught Expiry: {item.expiryMicrodraught}</Text>
+            <Text>GDIC Expiry: {item.expiryGdic}</Text>
+            <Text>Smooth Pint/Can 330ml Expiry: {item.expirySmoothPintCan330}</Text>
+            <Text>GFES Pint/Can 330ml Expiry: {item.expiryGfesPintCan330}</Text>
+            <Text>GFES 620ml Expiry: {item.expiryGfes620}</Text>
+            <Text>GFES Can Big 500ml Expiry: {item.expiryGfesCanBig500}</Text>
+            <Text style={styles.sectionTitle}>Compliance & Performance</Text>
+            <Text>Daily Quiz Completed: {item.dailyQuizCompleted ? 'Yes' : 'No'}</Text>
+            <Text>Roleplay Video Made: {item.roleplayVideoMade ? 'Yes' : 'No'}</Text>
+            <Text>PG Appearance Standard: {item.pgAppearanceStandard}</Text>
+            <Text style={styles.sectionTitle}>Visual Merchandising</Text>
+            <Text>Outlet Visibility Photos: {item.outletVisibilityPhotos}</Text>
+            <Text>POSM Photos: {item.posmPhotos}</Text>
+            <Text>Merchandise Brought: {item.merchandiseBrought ? 'Yes' : 'No'}</Text>
+            <Text style={styles.sectionTitle}>Promotions & Engagement</Text>
+            <Text>Guinness Promotions Available: {item.guinnessPromotionsAvailable ? 'Yes' : 'No'}</Text>
+            <Text>Promotion Description: {item.promotionDescription}</Text>
+            <Text>Activity Engagement: {item.activityEngagement}</Text>
+            <Text style={styles.sectionTitle}>Issues/Notes</Text>
+            <Text>{item.issuesNotes}</Text>
+            <View style={styles.buttonContainer}>
+              <Button title="Done Review by AM" onPress={() => {
+                Alert.alert('Confirm Review', 'Are you sure reviewed?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'OK', onPress: async () => {
+                    try {
+                      await updateDoc(doc(db, 'task_early_assessment', item.id), { status: 'Review by AM' });
+                      fetchAssessments();
+                      setIsReviewModalVisible(false);
+                      Alert.alert('Success', 'Status updated to Review by AM.');
+                    } catch (e) {
+                      Alert.alert('Error', 'Failed to update status.');
+                    }
+                  }}
+                ]);
+              }} />
+              <Button title="Cancel" onPress={() => setIsReviewModalVisible(false)} />
+            </View>
+          </View>
+        </ScrollView>
+      </Modal>
+    );
+  };
 
   const renderModal = () => (
     <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
@@ -246,6 +358,7 @@ export default function TaskEarlyAssessmentScreen() {
         }
       />
       {renderModal()}
+      {renderReviewModal()}
     </View>
   );
 }
