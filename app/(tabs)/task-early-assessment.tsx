@@ -66,6 +66,13 @@ export default function TaskEarlyAssessmentScreen() {
   }, []);
 
   interface FormDataType {
+    digitalActivityEngagementPhoto?: string;
+    digitalActivityEngagementDescription?: string;
+    guinnessPromotionDisplayedDescriptionPhoto?: string;
+    digitalActivityEngagementSwitch?: boolean;
+    guinnessPromotionDisplayedDescription?: string;
+    guinnessPromotionDisplayed?: boolean;
+    activityStoutieRemarks?: string;
     assignedToBA: string;
     assignedToTL: string;
     outletId: string;
@@ -111,7 +118,8 @@ export default function TaskEarlyAssessmentScreen() {
     outletVisibilityPhotos: string;
     posmPhotos: string;
     posmAvailable: boolean;
-    merchandiseBrought: boolean;
+    merchandiseAvailable: boolean;
+    merchandiseAvailablePhoto: string;
     guinnessPromotionsAvailable: boolean;
     promotionDescription: string;
     activityEngagement: string;
@@ -120,6 +128,13 @@ export default function TaskEarlyAssessmentScreen() {
   }
 
   const initialFormData: FormDataType = {
+    digitalActivityEngagementPhoto: '',
+    digitalActivityEngagementDescription: '',
+    guinnessPromotionDisplayedDescriptionPhoto: '',
+    digitalActivityEngagementSwitch: false,
+    guinnessPromotionDisplayedDescription: '',
+    guinnessPromotionDisplayed: false,
+    activityStoutieRemarks: '',
     assignedToBA: '',
     assignedToTL: '',
     outletId: '',
@@ -165,7 +180,8 @@ export default function TaskEarlyAssessmentScreen() {
     outletVisibilityPhotos: '',
     posmPhotos: '',
     posmAvailable: false,
-    merchandiseBrought: false,
+    merchandiseAvailable: false,
+    merchandiseAvailablePhoto: '',
     guinnessPromotionsAvailable: false,
     promotionDescription: '',
     activityEngagement: '',
@@ -360,7 +376,8 @@ export default function TaskEarlyAssessmentScreen() {
             <Text style={styles.sectionTitle}>Visual Merchandising</Text>
             <Text>Outlet Visibility Photos: {item.outletVisibilityPhotos}</Text>
             <Text>POSM Photos: {item.posmPhotos}</Text>
-            <Text>Merchandise Brought: {item.merchandiseBrought ? 'Yes' : 'No'}</Text>
+            <Text>Merchandise Available: {item.merchandiseAvailable ? 'Yes' : 'No'}</Text>
+            <Text>Merchandise Available Photo: {item.merchandiseAvailablePhoto ? item.merchandiseAvailablePhoto : '-'}</Text>
             <Text style={styles.sectionTitle}>Promotions & Engagement</Text>
             <Text>Guinness Promotions Available: {item.guinnessPromotionsAvailable ? 'Yes' : 'No'}</Text>
             <Text>Promotion Description: {item.promotionDescription}</Text>
@@ -667,9 +684,37 @@ export default function TaskEarlyAssessmentScreen() {
           )}
           
           <Text style={styles.sectionTitle}>Activity Tracking</Text>
+          <Text style={styles.switchLabel}>Activity Stoutie</Text>
           <View style={styles.switchContainer}><Text>Activity Stoutie Running</Text><Switch value={formData.activityStoutieRunning} onValueChange={val => setFormData({...formData, activityStoutieRunning: val})} /></View>
+          <Text style={styles.switchLabel}>Activity Stoutie result</Text>
           <TextInput style={styles.input} value={formData.activityStoutieResult} onChangeText={text => setFormData({...formData, activityStoutieResult: text})} placeholder="Activity Stoutie Result" />
-          <TextInput style={styles.input} value={formData.activityStoutiePhotos} onChangeText={text => setFormData({...formData, activityStoutiePhotos: text})} placeholder="Activity Stoutie Photos URL" />
+          <Text style={styles.switchLabel}>Activity Stoutie Issue/Notes/Remarks</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.activityStoutieRemarks}
+            onChangeText={text => setFormData({ ...formData, activityStoutieRemarks: text })}
+            placeholder="Activity Stoutie Issue/Notes/Remarks"
+          />
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.switchLabel}>Activity Stoutie Photos</Text>
+            {formData.activityStoutiePhotos ? (
+              <Image source={{ uri: formData.activityStoutiePhotos }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
+            ) : null}
+            <Button
+              title={formData.activityStoutiePhotos ? 'Change Photo' : 'Pick Photo'}
+              onPress={async () => {
+                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (permissionResult.granted === false) {
+                  alert('Permission to access camera roll is required!');
+                  return;
+                }
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+                  setFormData({ ...formData, activityStoutiePhotos: pickerResult.assets[0].uri });
+                }
+              }}
+            />
+          </View>
 
           <Text style={styles.sectionTitle}>Compliance & Performance</Text>
           <View style={styles.switchContainer}><Text>Daily Quiz Completed</Text><Switch value={formData.dailyQuizCompleted} onValueChange={val => setFormData({...formData, dailyQuizCompleted: val})} /></View>
@@ -771,12 +816,12 @@ export default function TaskEarlyAssessmentScreen() {
 
           <View style={styles.switchContainer}><Text>Merchandise Available</Text><Switch value={formData.merchandiseAvailable} onValueChange={val => setFormData({...formData, merchandiseAvailable: val})} /></View>
           <View style={{ marginBottom: 12 }}>
-            <Text style={styles.switchLabel}>Merchandise Brought</Text>
-            {formData.merchandiseBrought ? (
-              <Image source={{ uri: formData.merchandiseBrought }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
+            <Text style={styles.switchLabel}>Merchandise Available Photo</Text>
+            {formData.merchandiseAvailablePhoto ? (
+              <Image source={{ uri: formData.merchandiseAvailablePhoto }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
             ) : null}
             <Button
-              title={formData.merchandiseBrought ? 'Change Photo' : 'Pick Photo'}
+              title={formData.merchandiseAvailablePhoto ? 'Change Photo' : 'Pick Photo'}
               onPress={async () => {
                 const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
                 if (permissionResult.granted === false) {
@@ -785,17 +830,91 @@ export default function TaskEarlyAssessmentScreen() {
                 }
                 const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  setFormData({ ...formData, merchandiseBrought: pickerResult.assets[0].uri });
+                  setFormData({ ...formData, merchandiseAvailablePhoto: pickerResult.assets[0].uri });
                 }
               }}
             />
+          </View>
 
           <Text style={styles.sectionTitle}>Promotions & Engagement</Text>
+          <Text style={styles.switchLabel}>Promotions Available</Text>
           <View style={styles.switchContainer}><Text>Guinness Promotions Available</Text><Switch value={formData.guinnessPromotionsAvailable} onValueChange={val => setFormData({...formData, guinnessPromotionsAvailable: val})} /></View>
+          <Text style={styles.switchLabel}>Promotions Description</Text>
           <TextInput style={styles.input} value={formData.promotionDescription} onChangeText={text => setFormData({...formData, promotionDescription: text})} placeholder="Promotion Description" />
-          <TextInput style={styles.input} value={formData.activityEngagement} onChangeText={text => setFormData({...formData, activityEngagement: text})} placeholder="Activity Engagement" />
+          <Text style={styles.switchLabel}>Promotions Displayed</Text>
+          <View style={styles.switchContainer}>
+            <Text>Guinness Promotion Displayed</Text>
+            <Switch
+              value={formData.guinnessPromotionDisplayed}
+              onValueChange={val => setFormData({ ...formData, guinnessPromotionDisplayed: val })}
+            />
+          </View>
+          <Text style={styles.switchLabel}>Guinness Promotion Displayed Description</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.guinnessPromotionDisplayedDescription}
+            onChangeText={text => setFormData({ ...formData, guinnessPromotionDisplayedDescription: text })}
+            placeholder="Guinness Promotion Displayed Description"
+          />
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.switchLabel}>Promotion Displayed Description Photo</Text>
+            {formData.guinnessPromotionDisplayedDescriptionPhoto ? (
+              <Image source={{ uri: formData.guinnessPromotionDisplayedDescriptionPhoto }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
+            ) : null}
+            <Button
+              title={formData.guinnessPromotionDisplayedDescriptionPhoto ? 'Change Photo' : 'Pick Photo'}
+              onPress={async () => {
+                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (permissionResult.granted === false) {
+                  alert('Permission to access camera roll is required!');
+                  return;
+                }
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+                  setFormData({ ...formData, guinnessPromotionDisplayedDescriptionPhoto: pickerResult.assets[0].uri });
+                }
+              }}
+            />
+          </View>
 
-          <Text style={styles.sectionTitle}>Issues/Notes</Text>
+          <Text style={styles.switchLabel}>Digital Activity Engagement</Text>
+          <View style={styles.switchContainer}>
+            <Text>Digital Activity Engagement</Text>
+            <Switch
+              value={formData.digitalActivityEngagementSwitch}
+              onValueChange={val => setFormData({ ...formData, digitalActivityEngagementSwitch: val })}
+            />
+          </View>
+          <Text style={styles.switchLabel}>Digital Activity Engagement Description</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.digitalActivityEngagementDescription}
+            onChangeText={text => setFormData({ ...formData, digitalActivityEngagementDescription: text })}
+            placeholder="Digital Activity Engagement Description"
+          />
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.switchLabel}>Digital Activity Engagement Photo</Text>
+            {formData.digitalActivityEngagementPhoto ? (
+              <Image source={{ uri: formData.digitalActivityEngagementPhoto }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
+            ) : null}
+            <Button
+              title={formData.digitalActivityEngagementPhoto ? 'Change Photo' : 'Pick Photo'}
+              onPress={async () => {
+                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (permissionResult.granted === false) {
+                  alert('Permission to access camera roll is required!');
+                  return;
+                }
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+                  setFormData({ ...formData, digitalActivityEngagementPhoto: pickerResult.assets[0].uri });
+                }
+              }}
+            />
+          </View>
+
+
+          <Text style={styles.sectionTitle}>Issue/Notes/Request/Input - catatan kecil/permintaan outlet/masukan/masalah</Text>
           <TextInput style={styles.input} value={formData.issuesNotes} onChangeText={text => setFormData({...formData, issuesNotes: text})} placeholder="Issues, Notes, etc." />
 
           <View style={styles.buttonContainer}>
