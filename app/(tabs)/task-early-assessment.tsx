@@ -15,6 +15,7 @@ export default function TaskEarlyAssessmentScreen() {
   type AssessmentItem = {
     id: string;
     assignedToBA?: string;
+    posmAvailable?: boolean;
     // add other relevant fields as needed
     [key: string]: any;
   };
@@ -64,7 +65,61 @@ export default function TaskEarlyAssessmentScreen() {
     return () => unsubscribe();
   }, []);
 
-  const initialFormData = {
+  interface FormDataType {
+    assignedToBA: string;
+    assignedToTL: string;
+    outletId: string;
+    gdicAvailable: boolean;
+    smoothAvailable: boolean;
+    gfesAvailable: boolean;
+    personnelEmail: string;
+    teamLeaderName: string;
+    pgFullName: string;
+    reportTimestamp: string;
+    locationProvince: string;
+    locationCity: string;
+    outletType: string;
+    outletName: string;
+    outletTier: string;
+    kegsAvailable: boolean;
+    microdraughtAvailable: boolean;
+    activityStoutieRunning: boolean;
+    activityStoutieResult: string;
+    activityStoutiePhotos: string;
+    stockKegs: string;
+    stockMicrodraught: string;
+    stockGdic: string;
+    stockSmoothPint330: string;
+    stockSmoothCan330: string;
+    stockGfesPint330: string;
+    stockGfesCan330: string;
+    stockGfes620: string;
+    stockGfesCanBig500: string;
+    expiryKegs: string;
+    expiryMicrodraught: string;
+    expiryGdic: string;
+    expirySmoothPint330: string;
+    expirySmoothCan330: string;
+    expiryGfesPint330: string;
+    expiryGfesCan330: string;
+    expiryGfes620: string;
+    expiryGfesCanBig500: string;
+    dailyQuizCompleted: boolean;
+    roleplayVideoMade: boolean;
+    pgAppearanceStandard: boolean;
+    baFullBodyPhoto: string;
+    outletVisibilityPhotos: string;
+    posmPhotos: string;
+    posmAvailable: boolean;
+    merchandiseBrought: boolean;
+    guinnessPromotionsAvailable: boolean;
+    promotionDescription: string;
+    activityEngagement: string;
+    issuesNotes: string;
+    visibilityAvailable: boolean;
+  }
+
+  const initialFormData: FormDataType = {
     assignedToBA: '',
     assignedToTL: '',
     outletId: '',
@@ -109,6 +164,7 @@ export default function TaskEarlyAssessmentScreen() {
     baFullBodyPhoto: '',
     outletVisibilityPhotos: '',
     posmPhotos: '',
+    posmAvailable: false,
     merchandiseBrought: false,
     guinnessPromotionsAvailable: false,
     promotionDescription: '',
@@ -117,7 +173,7 @@ export default function TaskEarlyAssessmentScreen() {
     visibilityAvailable: false,
   };
 
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState<typeof initialFormData>(initialFormData);
   // Track if modal was opened via 'ASSES' button
 
   const fetchAssessments = async () => {
@@ -649,7 +705,8 @@ export default function TaskEarlyAssessmentScreen() {
 
           <Text style={styles.sectionTitle}>Visual Merchandising</Text>
 
-          <Text style={styles.switchLabel}>Visibility available</Text>
+          <Text style={styles.switchLabel}>Visibility available, example : (MOT: Lightbox, Neon Sign, Totem, Glory Fire, Coaster, Barmate, Tripod Banner, Led Banner)
+                  (MM : Poster, Flyer, Shelf Talker, Wobbler, Floor Display Unit, Chiller Branding)</Text>
           <View style={styles.switchContainer}>
             <Text>Visibility Available</Text>
             <Switch
@@ -659,13 +716,79 @@ export default function TaskEarlyAssessmentScreen() {
           </View>
     
           
-          <Text style={styles.switchLabel}>Visibility Picture</Text>
-          <TextInput style={styles.input} value={formData.outletVisibilityPhotos} onChangeText={text => setFormData({...formData, outletVisibilityPhotos: text})} placeholder="Outlet Visibility Photos URL" />
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.switchLabel}>Visibility Picture</Text>
+            {formData.outletVisibilityPhotos ? (
+              <Image source={{ uri: formData.outletVisibilityPhotos }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
+            ) : null}
+            <Button
+              title={formData.outletVisibilityPhotos ? 'Change Photo' : 'Pick Photo'}
+              onPress={async () => {
+                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (permissionResult.granted === false) {
+                  alert('Permission to access camera roll is required!');
+                  return;
+                }
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+                  setFormData({ ...formData, outletVisibilityPhotos: pickerResult.assets[0].uri });
+                }
+              }}
+            />
+          </View>
           
-          <Text style={styles.switchLabel}>POSM Picture</Text>
+          <Text style={styles.switchLabel}>POSM available example (MOT : Tent Card, Flagcain, Tripod Banner)
+            (MM : Poster, Flyer, Shelf Talker, Wobbler, Floor Display Unit) </Text>
 
-          <TextInput style={styles.input} value={formData.posmPhotos} onChangeText={text => setFormData({...formData, posmPhotos: text})} placeholder="POSM Photos URL" />
-          <View style={styles.switchContainer}><Text>Merchandise Brought</Text><Switch value={formData.merchandiseBrought} onValueChange={val => setFormData({...formData, merchandiseBrought: val})} /></View>
+          <View style={styles.switchContainer}>
+            <Text>POSM Available</Text>
+            <Switch
+              value={formData.posmAvailable || false}
+              onValueChange={val => setFormData({ ...formData, posmAvailable: val })}
+            />
+          </View>
+
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.switchLabel}>POSM Picture</Text>
+            {formData.posmPhotos ? (
+              <Image source={{ uri: formData.posmPhotos }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
+            ) : null}
+            <Button
+              title={formData.posmPhotos ? 'Change Photo' : 'Pick Photo'}
+              onPress={async () => {
+                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (permissionResult.granted === false) {
+                  alert('Permission to access camera roll is required!');
+                  return;
+                }
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+                  setFormData({ ...formData, posmPhotos: pickerResult.assets[0].uri });
+                }
+              }}
+            />
+          </View>
+
+          <View style={styles.switchContainer}><Text>Merchandise Available</Text><Switch value={formData.merchandiseAvailable} onValueChange={val => setFormData({...formData, merchandiseAvailable: val})} /></View>
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.switchLabel}>Merchandise Brought</Text>
+            {formData.merchandiseBrought ? (
+              <Image source={{ uri: formData.merchandiseBrought }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
+            ) : null}
+            <Button
+              title={formData.merchandiseBrought ? 'Change Photo' : 'Pick Photo'}
+              onPress={async () => {
+                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (permissionResult.granted === false) {
+                  alert('Permission to access camera roll is required!');
+                  return;
+                }
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+                  setFormData({ ...formData, merchandiseBrought: pickerResult.assets[0].uri });
+                }
+              }}
+            />
 
           <Text style={styles.sectionTitle}>Promotions & Engagement</Text>
           <View style={styles.switchContainer}><Text>Guinness Promotions Available</Text><Switch value={formData.guinnessPromotionsAvailable} onValueChange={val => setFormData({...formData, guinnessPromotionsAvailable: val})} /></View>
