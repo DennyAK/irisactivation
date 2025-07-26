@@ -193,6 +193,11 @@ export default function TaskEarlyAssessmentScreen() {
   // Track if modal was opened via 'ASSES' button
 
   const fetchAssessments = async () => {
+    if (!userRole) {
+      setAssessments([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const collectionRef = collection(db, 'task_early_assessment');
@@ -224,7 +229,31 @@ export default function TaskEarlyAssessmentScreen() {
     setModalType(type);
     if (type === 'edit' && item) {
       setSelectedAssessment(item);
-      const toDateString = (timestamp: any) => timestamp?.toDate().toISOString().split('T')[0] || '';
+      const toDateString = (value: any) => {
+        if (!value) return '';
+        // Firestore Timestamp object
+        if (typeof value === 'object' && typeof value.toDate === 'function') {
+          return value.toDate().toISOString().split('T')[0];
+        }
+        // Already a Date object
+        if (value instanceof Date) {
+          return value.toISOString().split('T')[0];
+        }
+        // Already a string in YYYY-MM-DD format
+        if (typeof value === 'string') {
+          // If string is in ISO format, extract date part
+          if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+            return value.split('T')[0];
+          }
+          // Try to parse as date
+          const d = new Date(value);
+          if (!isNaN(d.getTime())) {
+            return d.toISOString().split('T')[0];
+          }
+          return '';
+        }
+        return '';
+      };
       setFormData({
         ...initialFormData,
         ...item,
@@ -468,7 +497,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpiryKegsPicker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expiryKegs: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -495,7 +524,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpiryMicrodraughtPicker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expiryMicrodraught: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -522,7 +551,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpiryGdicPicker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expiryGdic: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -549,7 +578,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpirySmoothPintPicker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expirySmoothPint330: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -574,7 +603,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpirySmoothCanPicker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expirySmoothCan330: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -601,7 +630,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpiryGfesPintPicker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expiryGfesPint330: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -626,7 +655,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpiryGfesCanPicker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expiryGfesCan330: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -651,7 +680,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpiryGfes620Picker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expiryGfes620: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -676,7 +705,7 @@ export default function TaskEarlyAssessmentScreen() {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
                 setShowExpiryGfesCanBig500Picker(false);
-                if (selectedDate) {
+                if (event.type === 'set' && selectedDate) {
                   setFormData({ ...formData, expiryGfesCanBig500: selectedDate.toISOString().split('T')[0] });
                 }
               }}
@@ -933,7 +962,9 @@ export default function TaskEarlyAssessmentScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Task Early Assessment</Text>
-      {canUpdate && <Button title="Add New Assessment" onPress={() => handleOpenModal('add')} />}
+      {userRole === 'superadmin' && (
+        <Button title="Add New Assessment" onPress={() => handleOpenModal('add')} />
+      )}
       <FlatList
         data={assessments}
         keyExtractor={(item) => item.id}
