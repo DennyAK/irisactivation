@@ -683,39 +683,41 @@ export default function TaskEarlyAssessmentScreen() {
             />
           )}
           
-          <Text style={styles.sectionTitle}>Activity Tracking</Text>
-          <Text style={styles.switchLabel}>Activity Stoutie</Text>
-          <View style={styles.switchContainer}><Text>Activity Stoutie Running</Text><Switch value={formData.activityStoutieRunning} onValueChange={val => setFormData({...formData, activityStoutieRunning: val})} /></View>
-          <Text style={styles.switchLabel}>Activity Stoutie result</Text>
-          <TextInput style={styles.input} value={formData.activityStoutieResult} onChangeText={text => setFormData({...formData, activityStoutieResult: text})} placeholder="Activity Stoutie Result" />
-          <Text style={styles.switchLabel}>Activity Stoutie Issue/Notes/Remarks</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.activityStoutieRemarks}
-            onChangeText={text => setFormData({ ...formData, activityStoutieRemarks: text })}
-            placeholder="Activity Stoutie Issue/Notes/Remarks"
-          />
-          <View style={{ marginBottom: 12 }}>
-            <Text style={styles.switchLabel}>Activity Stoutie Photos</Text>
-            {formData.activityStoutiePhotos ? (
-              <Image source={{ uri: formData.activityStoutiePhotos }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
-            ) : null}
-            <Button
-              title={formData.activityStoutiePhotos ? 'Change Photo' : 'Pick Photo'}
-              onPress={async () => {
-                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (permissionResult.granted === false) {
-                  alert('Permission to access camera roll is required!');
-                  return;
-                }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
-                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  setFormData({ ...formData, activityStoutiePhotos: pickerResult.assets[0].uri });
-                }
-              }}
-            />
-          </View>
-
+          {userRole === 'Iris - TL' && modalType === 'edit' && (
+            <>
+              <Text style={styles.sectionTitle}>Activity Tracking</Text>
+              <Text style={styles.switchLabel}>Activity Stoutie</Text>
+              <View style={styles.switchContainer}><Text>Activity Stoutie Running</Text><Switch value={formData.activityStoutieRunning} onValueChange={val => setFormData({...formData, activityStoutieRunning: val})} /></View>
+              <Text style={styles.switchLabel}>Activity Stoutie result</Text>
+              <TextInput style={styles.input} value={formData.activityStoutieResult} onChangeText={text => setFormData({...formData, activityStoutieResult: text})} placeholder="Activity Stoutie Result" />
+              <Text style={styles.switchLabel}>Activity Stoutie Issue/Notes/Remarks</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.activityStoutieRemarks}
+                onChangeText={text => setFormData({ ...formData, activityStoutieRemarks: text })}
+                placeholder="Activity Stoutie Issue/Notes/Remarks"
+              />
+              <View style={{ marginBottom: 12 }}>
+                <Text style={styles.switchLabel}>Activity Stoutie Photos</Text>
+                {formData.activityStoutiePhotos ? (
+                  <Image source={{ uri: formData.activityStoutiePhotos }} style={{ width: 120, height: 120, marginBottom: 8, borderRadius: 8 }} />
+                ) : null}
+                <Button
+                  title={formData.activityStoutiePhotos ? 'Change Photo' : 'Pick Photo'}
+                  onPress={async () => {
+                    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                    if (permissionResult.granted === false) {
+                      alert('Permission to access camera roll is required!');
+                      return;
+                    }
+                    const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                    if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+                      setFormData({ ...formData, activityStoutiePhotos: pickerResult.assets[0].uri });
+                    }
+                  }}
+                />
+              </View>
+          
           <Text style={styles.sectionTitle}>Compliance & Performance</Text>
           <View style={styles.switchContainer}><Text>Daily Quiz Completed</Text><Switch value={formData.dailyQuizCompleted} onValueChange={val => setFormData({...formData, dailyQuizCompleted: val})} /></View>
           <View style={styles.switchContainer}><Text>Roleplay Video Made</Text><Switch value={formData.roleplayVideoMade} onValueChange={val => setFormData({...formData, roleplayVideoMade: val})} /></View>
@@ -912,6 +914,8 @@ export default function TaskEarlyAssessmentScreen() {
               }}
             />
           </View>
+          </>
+          )}
 
 
           <Text style={styles.sectionTitle}>Issue/Notes/Request/Input - catatan kecil/permintaan outlet/masukan/masalah</Text>
