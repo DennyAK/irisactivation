@@ -26,6 +26,7 @@ export default function TaskEarlyAssessmentScreen() {
   const [modalType, setModalType] = useState<'add' | 'edit' | 'reviewAM'>('add');
   const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
+  const [outletDetails, setOutletDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showExpiryKegsPicker, setShowExpiryKegsPicker] = useState(false);
   const [showExpiryGdicPicker, setShowExpiryGdicPicker] = useState(false);
@@ -308,6 +309,27 @@ export default function TaskEarlyAssessmentScreen() {
     setIsModalVisible(true);
   };
 
+  // Fetch outlet details when selectedAssessment changes and review modal is opened
+  useEffect(() => {
+    const fetchOutletDetails = async () => {
+      if (selectedAssessment?.outletId && isReviewModalVisible) {
+        try {
+          const outletDoc = await getDoc(doc(collection(db, 'outlets'), selectedAssessment.outletId));
+          if (outletDoc.exists()) {
+            setOutletDetails(outletDoc.data());
+          } else {
+            setOutletDetails(null);
+          }
+        } catch (err) {
+          setOutletDetails(null);
+        }
+      } else {
+        setOutletDetails(null);
+      }
+    };
+    fetchOutletDetails();
+  }, [selectedAssessment?.outletId, isReviewModalVisible]);
+
   // Modified handleFormSubmit to support status update for BA and TL
   const handleFormSubmit = () => {
     const dataToSubmit: any = {};
@@ -402,11 +424,11 @@ export default function TaskEarlyAssessmentScreen() {
             <Text>Assigned to TL : {item.assignedToTL}</Text>
             <Text style={styles.sectionTitle}>Outlet/Venue Details</Text>
             <Text>Outlet ID: {item.outletId}</Text>
-            <Text>Province: {item.outletProvince}</Text>
-            <Text>City: {item.outletCity}</Text>
-            <Text>Outlet Type: {item.outletType}</Text>
-            <Text>Outlet Name: {item.outletName}</Text>
-            <Text>Tier Outlet: {item.outletTier}</Text>
+            <Text>Province: {outletDetails?.outletProvince || '-'}</Text>
+            <Text>City: {outletDetails?.outletCity || '-'}</Text>
+            <Text>Outlet Type: {outletDetails?.outletType || '-'}</Text>
+            <Text>Outlet Name: {outletDetails?.outletName || '-'}</Text>
+            <Text>Tier Outlet: {outletDetails?.outletTier || '-'}</Text>
             <Text style={styles.sectionTitle}>Product Availability</Text>
             <Text>KEGS Available: {item.kegsAvailable ? 'Yes' : 'No'}</Text>
             <Text>KEGS Stock: {item.kegsStock}</Text>
@@ -546,41 +568,20 @@ export default function TaskEarlyAssessmentScreen() {
       <ScrollView contentContainerStyle={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>{modalType === 'add' ? 'Add' : 'Edit'} Assessment</Text>
-          
-          <Text style={styles.sectionTitle}>Personnel Information</Text>
-          {/* AssignedToBA: ID (read-only) */}
-          <TextInput
-            style={styles.input}
-            value={formData.assignedToBA || ''}
-            editable={false}
-            placeholder="AssignedToBA : ID"
-          />
-          {/* AssignedToTL: ID (read-only) */}
-          <TextInput
-            style={styles.input}
-            value={formData.assignedToTL || ''}
-            editable={false}
-            placeholder="AssignedToTL : ID"
-          />
 
+          <Text style={styles.sectionTitle}>Personnel Information</Text>
+          <Text>Assigned to BA ID: {formData.assignedToBA}</Text>
+          <Text>Assigned to TL : {formData.assignedToTL}</Text>
           <Text style={styles.sectionTitle}>Outlet/Venue Details</Text>
-          {/* Outlet Name -> OutletID : ID (read-only) */}
-          <TextInput
-            style={styles.input}
-            value={formData.outletId || ''}
-            editable={false}
-            placeholder="OutletID : ID"
-          />
-          {/* Report Date -> Timestamp of edit (read-only) */}
-          <TextInput
-            style={styles.input}
-            value={modalType === 'edit' ? (selectedAssessment?.updatedAt ? new Date(selectedAssessment.updatedAt.seconds * 1000).toLocaleString() : '') : ''}
-            editable={false}
-            placeholder="Edit Timestamp"
-          />
+          <Text>Outlet ID: {formData.outletId}</Text>
+          <Text>Province: {outletDetails?.outletProvince || '-'}</Text>
+          <Text>City: {outletDetails?.outletCity || '-'}</Text>
+          <Text>Outlet Type: {outletDetails?.outletType || '-'}</Text>
+          <Text>Outlet Name: {outletDetails?.outletName || '-'}</Text>
+          <Text>Tier Outlet: {outletDetails?.outletTier || '-'}</Text>
 
           <Text style={styles.sectionTitle}>Product Availabilty / Stock / Expiry Date</Text>
-          
+
           <View style={styles.switchContainer}><Text>KEGS Available</Text><Switch value={formData.kegsAvailable} onValueChange={val => setFormData({...formData, kegsAvailable: val})} /></View>
           <Text style={styles.switchLabel}>Stock - Kegs</Text>
           <TextInput style={styles.input} value={formData.stockKegs} onChangeText={text => setFormData({...formData, stockKegs: text})} placeholder="KEGS Stock" />

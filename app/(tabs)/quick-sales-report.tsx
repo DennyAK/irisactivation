@@ -16,10 +16,30 @@ export default function QuickSalesReportScreen() {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const initialFormData = {
-    guardDate: '', city: '', teamLeaderName: '', outletName: '', outletTier: '',
-    salesKegs330: '', salesKegs500: '', salesMd500: '', salesGdic400: '',
-    salesSmoothPintCan330: '', salesGfesPintCan330: '', salesGfesQuart620: '',
-    salesGfesCanbig500: '', productRestock: false,
+    guardDate: '',
+    city: '',
+    teamLeaderName: '',
+    outletName: '',
+    outletTier: '',
+    assignedToBA: '',
+    assignedToTL: '',
+    outletId: '',
+    outletProvince: '',
+    outletCity: '',
+    salesKegs330: '',
+    salesKegs500: '',
+    salesMd500: '',
+    salesGdic400: '',
+    salesSmoothPint330: '',
+    salesSmoothCan330: '',
+    salesGfesPint330: '',
+    salesGfesCan330: '',
+    salesGfesQuart620: '',
+    salesGfesCanbig500: '',
+    productRestock: false,
+    productRestockDescription: '',
+    taskSalesReportQuickStatus: '',
+
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -48,9 +68,17 @@ export default function QuickSalesReportScreen() {
   const fetchReports = async () => {
     setLoading(true);
     try {
+      // Fetch all reports
       const collectionRef = collection(db, 'sales_report_quick');
       const snapshot = await getDocs(collectionRef);
-        let list = snapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
+      let list = snapshot.docs.map(doc => ({
+        id: doc.id,
+        assignedToBA: doc.data().assignedToBA,
+        assignedToTL: doc.data().assignedToTL,
+        outletId: doc.data().outletId || '',
+        outletName: doc.data().outletName || '',
+        ...doc.data()
+      }));
       // Filter for BA role: only show records assigned to current user
       if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
@@ -59,6 +87,26 @@ export default function QuickSalesReportScreen() {
       if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
+
+      // Fetch all outlets and build a map
+      const outletsSnapshot = await getDocs(collection(db, 'outlets'));
+      const outletMap: Record<string, any> = {};
+      outletsSnapshot.forEach(doc => {
+        outletMap[doc.id] = doc.data();
+      });
+
+      // Merge outlet info into each report
+      list = list.map(report => {
+        const outlet = outletMap[report.outletId] || {};
+        return {
+          ...report,
+          outletName: outlet.outletName || report.outletName || '-',
+          outletProvince: outlet.outletProvince || outlet.province || '-',
+          outletCity: outlet.outletCity || outlet.city || '-',
+          outletTier: outlet.outletTier || outlet.tier || '-',
+        };
+      });
+
       setReports(list);
     } catch (error) {
       console.error("Error fetching reports: ", error);
@@ -122,15 +170,20 @@ export default function QuickSalesReportScreen() {
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>{item.outletName} - {item.guardDate?.toDate().toLocaleDateString()}</Text>
-      <Text>Leader: {item.teamLeaderName}</Text>
-      <Text>City: {item.city}</Text>
-      {/* New fields from Tasks */}
+
+      <Text>Outlet ID: {item.outletId || '-'}</Text>
+      <Text style={styles.itemTitle}>{item.outletName} - {item.guardDate?.toDate ? item.guardDate.toDate().toLocaleDateString() : '-'}</Text>
+      <Text>Province: {item.outletProvince || '-'}</Text>
+      <Text>City: {item.outletCity || '-'}</Text>
+
+      <Text>Outlet Tier: {item.outletTier || '-'}</Text>
       <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
       <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
       <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
       <Text>Created By: {item.createdBy || '-'}</Text>
       <Text>Task ID: {item.tasksId || '-'}</Text>
+      <Text>Task Sales Report Quick Status: {item.taskSalesReportQuickStatus || '-'}</Text>
+
       {canUpdate && (
         <View style={styles.buttonContainer}>
           <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
@@ -146,28 +199,39 @@ export default function QuickSalesReportScreen() {
         <View style={styles.modalContent}>
           <Text style={styles.title}>{modalType === 'add' ? 'Add' : 'Edit'} Sales Report</Text>
           
-          <Text style={styles.sectionTitle}>Date and Location</Text>
-          <TextInput style={styles.input} value={formData.guardDate} onChangeText={text => setFormData({...formData, guardDate: text})} placeholder="Guard Date (YYYY-MM-DD)" />
-          <TextInput style={styles.input} value={formData.city} onChangeText={text => setFormData({...formData, city: text})} placeholder="City" />
+          <Text style={styles.sectionTitle}>Personnel Information</Text>
+          <Text>Assigned to BA: {formData.assignedToBA || '-'}</Text>
+          <Text>Assigned to TL: {formData.assignedToTL || '-'}</Text>
+          <Text style={styles.sectionTitle}>Outlet / Venue Details</Text>
 
-          <Text style={styles.sectionTitle}>Team and Outlet Information</Text>
-          <TextInput style={styles.input} value={formData.teamLeaderName} onChangeText={text => setFormData({...formData, teamLeaderName: text})} placeholder="Team Leader Name" />
-          <TextInput style={styles.input} value={formData.outletName} onChangeText={text => setFormData({...formData, outletName: text})} placeholder="Outlet Name" />
-          <TextInput style={styles.input} value={formData.outletTier} onChangeText={text => setFormData({...formData, outletTier: text})} placeholder="Outlet Tier" />
-
-          <Text style={styles.sectionTitle}>Selling Data</Text>
-          <TextInput style={styles.input} value={formData.salesKegs330} onChangeText={text => setFormData({...formData, salesKegs330: text})} placeholder="KEGS (330ml) glass" />
-          <TextInput style={styles.input} value={formData.salesKegs500} onChangeText={text => setFormData({...formData, salesKegs500: text})} placeholder="KEGS (500ml) glass" />
-          <TextInput style={styles.input} value={formData.salesMd500} onChangeText={text => setFormData({...formData, salesMd500: text})} placeholder="MD (500ml) can" />
-          <TextInput style={styles.input} value={formData.salesGdic400} onChangeText={text => setFormData({...formData, salesGdic400: text})} placeholder="GDIC (400ml) can" />
-          <TextInput style={styles.input} value={formData.salesSmoothPintCan330} onChangeText={text => setFormData({...formData, salesSmoothPintCan330: text})} placeholder="SMOOTH PINT&CAN 330ml" />
-          <TextInput style={styles.input} value={formData.salesGfesPintCan330} onChangeText={text => setFormData({...formData, salesGfesPintCan330: text})} placeholder="GFES PINT&CAN 330ml" />
-          <TextInput style={styles.input} value={formData.salesGfesQuart620} onChangeText={text => setFormData({...formData, salesGfesQuart620: text})} placeholder="GFES QUART 620ml" />
-          <TextInput style={styles.input} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" />
+          <Text>Outlet ID: {formData.outletId || '-'}</Text>
+          <Text style={styles.itemTitle}>{formData.outletName} - {formData.guardDate ? formData.guardDate : '-'}</Text>
+          <Text>Province: {formData.outletProvince || '-'}</Text>
+          <Text>City: {formData.outletCity || '-'}</Text>
+          <Text>Outlet Tier: {formData.outletTier || '-'}</Text>
+          
+          <Text style={styles.sectionTitle}>Guinness Selling Data</Text>
+          <TextInput style={styles.input} value={formData.salesKegs330} onChangeText={text => setFormData({...formData, salesKegs330: text})} placeholder="KEGS (330ml) glass" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesKegs500} onChangeText={text => setFormData({...formData, salesKegs500: text})} placeholder="KEGS (500ml) glass" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesMd500} onChangeText={text => setFormData({...formData, salesMd500: text})} placeholder="MD (500ml) can" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesGdic400} onChangeText={text => setFormData({...formData, salesGdic400: text})} placeholder="GDIC (400ml) can" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesSmoothPint330} onChangeText={text => setFormData({...formData, salesSmoothPint330: text})} placeholder="SMOOTH PINT 330ml" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesSmoothCan330} onChangeText={text => setFormData({...formData, salesSmoothCan330: text})} placeholder="SMOOTH CAN 330ml" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesGfesPint330} onChangeText={text => setFormData({...formData, salesGfesPint330: text})} placeholder="GFES PINT 330ml" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesGfesCan330} onChangeText={text => setFormData({...formData, salesGfesCan330: text})} placeholder="GFES CAN 330ml" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesGfesQuart620} onChangeText={text => setFormData({...formData, salesGfesQuart620: text})} placeholder="GFES QUART 620ml" keyboardType="numeric" />
+          <TextInput style={styles.input} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
 
           <Text style={styles.sectionTitle}>Restock Information</Text>
           <View style={styles.switchContainer}><Text>Product Restock?</Text><Switch value={formData.productRestock} onValueChange={val => setFormData({...formData, productRestock: val})} /></View>
-
+          {formData.productRestock && (
+            <TextInput
+              style={styles.input}
+              value={formData.productRestockDescription}
+              onChangeText={text => setFormData({...formData, productRestockDescription: text})}
+              placeholder="Restock Description"
+            />
+          )}
           <View style={styles.buttonContainer}>
             <Button title={modalType === 'add' ? 'Add' : 'Update'} onPress={handleFormSubmit} />
             <Button title="Cancel" onPress={() => setIsModalVisible(false)} />
