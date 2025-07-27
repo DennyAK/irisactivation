@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
@@ -190,6 +191,26 @@ export default function TaskEarlyAssessmentScreen() {
   };
 
   const [formData, setFormData] = useState<typeof initialFormData>(initialFormData);
+  const storage = getStorage();
+
+  // Helper to upload image to Firebase Storage and get download URL
+  const uploadImageAndGetUrl = async (localUri: string, fieldName: string) => {
+    try {
+      // Convert localUri to blob
+      const response = await fetch(localUri);
+      const blob = await response.blob();
+      // Unique filename: fieldName + timestamp
+      const filename = `${fieldName}_${Date.now()}`;
+      const imageRef = storageRef(storage, `assessment_images/${filename}`);
+      await uploadBytes(imageRef, blob);
+      const downloadUrl = await getDownloadURL(imageRef);
+      Alert.alert('Success', 'Photo uploaded successfully!');
+      return downloadUrl;
+    } catch (e) {
+      Alert.alert('Upload Error', 'Failed to upload photo.');
+      return '';
+    }
+  };
   // Track if modal was opened via 'ASSES' button
 
   const fetchAssessments = async () => {
@@ -338,12 +359,12 @@ export default function TaskEarlyAssessmentScreen() {
       {/* Task Early Assessment Status */}
       <Text>Task Early Assessment Status: {item.status || '-'}</Text>
       <View style={styles.buttonContainer}>
-        {/* Only show ASSESS by BA for Iris - BA and if not already assessed by BA */}
-        {userRole === 'Iris - BA' && item.status !== 'ASSESS BY BA' && (
+        {/* Only show ASSESS by BA for Iris - BA and if status is empty */}
+        {userRole === 'Iris - BA' && (!item.status || item.status === '') && (
           <Button title="ASSESS by BA" onPress={() => handleOpenModal('edit', item)} />
         )}
-        {/* Only show ASSESS by TL for Iris - TL and if status is 'ASSESS BY BA' */}
-        {userRole === 'Iris - TL' && item.status === 'ASSESS BY BA' && (
+        {/* Show ASSESS by TL for Iris - TL if status is 'ASSESS BY BA' or 'RE ASSESS BY TL' */}
+        {userRole === 'Iris - TL' && (item.status === 'ASSESS BY BA' || item.status === 'RE ASSESS BY TL') && (
           <Button title="ASSESS by TL" onPress={() => handleOpenModal('edit', item)} />
         )}
         {/* Only admin and superadmin see Edit, but only superadmin sees Delete, not area manager */}
@@ -365,71 +386,142 @@ export default function TaskEarlyAssessmentScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.title}>Assess by Area Manager</Text>
             <Text style={styles.sectionTitle}>Personnel Information</Text>
-            <Text>Personnel Email: {item.personnelEmail}</Text>
-            <Text>Team Leader Name: {item.teamLeaderName}</Text>
-            <Text>PG Full Name: {item.pgFullName}</Text>
+            <Text>Assigned to BA ID: {item.assignedToBA}</Text>
+            <Text>Assigned to TL : {item.assignedToTL}</Text>
             <Text style={styles.sectionTitle}>Outlet/Venue Details</Text>
-            <Text>Report Date: {item.reportTimestamp?.toDate ? item.reportTimestamp.toDate().toLocaleDateString() : item.reportTimestamp || '-'}</Text>
-            <Text>Province: {item.locationProvince}</Text>
-            <Text>City: {item.locationCity}</Text>
+            <Text>Outlet ID: {item.outletId}</Text>
+            <Text>Province: {item.outletProvince}</Text>
+            <Text>City: {item.outletCity}</Text>
             <Text>Outlet Type: {item.outletType}</Text>
             <Text>Outlet Name: {item.outletName}</Text>
             <Text>Tier Outlet: {item.outletTier}</Text>
-            <Text style={styles.sectionTitle}>Outlet Facilities</Text>
+            <Text style={styles.sectionTitle}>Product Availability</Text>
             <Text>KEGS Available: {item.kegsAvailable ? 'Yes' : 'No'}</Text>
+            <Text>KEGS Stock: {item.kegsStock}</Text>
+            <Text>Expired Date KEGS: {item.expiryKegs}</Text>
             <Text>Microdraught Available: {item.microdraughtAvailable ? 'Yes' : 'No'}</Text>
+            <Text>Microdraught Stock: {item.microdraughtStock}</Text>
+            <Text>Expired Date Microdraught: {item.expiryMicrodraught}</Text>
+            <Text>GDIC Available: {item.gdicAvailable ? 'Yes' : 'No'}</Text>
+            <Text>GDIC Stock: {item.gdicStock}</Text>
+            <Text>Expired Date GDIC: {item.expiryGdic}</Text>
+            <Text>Smooth Available: {item.smoothAvailable ? 'Yes' : 'No'}</Text>
+            <Text>Smooth Pint 330ml Available: {item.smoothPint330mlAvailable ? 'Yes' : 'No'}</Text>
+            <Text>Smooth Pint 330ml Stock: {item.smoothPint330mlStock}</Text>
+            <Text>Expired Date Smooth Pint 330ml: {item.expirySmoothPint330ml}</Text>
+            <Text>Smooth Can 330ml Available: {item.smoothCan330mlAvailable ? 'Yes' : 'No'}</Text>
+            <Text>Smooth Can 330ml Stock: {item.smoothCan330mlStock}</Text>
+            <Text>Expired Date Smooth Can 330ml: {item.expirySmoothCan330ml}</Text>
+            <Text>GFES Available: {item.gfesAvailable ? 'Yes' : 'No'}</Text>
+            <Text>GFES Pint 330ml Stock: {item.gfesPint330mlStock}</Text>
+            <Text>Expired Date GFES Pint 330ml: {item.expiryGfesPint330ml}</Text>
+            <Text>GFES Quart 620ml Available: {item.gfesQuart620mlAvailable ? 'Yes' : 'No'}</Text>
+            <Text>GFES Quart 620ml Stock: {item.gfesQuart620mlStock}</Text>
+            <Text>Expired Date GFES Quart 620ml: {item.expiryGfesQuart620ml}</Text>
+            <Text>GFES Can 330ml Available: {item.gfesCan330mlAvailable ? 'Yes' : 'No'}</Text>
+            <Text>GFES Can 330ml Stock: {item.gfesCan330mlStock}</Text>
+            <Text>Expired Date GFES Can 330ml: {item.expiryGfesCan330ml}</Text>
+            <Text>GFES Can Big 500ml Available: {item.gfesCanBig500mlAvailable ? 'Yes' : 'No'}</Text>
+            <Text>GFES Can Big 500ml Stock: {item.gfesCanBig500mlStock}</Text>
+            <Text>Expired Date GFES Can Big 500ml: {item.expiryGfesCanBig500ml}</Text>    
             <Text style={styles.sectionTitle}>Activity Tracking</Text>
+            <Text style={styles.switchLabel}>Activity Stoutie </Text>
             <Text>Activity Stoutie Running: {item.activityStoutieRunning ? 'Yes' : 'No'}</Text>
             <Text>Activity Stoutie Result: {item.activityStoutieResult}</Text>
-            <Text>Activity Stoutie Photos: {item.activityStoutiePhotos}</Text>
-            <Text style={styles.sectionTitle}>Product Stock</Text>
-            <Text>KEGS Stock: {item.stockKegs}</Text>
-            <Text>Microdraught Stock: {item.stockMicrodraught}</Text>
-            <Text>GDIC Stock: {item.stockGdic}</Text>
-            <Text>Smooth Pint/Can 330ml Stock: {item.stockSmoothPintCan330}</Text>
-            <Text>GFES Pint/Can 330ml Stock: {item.stockGfesPintCan330}</Text>
-            <Text>GFES 620ml Stock: {item.stockGfes620}</Text>
-            <Text>GFES Can Big 500ml Stock: {item.stockGfesCanBig500}</Text>
-            <Text style={styles.sectionTitle}>Product Expiry Dates</Text>
-            <Text>KEGS Expiry: {item.expiryKegs}</Text>
-            <Text>Microdraught Expiry: {item.expiryMicrodraught}</Text>
-            <Text>GDIC Expiry: {item.expiryGdic}</Text>
-            <Text>Smooth Pint/Can 330ml Expiry: {item.expirySmoothPintCan330}</Text>
-            <Text>GFES Pint/Can 330ml Expiry: {item.expiryGfesPintCan330}</Text>
-            <Text>GFES 620ml Expiry: {item.expiryGfes620}</Text>
-            <Text>GFES Can Big 500ml Expiry: {item.expiryGfesCanBig500}</Text>
+            <Text>Activity Stoutie Photos:</Text>
+            {item.activityStoutiePhotos ? (
+              <Image source={{ uri: item.activityStoutiePhotos }} style={{ width: 80, height: 80, borderRadius: 8, marginBottom: 8 }} />
+            ) : (
+              <Text style={{ color: '#888' }}>No photo</Text>
+            )}
             <Text style={styles.sectionTitle}>Compliance & Performance</Text>
             <Text>Daily Quiz Completed: {item.dailyQuizCompleted ? 'Yes' : 'No'}</Text>
             <Text>Roleplay Video Made: {item.roleplayVideoMade ? 'Yes' : 'No'}</Text>
             <Text>PG Appearance Standard: {item.pgAppearanceStandard}</Text>
+            {item.baFullBodyPhoto ? (
+              <Image source={{ uri: item.baFullBodyPhoto }} style={{ width: 80, height: 80, borderRadius: 8, marginBottom: 8 }} />
+            ) : (
+              <Text style={{ color: '#888' }}>No photo</Text>
+            )}
             <Text style={styles.sectionTitle}>Visual Merchandising</Text>
-            <Text>Outlet Visibility Photos: {item.outletVisibilityPhotos}</Text>
-            <Text>POSM Photos: {item.posmPhotos}</Text>
+            <Text>Visibility Available: {item.visibilityAvailable ? 'Yes' : 'No'}</Text>
+            <Text>Outlet Visibility Description : {item.outletVisibilityDescription}</Text>
+            <Text>Outlet Visibility Photos:</Text>
+            {item.outletVisibilityPhotos ? (
+              <Image source={{ uri: item.outletVisibilityPhotos }} style={{ width: 80, height: 80, borderRadius: 8, marginBottom: 8 }} />
+            ) : (
+              <Text style={{ color: '#888' }}>No photo</Text>
+            )}
+            <Text>POSM Available: {item.posmAvailable ? 'Yes' : 'No'}</Text>
+            <Text>POSM Description: {item.posmDescription}</Text>
+            <Text>POSM Photos:</Text>
+            {item.posmPhotos ? (
+              <Image source={{ uri: item.posmPhotos }} style={{ width: 80, height: 80, borderRadius: 8, marginBottom: 8 }} />
+            ) : (
+              <Text style={{ color: '#888' }}>No photo</Text>
+            )}
             <Text>Merchandise Available: {item.merchandiseAvailable ? 'Yes' : 'No'}</Text>
-            <Text>Merchandise Available Photo: {item.merchandiseAvailablePhoto ? item.merchandiseAvailablePhoto : '-'}</Text>
+            <Text>Merchandise Description: {item.merchandiseDescription}</Text>
+            {item.merchandiseAvailablePhoto ? (
+              <Image source={{ uri: item.merchandiseAvailablePhoto }} style={{ width: 80, height: 80, borderRadius: 8, marginBottom: 8 }} />
+            ) : (
+              <Text style={{ color: '#888' }}>No photo</Text>
+            )}
             <Text style={styles.sectionTitle}>Promotions & Engagement</Text>
             <Text>Guinness Promotions Available: {item.guinnessPromotionsAvailable ? 'Yes' : 'No'}</Text>
             <Text>Promotion Description: {item.promotionDescription}</Text>
-            <Text>Activity Engagement: {item.activityEngagement}</Text>
+            <Text>Guinness Promotion Displayed: {item.guinnessPromotionDisplayed ? 'Yes' : 'No'}</Text>
+            <Text>Guinness Promotion Displayed Description: {item.guinnessPromotionDisplayedDescription}</Text>
+            {item.guinnessPromotionDisplayedDescriptionPhoto ? (
+              <Image source={{ uri: item.guinnessPromotionDisplayedDescriptionPhoto }} style={{ width: 80, height: 80, borderRadius: 8, marginBottom: 8 }} />
+            ) : (
+              <Text style={{ color: '#888' }}>No photo</Text>
+            )}
+            <Text>Digital Activity Engagement: {item.digitalActivityEngagement}</Text>
+            <Text>Digital Activity Engagement Description: {item.digitalActivityEngagementDescription}</Text>
+            {item.digitalActivityEngagementPhoto ? (
+              <Image source={{ uri: item.digitalActivityEngagementPhoto }} style={{ width: 80, height: 80, borderRadius: 8, marginBottom: 8 }} />
+            ) : (
+              <Text style={{ color: '#888' }}>No photo</Text>
+            )}  
             <Text style={styles.sectionTitle}>Issues/Notes</Text>
             <Text>{item.issuesNotes}</Text>
             <View style={styles.buttonContainer}>
-              <Button title="Done Assess by AM" onPress={() => {
-                Alert.alert('Confirm Assess', 'Are you sure assessed?', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'OK', onPress: async () => {
-                    try {
-                      await updateDoc(doc(db, 'task_early_assessment', item.id), { status: 'ASSESS BY AM' });
-                      fetchAssessments();
-                      setIsReviewModalVisible(false);
-                      Alert.alert('Success', 'Status updated to ASSESS BY AM.');
-                    } catch (e) {
-                      Alert.alert('Error', 'Failed to update status.');
-                    }
-                  }}
-                ]);
-              }} />
-              <Button title="Cancel" onPress={() => setIsReviewModalVisible(false)} />
+              <View style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
+                <Button title="Done Assess by AM" onPress={() => {
+                  Alert.alert('Confirm Assess', 'Are you sure assessed?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'OK', onPress: async () => {
+                      try {
+                        await updateDoc(doc(db, 'task_early_assessment', item.id), { status: 'ASSESS BY AM' });
+                        fetchAssessments();
+                        setIsReviewModalVisible(false);
+                        Alert.alert('Success', 'Status updated to ASSESS BY AM.');
+                      } catch (e) {
+                        Alert.alert('Error', 'Failed to update status.');
+                      }
+                    }}
+                  ]);
+                }} />
+                <View style={{ height: 12 }} />
+                <Button title="REASSESS by TL" onPress={() => {
+                  Alert.alert('Confirm Reassess', 'Reassign to TL? Status will be set to RE ASSESS BY TL.', [
+                    { text: 'No', style: 'cancel' },
+                    { text: 'Yes', onPress: async () => {
+                      try {
+                        await updateDoc(doc(db, 'task_early_assessment', item.id), { status: 'RE ASSESS BY TL' });
+                        fetchAssessments();
+                        setIsReviewModalVisible(false);
+                        Alert.alert('Success', 'Status updated to RE ASSESS BY TL.');
+                      } catch (e) {
+                        Alert.alert('Error', 'Failed to update status.');
+                      }
+                    }}
+                  ]);
+                }} />
+                <View style={{ height: 12 }} />
+                <Button title="Cancel" onPress={() => setIsReviewModalVisible(false)} />
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -741,7 +833,11 @@ export default function TaskEarlyAssessmentScreen() {
                     }
                     const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
                     if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                      setFormData({ ...formData, activityStoutiePhotos: pickerResult.assets[0].uri });
+                      const localUri = pickerResult.assets[0].uri;
+                      const downloadUrl = await uploadImageAndGetUrl(localUri, 'activityStoutiePhotos');
+                      if (downloadUrl) {
+                        setFormData({ ...formData, activityStoutiePhotos: downloadUrl });
+                      }
                     }
                   }}
                 />
@@ -773,7 +869,11 @@ export default function TaskEarlyAssessmentScreen() {
                 }
                 const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  setFormData({ ...formData, baFullBodyPhoto: pickerResult.assets[0].uri });
+                  const localUri = pickerResult.assets[0].uri;
+                  const downloadUrl = await uploadImageAndGetUrl(localUri, 'baFullBodyPhoto');
+                  if (downloadUrl) {
+                    setFormData({ ...formData, baFullBodyPhoto: downloadUrl });
+                  }
                 }
               }}
             />
@@ -807,7 +907,11 @@ export default function TaskEarlyAssessmentScreen() {
                 }
                 const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  setFormData({ ...formData, outletVisibilityPhotos: pickerResult.assets[0].uri });
+                  const localUri = pickerResult.assets[0].uri;
+                  const downloadUrl = await uploadImageAndGetUrl(localUri, 'outletVisibilityPhotos');
+                  if (downloadUrl) {
+                    setFormData({ ...formData, outletVisibilityPhotos: downloadUrl });
+                  }
                 }
               }}
             />
@@ -839,7 +943,11 @@ export default function TaskEarlyAssessmentScreen() {
                 }
                 const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  setFormData({ ...formData, posmPhotos: pickerResult.assets[0].uri });
+                  const localUri = pickerResult.assets[0].uri;
+                  const downloadUrl = await uploadImageAndGetUrl(localUri, 'posmPhotos');
+                  if (downloadUrl) {
+                    setFormData({ ...formData, posmPhotos: downloadUrl });
+                  }
                 }
               }}
             />
@@ -861,7 +969,11 @@ export default function TaskEarlyAssessmentScreen() {
                 }
                 const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  setFormData({ ...formData, merchandiseAvailablePhoto: pickerResult.assets[0].uri });
+                  const localUri = pickerResult.assets[0].uri;
+                  const downloadUrl = await uploadImageAndGetUrl(localUri, 'merchandiseAvailablePhoto');
+                  if (downloadUrl) {
+                    setFormData({ ...formData, merchandiseAvailablePhoto: downloadUrl });
+                  }
                 }
               }}
             />
@@ -902,7 +1014,11 @@ export default function TaskEarlyAssessmentScreen() {
                 }
                 const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  setFormData({ ...formData, guinnessPromotionDisplayedDescriptionPhoto: pickerResult.assets[0].uri });
+                  const localUri = pickerResult.assets[0].uri;
+                  const downloadUrl = await uploadImageAndGetUrl(localUri, 'guinnessPromotionDisplayedDescriptionPhoto');
+                  if (downloadUrl) {
+                    setFormData({ ...formData, guinnessPromotionDisplayedDescriptionPhoto: downloadUrl });
+                  }
                 }
               }}
             />
@@ -938,7 +1054,11 @@ export default function TaskEarlyAssessmentScreen() {
                 }
                 const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  setFormData({ ...formData, digitalActivityEngagementPhoto: pickerResult.assets[0].uri });
+                  const localUri = pickerResult.assets[0].uri;
+                  const downloadUrl = await uploadImageAndGetUrl(localUri, 'digitalActivityEngagementPhoto');
+                  if (downloadUrl) {
+                    setFormData({ ...formData, digitalActivityEngagementPhoto: downloadUrl });
+                  }
                 }
               }}
             />
