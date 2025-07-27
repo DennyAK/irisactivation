@@ -199,15 +199,27 @@ export default function TaskEarlyAssessmentScreen() {
       // Convert localUri to blob
       const response = await fetch(localUri);
       const blob = await response.blob();
-      // Unique filename: fieldName + timestamp
-      const filename = `${fieldName}_${Date.now()}`;
-      const imageRef = storageRef(storage, `assessment_images/${filename}`);
+      // Fetch outletName from Firestore using outletId
+      let outletName = formData.outletId;
+      try {
+        const outletDoc = await getDoc(doc(collection(db, 'outlets'), formData.outletId));
+        if (outletDoc.exists()) {
+          outletName = outletDoc.data().outletName || formData.outletId;
+        }
+      } catch (err) {
+        // fallback to outletId if fetch fails
+      }
+      // Sanitize outletName for filename (remove spaces and special chars)
+      outletName = String(outletName).replace(/[^a-zA-Z0-9_-]/g, '_');
+      // Unique filename: outletName_fieldName_timestamp
+      const filename = `${outletName}_${fieldName}_${Date.now()}`;
+      const imageRef = storageRef(storage, `task_early_assessment/${filename}`);
       await uploadBytes(imageRef, blob);
       const downloadUrl = await getDownloadURL(imageRef);
       Alert.alert('Success', 'Photo uploaded successfully!');
       return downloadUrl;
     } catch (e) {
-      Alert.alert('Upload Error', 'Failed to upload photo.');
+      Alert.alert('Upload Error', e && typeof e === 'object' && 'message' in e ? String((e as any).message) : 'Failed to upload photo.');
       return '';
     }
   };
@@ -831,7 +843,7 @@ export default function TaskEarlyAssessmentScreen() {
                       alert('Permission to access camera roll is required!');
                       return;
                     }
-                    const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                    const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
                     if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
                       const localUri = pickerResult.assets[0].uri;
                       const downloadUrl = await uploadImageAndGetUrl(localUri, 'activityStoutiePhotos');
@@ -867,7 +879,7 @@ export default function TaskEarlyAssessmentScreen() {
                   alert('Permission to access camera roll is required!');
                   return;
                 }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
                   const localUri = pickerResult.assets[0].uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'baFullBodyPhoto');
@@ -905,7 +917,7 @@ export default function TaskEarlyAssessmentScreen() {
                   alert('Permission to access camera roll is required!');
                   return;
                 }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
                   const localUri = pickerResult.assets[0].uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'outletVisibilityPhotos');
@@ -941,7 +953,7 @@ export default function TaskEarlyAssessmentScreen() {
                   alert('Permission to access camera roll is required!');
                   return;
                 }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
                   const localUri = pickerResult.assets[0].uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'posmPhotos');
@@ -967,7 +979,7 @@ export default function TaskEarlyAssessmentScreen() {
                   alert('Permission to access camera roll is required!');
                   return;
                 }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
                   const localUri = pickerResult.assets[0].uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'merchandiseAvailablePhoto');
@@ -1012,7 +1024,7 @@ export default function TaskEarlyAssessmentScreen() {
                   alert('Permission to access camera roll is required!');
                   return;
                 }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
                   const localUri = pickerResult.assets[0].uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'guinnessPromotionDisplayedDescriptionPhoto');
@@ -1052,7 +1064,7 @@ export default function TaskEarlyAssessmentScreen() {
                   alert('Permission to access camera roll is required!');
                   return;
                 }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
                 if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
                   const localUri = pickerResult.assets[0].uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'digitalActivityEngagementPhoto');
