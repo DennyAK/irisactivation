@@ -78,7 +78,14 @@ export default function SalesReportDetailScreen() {
     try {
       const collectionRef = collection(db, 'sales_report_detail');
       const snapshot = await getDocs(collectionRef);
-      let list = snapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
+      let list = snapshot.docs.map(doc => ({
+        id: doc.id,
+        assignedToBA: doc.data().assignedToBA,
+        assignedToTL: doc.data().assignedToTL,
+        outletId: doc.data().outletId || '',
+        outletName: doc.data().outletName || '',
+        ...doc.data()
+      }));
       // Filter for BA role: only show records assigned to current user
       if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
@@ -87,6 +94,23 @@ export default function SalesReportDetailScreen() {
       if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
+
+      // Fetch all outlets and build a map
+      const outletsSnapshot = await getDocs(collection(db, 'outlets'));
+      const outletMap: Record<string, any> = {};
+      outletsSnapshot.forEach(doc => {
+        outletMap[doc.id] = doc.data();
+      });
+
+      // Merge outlet name into each report
+      list = list.map(report => {
+        const outlet = outletMap[report.outletId] || {};
+        return {
+          ...report,
+          outletName: outlet.outletName || report.outletName || '-',
+        };
+      });
+
       setReports(list);
     } catch (error) {
       console.error("Error fetching reports: ", error);
@@ -150,9 +174,14 @@ export default function SalesReportDetailScreen() {
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>{item.activityName} @ {item.outletVenueName}</Text>
-      <Text>Date: {item.date?.toDate().toLocaleDateString()}</Text>
-      <Text>Leader: {item.teamLeaderName}</Text>
+      <Text>Outlet ID: {item.outletId || '-'}</Text>
+      <Text>Outlet Name: {item.outletName || '-'}</Text>
+      <Text>Province: {item.outletProvince || '-'}</Text>
+      <Text>City: {item.outletCity || '-'}</Text>
+      <Text>Activity Name: {item.activityName || '-'}</Text>
+      <Text>Channel: {item.channel || '-'}</Text>
+      <Text>Tier: {item.tier || '-'}</Text>
+
       {/* New fields from Tasks */}
       <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
       <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
