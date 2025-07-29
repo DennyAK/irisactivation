@@ -229,27 +229,60 @@ export default function QuickSalesReportScreen() {
           <Text>Outlet Tier: {formData.outletTier || '-'}</Text>
           
           <Text style={styles.sectionTitle}>Guinness Selling Data</Text>
-          <Text style={styles.inputLabel}>KEGS (330ml) glass</Text>
-          <TextInput style={styles.input} value={formData.salesKegs330} onChangeText={text => setFormData({...formData, salesKegs330: text})} placeholder="KEGS (330ml) glass" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>KEGS (500ml) glass</Text>
-          <TextInput style={styles.input} value={formData.salesKegs500} onChangeText={text => setFormData({...formData, salesKegs500: text})} placeholder="KEGS (500ml) glass" keyboardType="numeric" />
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>KEGS (330ml) glass</Text>
+              <TextInput style={styles.input} value={formData.salesKegs330} onChangeText={text => setFormData({...formData, salesKegs330: text})} placeholder="KEGS (330ml) glass" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>KEGS (500ml) glass</Text>
+              <TextInput style={styles.input} value={formData.salesKegs500} onChangeText={text => setFormData({...formData, salesKegs500: text})} placeholder="KEGS (500ml) glass" keyboardType="numeric" />
+            </View>
+          </View>
           <Text style={styles.inputLabel}>MD (500ml) can</Text>
           <TextInput style={styles.input} value={formData.salesMd500} onChangeText={text => setFormData({...formData, salesMd500: text})} placeholder="MD (500ml) can" keyboardType="numeric" />
           <Text style={styles.inputLabel}>GDIC (400ml) can</Text>
           <TextInput style={styles.input} value={formData.salesGdic400} onChangeText={text => setFormData({...formData, salesGdic400: text})} placeholder="GDIC (400ml) can" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>SMOOTH PINT 330ml</Text>
-          <TextInput style={styles.input} value={formData.salesSmoothPint330} onChangeText={text => setFormData({...formData, salesSmoothPint330: text})} placeholder="SMOOTH PINT 330ml" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>SMOOTH CAN 330ml</Text>
-          <TextInput style={styles.input} value={formData.salesSmoothCan330} onChangeText={text => setFormData({...formData, salesSmoothCan330: text})} placeholder="SMOOTH CAN 330ml" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>GFES PINT 330ml</Text>
-          <TextInput style={styles.input} value={formData.salesGfesPint330} onChangeText={text => setFormData({...formData, salesGfesPint330: text})} placeholder="GFES PINT 330ml" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>GFES CAN 330ml</Text>
-          <TextInput style={styles.input} value={formData.salesGfesCan330} onChangeText={text => setFormData({...formData, salesGfesCan330: text})} placeholder="GFES CAN 330ml" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>GFES QUART 620ml</Text>
-          <TextInput style={styles.input} value={formData.salesGfesQuart620} onChangeText={text => setFormData({...formData, salesGfesQuart620: text})} placeholder="GFES QUART 620ml" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>GFES CANBIG 500ml</Text>
-          <TextInput style={styles.input} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
-
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>SMOOTH PINT 330ml</Text>
+              <TextInput style={styles.input} value={formData.salesSmoothPint330} onChangeText={text => setFormData({...formData, salesSmoothPint330: text})} placeholder="SMOOTH PINT 330ml" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>SMOOTH CAN 330ml</Text>
+              <TextInput style={styles.input} value={formData.salesSmoothCan330} onChangeText={text => setFormData({...formData, salesSmoothCan330: text})} placeholder="SMOOTH CAN 330ml" keyboardType="numeric" />
+            </View>
+          </View>
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>GFES PINT 330ml</Text>
+              <TextInput style={styles.input} value={formData.salesGfesPint330} onChangeText={text => setFormData({...formData, salesGfesPint330: text})} placeholder="GFES PINT 330ml" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>GFES QUART 620ml</Text>
+              <TextInput style={styles.input} value={formData.salesGfesQuart620} onChangeText={text => setFormData({...formData, salesGfesQuart620: text})} placeholder="GFES QUART 620ml" keyboardType="numeric" />
+            </View>
+          </View>
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>GFES CAN 330ml</Text>
+              <TextInput style={styles.input} value={formData.salesGfesCan330} onChangeText={text => setFormData({...formData, salesGfesCan330: text})} placeholder="GFES CAN 330ml" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>GFES CANBIG 500ml</Text>
+              <TextInput style={styles.input} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
+            </View>
+          </View>
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>GFES CAN 330ml</Text>
+              <TextInput style={styles.input} value={formData.salesGfesCan330} onChangeText={text => setFormData({...formData, salesGfesCan330: text})} placeholder="GFES CAN 330ml" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>GFES CANBIG 500ml</Text>
+              <TextInput style={styles.input} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
+            </View>
+          </View>
           <Text style={styles.sectionTitle}>Restock Information</Text>
           <View style={styles.switchContainer}><Text>Product Restock?</Text><Switch value={formData.productRestock} onValueChange={val => setFormData({...formData, productRestock: val})} /></View>
           {formData.productRestock && (
@@ -357,6 +390,7 @@ export default function QuickSalesReportScreen() {
 }
 
 const styles = StyleSheet.create({
+  rowInputs: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 },
   container: { flex: 1, padding: 16 },
   title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', marginTop: 15, marginBottom: 5, borderTopColor: '#ccc', borderTopWidth: 1, paddingTop: 10 },
