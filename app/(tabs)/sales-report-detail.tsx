@@ -75,7 +75,22 @@ export default function SalesReportDetailScreen() {
     drinkersSmooth: '', drinkersGfes: '', drinkersKegs: '', drinkersMicrodraught: '', drinkersGdic: '', drinkersMixed: '',
     tablesOverall: '', tablesAlcoholDrinkers: '', tablesNonAlcoholDrinkers: '', tablesAllBeerDrinkers: '', tablesAllGuinness: '', tablesAllCompetitor: '', tablesAllGuinnessMixedCompetitor: '',
     // Competitor Sales
-    competitorBrandA: '', competitorBrandB: '', competitorPackages: '',
+    competitorBintangAvailable: false, competitorBintangGlass: '', competitorBintangPint: '', competitorBintangQuart: '', competitorBintangCanSmall: '', competitorBintangCanBig: '', competitorBintangPromoDescription: '', competitorBintangPromoSold: '',
+    competitorBintangCrystalAvailable: false, competitorBintangCrystalGlass: '', competitorBintangCrystalPint: '', competitorBintangCrystalQuart: '', competitorBintangCrystalCanSmall: '', competitorBintangCrystalCanBig: '', competitorBintangCrystalPromoDescription: '', competitorBintangCrystalPromoSold: '',
+    competitorHeinekenAvailable: false, competitorHeinekenGlass: '', competitorHeinekenPint: '', competitorHeinekenQuart: '', competitorHeinekenCanSmall: '', competitorHeinekenCanBig: '', competitorHeinekenPromoDescription: '', competitorHeinekenPromoSold: '',
+    competitorHeinekenImportAvailable: false, competitorHeinekenImportGlass: '', competitorHeinekenImportPint: '', competitorHeinekenImportQuart: '', competitorHeinekenImportCanSmall: '', competitorHeinekenImportCanBig: '', competitorHeinekenImportPromoDescription: '', competitorHeinekenImportPromoSold: '',
+    competitorErdingerImportAvailable: false, competitorErdingerImportGlass: '', competitorErdingerImportPint: '', competitorErdingerImportQuart: '', competitorErdingerImportCanSmall: '', competitorErdingerImportCanBig: '', competitorErdingerImportPromoDescription: '', competitorErdingerImportPromoSold: '',
+    competitorBudweizerImportAvailable: false, competitorBudweizerImportGlass: '', competitorBudweizerImportPint: '', competitorBudweizerImportQuart: '', competitorBudweizerImportCanSmall: '', competitorBudweizerImportCanBig: '', competitorBudweizerImportPromoDescription: '', competitorBudweizerImportPromoSold: '',
+    competitorAnkerAvailable: false, competitorAnkerGlass: '', competitorAnkerPint: '', competitorAnkerQuart: '', competitorAnkerCanSmall: '', competitorAnkerCanBig: '', competitorAnkerPromoDescription: '', competitorAnkerPromoSold: '',
+    competitorBalihaiAvailable: false, competitorBalihaiGlass: '', competitorBalihaiPint: '', competitorBalihaiQuart: '', competitorBalihaiCanSmall: '', competitorBalihaiCanBig: '', competitorBalihaiPromoDescription: '', competitorBalihaiPromoSold: '',
+    competitorProstAvailable: false, competitorProstGlass: '', competitorProstPint: '', competitorProstQuart: '', competitorProstCanSmall: '', competitorProstCanBig: '', competitorProstPromoDescription: '', competitorProstPromoSold: '',
+    competitorSanMiguelAvailable: false, competitorSanMiguelGlass: '', competitorSanMiguelPint: '', competitorSanMiguelQuart: '', competitorSanMiguelCanSmall: '', competitorSanMiguelCanBig: '', competitorSanMiguelPromoDescription: '', competitorSanMiguelPromoSold: '',
+    competitorSingarajaAvailable: false, competitorSingarajaGlass: '', competitorSingarajaPint: '', competitorSingarajaQuart: '', competitorSingarajaCanSmall: '', competitorSingarajaCanBig: '', competitorSingarajaPromoDescription: '', competitorSingarajaPromoSold: '',
+    competitorCarlsbergAvailable: false, competitorCarlsbergGlass: '', competitorCarlsbergPint: '', competitorCarlsbergQuart: '', competitorCarlsbergCanSmall: '', competitorCarlsbergCanBig: '', competitorCarlsbergPromoDescription: '', competitorCarlsbergPromoSold: '',
+    competitorDraftBeerAvailable: false, competitorDraftBeerGlass: '', competitorDraftBeerPint: '', competitorDraftBeerQuart: '', competitorDraftBeerCanSmall: '', competitorDraftBeerCanBig: '', competitorDraftBeerPromoDescription: '', competitorDraftBeerPromoSold: '',
+    competitorKuraKuraAvailable: false, competitorKuraKuraGlass: '', competitorKuraKuraPint: '', competitorKuraKuraQuart: '', competitorKuraKuraCanSmall: '', competitorKuraKuraCanBig: '', competitorKuraKuraPromoDescription: '', competitorKuraKuraPromoSold: '',
+    competitorIslandBrewingAvailable: false, competitorIslandBrewingGlass: '', competitorIslandBrewingPint: '', competitorIslandBrewingQuart: '', competitorIslandBrewingCanSmall: '', competitorIslandBrewingCanBig: '', competitorIslandBrewingPromoDescription: '', competitorIslandBrewingPromoSold: '',
+    competitorOthersAvailable: false, competitorOthersGlass: '', competitorOthersPint: '', competitorOthersQuart: '', competitorOthersCanSmall: '', competitorOthersCanBig: '', competitorOthersPromoDescription: '', competitorOthersPromoSold: '',
     // Merchandise and Programs
     merchandiseAvailable: false, merchandiseDistributed: '', stoutieProgramParticipation: false, loyaltyProgramDetails: '',
     // Notes and Performance
@@ -371,9 +386,7 @@ export default function SalesReportDetailScreen() {
             </View>
           </View>
           <Text style={styles.inputLabel}>MD (500ml) can</Text>
-          <Text style={styles.inputLabel}>MD (500ml) can</Text>
           <TextInput style={styles.input} value={formData.salesMd500} onChangeText={text => setFormData({...formData, salesMd500: text})} placeholder="MD (500ml) can" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>GDIC (400ml) can</Text>
           <Text style={styles.inputLabel}>GDIC (400ml) can</Text>
           <TextInput style={styles.input} value={formData.salesGdic400} onChangeText={text => setFormData({...formData, salesGdic400: text})} placeholder="GDIC (400ml) can" keyboardType="numeric" />
           <View style={styles.rowInputs}>
@@ -651,9 +664,11 @@ export default function SalesReportDetailScreen() {
           <TextInput style={styles.input} value={formData.tablesOverall} onChangeText={text => setFormData({...formData, tablesOverall: text})} placeholder="Overall Tables In+1Out-0" keyboardType="numeric" />
           <View style={styles.rowInputs}>
             <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>Tables of Alcohol Drinkers In+1Out-0</Text>
               <TextInput style={styles.input} value={formData.tablesAlcoholDrinkers} onChangeText={text => setFormData({...formData, tablesAlcoholDrinkers: text})} placeholder="Tables of Alcohol Drinkers In+1Out-0" keyboardType="numeric" />
             </View>
             <View style={{flex: 1}}>
+              <Text style={styles.inputLabel}>Tables of Non-Alcohol Drinkers In+1Out-0</Text>
               <TextInput
                 style={styles.input}
                 value={(() => {
@@ -721,13 +736,612 @@ export default function SalesReportDetailScreen() {
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Competitor Sales</Text>
-          <Text style={styles.inputLabel}>Competitor Brand A Sales</Text>
-          <TextInput style={styles.input} value={formData.competitorBrandA} onChangeText={text => setFormData({...formData, competitorBrandA: text})} placeholder="Competitor Brand A Sales" />
-          <Text style={styles.inputLabel}>Competitor Brand B Sales</Text>
-          <TextInput style={styles.input} value={formData.competitorBrandB} onChangeText={text => setFormData({...formData, competitorBrandB: text})} placeholder="Competitor Brand B Sales" />
-          <Text style={styles.inputLabel}>Competitor Packages</Text>
-          <TextInput style={styles.input} value={formData.competitorPackages} onChangeText={text => setFormData({...formData, competitorPackages: text})} placeholder="Competitor Packages" />
+          <Text style={styles.sectionTitle}>Competitor Sales and Promotion</Text>
+<View style={styles.switchContainer}>
+  <Text style={styles.inputLabel}>Competitor bintang Available</Text>
+  <Switch value={formData.competitorBintangAvailable} onValueChange={value => setFormData({...formData, competitorBintangAvailable: value})} />
+</View>
+{formData.competitorBintangAvailable && (
+  <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+    <Text style={styles.inputLabel}>Competitor bintang</Text>
+    {/* 5 sales fields in one row */}
+    <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+      <View style={{ flex: 1 }}>
+        <TextInput style={styles.input} value={formData.competitorBintangGlass} onChangeText={text => setFormData({...formData, competitorBintangGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+      </View>
+      <View style={{ flex: 1 }}>
+        <TextInput style={styles.input} value={formData.competitorBintangPint} onChangeText={text => setFormData({...formData, competitorBintangPint: text})} placeholder="Pint" keyboardType='numeric'/>
+      </View>
+      <View style={{ flex: 1 }}>
+        <TextInput style={styles.input} value={formData.competitorBintangQuart} onChangeText={text => setFormData({...formData, competitorBintangQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+      </View>
+      <View style={{ flex: 1 }}>
+        <TextInput style={styles.input} value={formData.competitorBintangCanSmall} onChangeText={text => setFormData({...formData, competitorBintangCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+      </View>
+      <View style={{ flex: 1 }}>
+        <TextInput style={styles.input} value={formData.competitorBintangCanBig} onChangeText={text => setFormData({...formData, competitorBintangCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+      </View>
+    </View>
+    {/* 2 promo fields in a separate row */}
+    <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+      <View style={{ flex: 2 }}>
+        <TextInput style={styles.input} value={formData.competitorBintangPromoDescription} onChangeText={text => setFormData({...formData, competitorBintangPromoDescription: text})} placeholder="Promo Description" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <TextInput style={styles.input} value={formData.competitorBintangPromoSold} onChangeText={text => setFormData({...formData, competitorBintangPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+      </View>
+    </View>
+  </View>
+)}
+          
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor bintang crystal Available</Text>
+            <Switch value={formData.competitorBintangCrystalAvailable} onValueChange={value => setFormData({...formData, competitorBintangCrystalAvailable: value})} />
+          </View>
+          {formData.competitorBintangCrystalAvailable && (
+            <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+              <Text style={styles.inputLabel}>Competitor bintang crystal</Text>
+              <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCrystalGlass} onChangeText={text => setFormData({...formData, competitorBintangCrystalGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCrystalPint} onChangeText={text => setFormData({...formData, competitorBintangCrystalPint: text})} placeholder="Pint" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCrystalQuart} onChangeText={text => setFormData({...formData, competitorBintangCrystalQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCrystalCanSmall} onChangeText={text => setFormData({...formData, competitorBintangCrystalCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCrystalCanBig} onChangeText={text => setFormData({...formData, competitorBintangCrystalCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                <View style={{ flex: 2 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCrystalPromoDescription} onChangeText={text => setFormData({...formData, competitorBintangCrystalPromoDescription: text})} placeholder="Promo Description"/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCrystalPromoSold} onChangeText={text => setFormData({...formData, competitorBintangCrystalPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+                </View>
+              </View>
+            </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor heineken Available</Text>
+            <Switch value={formData.competitorHeinekenAvailable} onValueChange={value => setFormData({...formData, competitorHeinekenAvailable: value})} />
+          </View>
+          {formData.competitorHeinekenAvailable && (
+            <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor Heineken</Text>
+            <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenGlass} onChangeText={text => setFormData({...formData, competitorHeinekenGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenPint} onChangeText={text => setFormData({...formData, competitorHeinekenPint: text})} placeholder="Pint" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenQuart} onChangeText={text => setFormData({...formData, competitorHeinekenQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenCanSmall} onChangeText={text => setFormData({...formData, competitorHeinekenCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenCanBig} onChangeText={text => setFormData({...formData, competitorHeinekenCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+                </View>
+              </View>
+                <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                  <View style={{ flex: 2 }}>
+                    <TextInput style={styles.input} value={formData.competitorHeinekenPromoDescription} onChangeText={text => setFormData({...formData, competitorHeinekenPromoDescription: text})} placeholder="Promo Description"/>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <TextInput style={styles.input} value={formData.competitorHeinekenPromoSold} onChangeText={text => setFormData({...formData, competitorHeinekenPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+                  </View>
+                </View>
+            </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor heineken import Available</Text>
+            <Switch value={formData.competitorHeinekenImportAvailable} onValueChange={value => setFormData({...formData, competitorHeinekenImportAvailable: value})} />
+          </View>
+          {formData.competitorHeinekenImportAvailable && (
+            <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+              <Text style={styles.inputLabel}>Competitor Heineken Import</Text>
+              <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenImportGlass} onChangeText={text => setFormData({...formData, competitorHeinekenImportGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenImportPint} onChangeText={text => setFormData({...formData, competitorHeinekenImportPint: text})} placeholder="Pint" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenImportQuart} onChangeText={text => setFormData({...formData, competitorHeinekenImportQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenImportCanSmall} onChangeText={text => setFormData({...formData, competitorHeinekenImportCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorHeinekenImportCanBig} onChangeText={text => setFormData({...formData, competitorHeinekenImportCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                  <View style={{ flex: 2 }}>
+                    <TextInput style={styles.input} value={formData.competitorHeinekenImportPromoDescription} onChangeText={text => setFormData({...formData, competitorHeinekenImportPromoDescription: text})} placeholder="Promo Description"/>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <TextInput style={styles.input} value={formData.competitorHeinekenImportPromoSold} onChangeText={text => setFormData({...formData, competitorHeinekenImportPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+                  </View>
+              </View>
+            </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor Erdinger Import Available</Text>
+            <Switch value={formData.competitorErdingerImportAvailable} onValueChange={value => setFormData({...formData, competitorErdingerImportAvailable: value})} />
+          </View>
+          {formData.competitorErdingerImportAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor Erdinger Import</Text>
+                  <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <TextInput style={styles.input} value={formData.competitorErdingerImportGlass} onChangeText={text => setFormData({...formData, competitorErdingerImportGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <TextInput style={styles.input} value={formData.competitorErdingerImportPint} onChangeText={text => setFormData({...formData, competitorErdingerImportPint: text})} placeholder="Pint" keyboardType='numeric'/>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <TextInput style={styles.input} value={formData.competitorErdingerImportQuart} onChangeText={text => setFormData({...formData, competitorErdingerImportQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <TextInput style={styles.input} value={formData.competitorErdingerImportCanSmall} onChangeText={text => setFormData({...formData, competitorErdingerImportCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <TextInput style={styles.input} value={formData.competitorErdingerImportCanBig} onChangeText={text => setFormData({...formData, competitorErdingerImportCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+                      </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                    <View style={{ flex: 2 }}>
+                      <TextInput style={styles.input} value={formData.competitorErdingerImportPromoDescription} onChangeText={text => setFormData({...formData, competitorErdingerImportPromoDescription: text})} placeholder="Promo Description"/>
+                    </View>
+                    <View style={{ flex: 1 }}>    
+                      <TextInput style={styles.input} value={formData.competitorErdingerImportPromoSold} onChangeText={text => setFormData({...formData, competitorErdingerImportPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+                    </View>
+                  </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor Budweizer Available</Text>
+          <Switch value={formData.competitorBudweizerImportAvailable} onValueChange={value => setFormData({...formData, competitorBudweizerImportAvailable: value})} />
+          </View>
+          {formData.competitorBudweizerImportAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor Budweizer Import</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBudweizerImportGlass} onChangeText={text => setFormData({...formData, competitorBudweizerImportGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+            <TextInput style={styles.input} value={formData.competitorBudweizerImportPint} onChangeText={text => setFormData({...formData, competitorBudweizerImportPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBudweizerImportQuart} onChangeText={text => setFormData({...formData, competitorBudweizerImportQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBudweizerImportCanSmall} onChangeText={text => setFormData({...formData, competitorBudweizerImportCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBudweizerImportCanBig} onChangeText={text => setFormData({...formData, competitorBudweizerImportCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorBudweizerImportPromoDescription} onChangeText={text => setFormData({...formData, competitorBudweizerImportPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBudweizerImportPromoSold} onChangeText={text => setFormData({...formData, competitorBudweizerImportPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor Anker Available</Text>
+            <Switch value={formData.competitorAnkerAvailable} onValueChange={value => setFormData({...formData, competitorAnkerAvailable: value})} />
+          </View>
+          {formData.competitorAnkerAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor Brand anker</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorAnkerGlass} onChangeText={text => setFormData({...formData, competitorAnkerGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorAnkerPint} onChangeText={text => setFormData({...formData, competitorAnkerPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorAnkerQuart} onChangeText={text => setFormData({...formData, competitorAnkerQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorAnkerCanSmall} onChangeText={text => setFormData({...formData, competitorAnkerCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorAnkerCanBig} onChangeText={text => setFormData({...formData, competitorAnkerCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorAnkerPromoDescription} onChangeText={text => setFormData({...formData, competitorAnkerPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorAnkerPromoSold} onChangeText={text => setFormData({...formData, competitorAnkerPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor balihai Available</Text>
+            <Switch value={formData.competitorBalihaiAvailable} onValueChange={value => setFormData({...formData, competitorBalihaiAvailable: value})} />
+          </View>
+          {formData.competitorBalihaiAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor balihai</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBalihaiGlass} onChangeText={text => setFormData({...formData, competitorBalihaiGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBalihaiPint} onChangeText={text => setFormData({...formData, competitorBalihaiPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBalihaiQuart} onChangeText={text => setFormData({...formData, competitorBalihaiQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBalihaiCanSmall} onChangeText={text => setFormData({...formData, competitorBalihaiCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBalihaiCanBig} onChangeText={text => setFormData({...formData, competitorBalihaiCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorBalihaiPromoDescription} onChangeText={text => setFormData({...formData, competitorBalihaiPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorBalihaiPromoSold} onChangeText={text => setFormData({...formData, competitorBalihaiPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor prost Available</Text>
+            <Switch value={formData.competitorProstAvailable} onValueChange={value => setFormData({...formData, competitorProstAvailable: value})} />
+          </View>
+          {formData.competitorProstAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor prost</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorProstGlass} onChangeText={text => setFormData({...formData, competitorProstGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorProstPint} onChangeText={text => setFormData({...formData, competitorProstPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorProstQuart} onChangeText={text => setFormData({...formData, competitorProstQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorProstCanSmall} onChangeText={text => setFormData({...formData, competitorProstCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorProstCanBig} onChangeText={text => setFormData({...formData, competitorProstCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorProstPromoDescription} onChangeText={text => setFormData({...formData, competitorProstPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorProstPromoSold} onChangeText={text => setFormData({...formData, competitorProstPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor sanmiguel Available</Text>
+            <Switch value={formData.competitorSanMiguelAvailable} onValueChange={value => setFormData({...formData, competitorSanMiguelAvailable: value})} />
+          </View>
+
+          {formData.competitorSanMiguelAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor sanmiguel</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSanMiguelGlass} onChangeText={text => setFormData({...formData, competitorSanMiguelGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSanMiguelPint} onChangeText={text => setFormData({...formData, competitorSanMiguelPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSanMiguelQuart} onChangeText={text => setFormData({...formData, competitorSanMiguelQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSanMiguelCanSmall} onChangeText={text => setFormData({...formData, competitorSanMiguelCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSanMiguelCanBig} onChangeText={text => setFormData({...formData, competitorSanMiguelCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorSanMiguelPromoDescription} onChangeText={text => setFormData({...formData, competitorSanMiguelPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSanMiguelPromoSold} onChangeText={text => setFormData({...formData, competitorSanMiguelPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor singaraja Available</Text>
+            <Switch value={formData.competitorSingarajaAvailable} onValueChange={value => setFormData({...formData, competitorSingarajaAvailable: value})} />
+          </View>
+
+          {formData.competitorSingarajaAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor singaraja</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaGlass} onChangeText={text => setFormData({...formData, competitorSingarajaGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaPint} onChangeText={text => setFormData({...formData, competitorSingarajaPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaQuart} onChangeText={text => setFormData({...formData, competitorSingarajaQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaCanSmall} onChangeText={text => setFormData({...formData, competitorSingarajaCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaCanBig} onChangeText={text => setFormData({...formData, competitorSingarajaCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaGlass} onChangeText={text => setFormData({...formData, competitorSingarajaGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaPint} onChangeText={text => setFormData({...formData, competitorSingarajaPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaQuart} onChangeText={text => setFormData({...formData, competitorSingarajaQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaCanSmall} onChangeText={text => setFormData({...formData, competitorSingarajaCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaCanBig} onChangeText={text => setFormData({...formData, competitorSingarajaCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaPromoDescription} onChangeText={text => setFormData({...formData, competitorSingarajaPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorSingarajaPromoSold} onChangeText={text => setFormData({...formData, competitorSingarajaPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor carlsberg Available</Text>
+            <Switch value={formData.competitorCarlsbergAvailable} onValueChange={value => setFormData({...formData, competitorCarlsbergAvailable: value})} />
+          </View>
+
+          {formData.competitorCarlsbergAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor carlsberg</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorCarlsbergGlass} onChangeText={text => setFormData({...formData, competitorCarlsbergGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorCarlsbergPint} onChangeText={text => setFormData({...formData, competitorCarlsbergPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorCarlsbergQuart} onChangeText={text => setFormData({...formData, competitorCarlsbergQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorCarlsbergCanSmall} onChangeText={text => setFormData({...formData, competitorCarlsbergCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorCarlsbergCanBig} onChangeText={text => setFormData({...formData, competitorCarlsbergCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorCarlsbergPromoDescription} onChangeText={text => setFormData({...formData, competitorCarlsbergPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorCarlsbergPromoSold} onChangeText={text => setFormData({...formData, competitorCarlsbergPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor draftbeer Available</Text>
+            <Switch value={formData.competitorDraftBeerAvailable} onValueChange={value => setFormData({...formData, competitorDraftBeerAvailable: value})} />
+          </View>
+
+          {formData.competitorDraftBeerAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor draftbeer</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorDraftBeerGlass} onChangeText={text => setFormData({...formData, competitorDraftBeerGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorDraftBeerPint} onChangeText={text => setFormData({...formData, competitorDraftBeerPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorDraftBeerQuart} onChangeText={text => setFormData({...formData, competitorDraftBeerQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorDraftBeerCanSmall} onChangeText={text => setFormData({...formData, competitorDraftBeerCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorDraftBeerCanBig} onChangeText={text => setFormData({...formData, competitorDraftBeerCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorDraftBeerPromoDescription} onChangeText={text => setFormData({...formData, competitorDraftBeerPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorDraftBeerPromoSold} onChangeText={text => setFormData({...formData, competitorDraftBeerPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor kura kura Available</Text>
+            <Switch value={formData.competitorKuraKuraAvailable} onValueChange={value => setFormData({...formData, competitorKuraKuraAvailable: value})} />
+          </View>
+
+          {formData.competitorKuraKuraAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor kura kura</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorKuraKuraGlass} onChangeText={text => setFormData({...formData, competitorKuraKuraGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorKuraKuraPint} onChangeText={text => setFormData({...formData, competitorKuraKuraPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorKuraKuraQuart} onChangeText={text => setFormData({...formData, competitorKuraKuraQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorKuraKuraCanSmall} onChangeText={text => setFormData({...formData, competitorKuraKuraCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorKuraKuraCanBig} onChangeText={text => setFormData({...formData, competitorKuraKuraCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorKuraKuraPromoDescription} onChangeText={text => setFormData({...formData, competitorKuraKuraPromoDescription: text})} placeholder="Promo Description"/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorKuraKuraPromoSold} onChangeText={text => setFormData({...formData, competitorKuraKuraPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor island brewing Available</Text>
+            <Switch value={formData.competitorIslandBrewingAvailable} onValueChange={value => setFormData({...formData, competitorIslandBrewingAvailable: value})} />
+          </View>
+
+          {formData.competitorIslandBrewingAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor island brewing</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingGlass} onChangeText={text => setFormData({...formData, competitorIslandBrewingGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingPint} onChangeText={text => setFormData({...formData, competitorIslandBrewingPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingQuart} onChangeText={text => setFormData({...formData, competitorIslandBrewingQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingCanSmall} onChangeText={text => setFormData({...formData, competitorIslandBrewingCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingCanBig} onChangeText={text => setFormData({...formData, competitorIslandBrewingCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingGlass} onChangeText={text => setFormData({...formData, competitorIslandBrewingGlass: text})} placeholder="Glass" keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingPint} onChangeText={text => setFormData({...formData, competitorIslandBrewingPint: text})} placeholder="Pint" keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingQuart} onChangeText={text => setFormData({...formData, competitorIslandBrewingQuart: text})} placeholder="Quart" keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingCanSmall} onChangeText={text => setFormData({...formData, competitorIslandBrewingCanSmall: text})} placeholder="Can Small" keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingCanBig} onChangeText={text => setFormData({...formData, competitorIslandBrewingCanBig: text})} placeholder="Can Big" keyboardType="numeric" />
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingPromoDescription} onChangeText={text => setFormData({...formData, competitorIslandBrewingPromoDescription: text})} placeholder="Promo Description" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorIslandBrewingPromoSold} onChangeText={text => setFormData({...formData, competitorIslandBrewingPromoSold: text})} placeholder="Promo Sold" keyboardType="numeric" />
+            </View>
+          </View>
+          </View>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor Others Available</Text>
+            <Switch value={formData.competitorOthersAvailable} onValueChange={value => setFormData({...formData, competitorOthersAvailable: value})} />
+          </View>
+
+          {formData.competitorOthersAvailable && (
+          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+          <Text style={styles.inputLabel}>Competitor Others</Text>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersGlass} onChangeText={text => setFormData({...formData, competitorOthersGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersPint} onChangeText={text => setFormData({...formData, competitorOthersPint: text})} placeholder="Pint" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersQuart} onChangeText={text => setFormData({...formData, competitorOthersQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersCanSmall} onChangeText={text => setFormData({...formData, competitorOthersCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersCanBig} onChangeText={text => setFormData({...formData, competitorOthersCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersGlass} onChangeText={text => setFormData({...formData, competitorOthersGlass: text})} placeholder="Glass" keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersPint} onChangeText={text => setFormData({...formData, competitorOthersPint: text})} placeholder="Pint" keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersQuart} onChangeText={text => setFormData({...formData, competitorOthersQuart: text})} placeholder="Quart" keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersCanSmall} onChangeText={text => setFormData({...formData, competitorOthersCanSmall: text})} placeholder="Can Small" keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersCanBig} onChangeText={text => setFormData({...formData, competitorOthersCanBig: text})} placeholder="Can Big" keyboardType="numeric" />
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+            <View style={{ flex: 2 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersPromoDescription} onChangeText={text => setFormData({...formData, competitorOthersPromoDescription: text})} placeholder="Promo Description" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextInput style={styles.input} value={formData.competitorOthersPromoSold} onChangeText={text => setFormData({...formData, competitorOthersPromoSold: text})} placeholder="Promo Sold" keyboardType="numeric" />
+            </View>
+          </View>
+          </View>
+          )}
 
           <Text style={styles.sectionTitle}>Merchandise and Programs</Text>
           {/* Merchandise Available now uses early_task_assessment's merchandiseAvailable */}
@@ -750,41 +1364,51 @@ export default function SalesReportDetailScreen() {
             <>
               <View style={styles.rowInputs}>
                 <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Merchandise Type 1</Text>
                   <TextInput style={styles.input} value={formData.merchandiseDescription1} onChangeText={text => setFormData({...formData, merchandiseDescription1: text})} placeholder="Merchandise Description" />
                 </View>
                 <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Merchandise Out Sold 1</Text>
                   <TextInput style={styles.input} value={formData.merchandiseSold1} onChangeText={text => setFormData({...formData, merchandiseSold1: text})} placeholder="Merchandise Sold" keyboardType="numeric" />
                 </View>
               </View>
               <View style={styles.rowInputs}>
                 <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Merchandise Type 2</Text>
                   <TextInput style={styles.input} value={formData.merchandiseDescription2} onChangeText={text => setFormData({...formData, merchandiseDescription2: text})} placeholder="Merchandise Description" />
                 </View>
                 <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Merchandise Out Sold 2</Text>
                   <TextInput style={styles.input} value={formData.merchandiseSold2} onChangeText={text => setFormData({...formData, merchandiseSold2: text})} placeholder="Merchandise Sold" keyboardType="numeric" />
                 </View>
               </View>
               <View style={styles.rowInputs}>
                 <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Merchandise Type 3</Text>
                   <TextInput style={styles.input} value={formData.merchandiseDescription3} onChangeText={text => setFormData({...formData, merchandiseDescription3: text})} placeholder="Merchandise Description" />
                 </View>
                 <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Merchandise Out Sold 3</Text>
                   <TextInput style={styles.input} value={formData.merchandiseSold3} onChangeText={text => setFormData({...formData, merchandiseSold3: text})} placeholder="Merchandise Sold" keyboardType="numeric" />
                 </View>
               </View>
               <View style={styles.rowInputs}>
                 <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Merchandise Type 4</Text>
                   <TextInput style={styles.input} value={formData.merchandiseDescription4} onChangeText={text => setFormData({...formData, merchandiseDescription4: text})} placeholder="Merchandise Description" />
                 </View>
                 <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Merchandise Out Sold 4</Text>
                   <TextInput style={styles.input} value={formData.merchandiseSold4} onChangeText={text => setFormData({...formData, merchandiseSold4: text})} placeholder="Merchandise Sold" keyboardType="numeric" />
                 </View>
               </View>
               <View style={styles.rowInputs}>
                 <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Merchandise Type 5</Text>
                   <TextInput style={styles.input} value={formData.merchandiseDescription5} onChangeText={text => setFormData({...formData, merchandiseDescription5: text})} placeholder="Merchandise Description" />
                 </View>
                 <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Merchandise Out Sold 5</Text>
                   <TextInput style={styles.input} value={formData.merchandiseSold5} onChangeText={text => setFormData({...formData, merchandiseSold5: text})} placeholder="Merchandise Sold" keyboardType="numeric" />
                 </View>
               </View>
