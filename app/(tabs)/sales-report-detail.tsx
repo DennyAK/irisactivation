@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -38,6 +39,7 @@ export default function SalesReportDetailScreen() {
     merchandiseSold5?: string;
     tablesAllCompetitor?: string;
     tablesAllGuinnessMixedCompetitor?: string;
+    salesReportDetailStatus?: string;
     [key: string]: any;
   };
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -105,6 +107,7 @@ export default function SalesReportDetailScreen() {
     baliLocalVisitors: '', baliForeignVisitors: '', baliLocalGuinnessBuyers: '', baliForeignGuinnessBuyers: '',
     // AMS Data
     amsGfes: '', amsSmooth: '', amsMicrodraught: '', amsKegs: '', amsTotal: '',
+    salesReportDetailStatus: '',
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -420,6 +423,9 @@ export default function SalesReportDetailScreen() {
               </View>
             </View>
           <Text style={styles.inputLabel}>Total Guinness Sales</Text>
+          <Text style={styles.inputLabel}>Total Guinness Sales</Text>
+          <TextInput style={styles.input} value={formData.totalGuinnessSales} onChangeText={text => setFormData({...formData, totalGuinnessSales: text})} placeholder="Total Guinness Sales" />
+          
           <Text style={styles.sectionTitle}>Call and Customer Data</Text>
           <View style={styles.rowInputs}>
             <View style={{flex: 1, marginRight: 4}}>
@@ -737,43 +743,43 @@ export default function SalesReportDetailScreen() {
           </View>
 
           <Text style={styles.sectionTitle}>Competitor Sales and Promotion</Text>
-<View style={styles.switchContainer}>
-  <Text style={styles.inputLabel}>Competitor bintang Available</Text>
-  <Switch value={formData.competitorBintangAvailable} onValueChange={value => setFormData({...formData, competitorBintangAvailable: value})} />
-</View>
-{formData.competitorBintangAvailable && (
-  <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-    <Text style={styles.inputLabel}>Competitor bintang</Text>
-    {/* 5 sales fields in one row */}
-    <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-      <View style={{ flex: 1 }}>
-        <TextInput style={styles.input} value={formData.competitorBintangGlass} onChangeText={text => setFormData({...formData, competitorBintangGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-      </View>
-      <View style={{ flex: 1 }}>
-        <TextInput style={styles.input} value={formData.competitorBintangPint} onChangeText={text => setFormData({...formData, competitorBintangPint: text})} placeholder="Pint" keyboardType='numeric'/>
-      </View>
-      <View style={{ flex: 1 }}>
-        <TextInput style={styles.input} value={formData.competitorBintangQuart} onChangeText={text => setFormData({...formData, competitorBintangQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-      </View>
-      <View style={{ flex: 1 }}>
-        <TextInput style={styles.input} value={formData.competitorBintangCanSmall} onChangeText={text => setFormData({...formData, competitorBintangCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-      </View>
-      <View style={{ flex: 1 }}>
-        <TextInput style={styles.input} value={formData.competitorBintangCanBig} onChangeText={text => setFormData({...formData, competitorBintangCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-      </View>
-    </View>
-    {/* 2 promo fields in a separate row */}
-    <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-      <View style={{ flex: 2 }}>
-        <TextInput style={styles.input} value={formData.competitorBintangPromoDescription} onChangeText={text => setFormData({...formData, competitorBintangPromoDescription: text})} placeholder="Promo Description" />
-      </View>
-      <View style={{ flex: 1 }}>
-        <TextInput style={styles.input} value={formData.competitorBintangPromoSold} onChangeText={text => setFormData({...formData, competitorBintangPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-      </View>
-    </View>
-  </View>
-)}
-          
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Competitor bintang Available</Text>
+            <Switch value={formData.competitorBintangAvailable} onValueChange={value => setFormData({...formData, competitorBintangAvailable: value})} />
+          </View>
+          {formData.competitorBintangAvailable && (
+            <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
+              <Text style={styles.inputLabel}>Competitor bintang</Text>
+              {/* 5 sales fields in one row */}
+              <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangGlass} onChangeText={text => setFormData({...formData, competitorBintangGlass: text})} placeholder="Glass" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangPint} onChangeText={text => setFormData({...formData, competitorBintangPint: text})} placeholder="Pint" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangQuart} onChangeText={text => setFormData({...formData, competitorBintangQuart: text})} placeholder="Quart" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCanSmall} onChangeText={text => setFormData({...formData, competitorBintangCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangCanBig} onChangeText={text => setFormData({...formData, competitorBintangCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
+                </View>
+              </View>
+              {/* 2 promo fields in a separate row */}
+              <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                <View style={{ flex: 2 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangPromoDescription} onChangeText={text => setFormData({...formData, competitorBintangPromoDescription: text})} placeholder="Promo Description" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextInput style={styles.input} value={formData.competitorBintangPromoSold} onChangeText={text => setFormData({...formData, competitorBintangPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
+                </View>
+              </View>
+            </View>
+          )}
+                    
           <View style={styles.switchContainer}>
             <Text style={styles.inputLabel}>Competitor bintang crystal Available</Text>
             <Switch value={formData.competitorBintangCrystalAvailable} onValueChange={value => setFormData({...formData, competitorBintangCrystalAvailable: value})} />
@@ -1342,7 +1348,9 @@ export default function SalesReportDetailScreen() {
           </View>
           </View>
           )}
-
+          <Text style={styles.inputLabel}>Beer Market Size</Text>
+          <TextInput style={styles.input} value={formData.beerMarketSize} onChangeText={text => setFormData({...formData, beerMarketSize: text})} placeholder="Beer Market Size" />
+          
           <Text style={styles.sectionTitle}>Merchandise and Programs</Text>
           {/* Merchandise Available now uses early_task_assessment's merchandiseAvailable */}
           <View style={styles.switchContainer}>
@@ -1423,15 +1431,43 @@ export default function SalesReportDetailScreen() {
 
           <Text style={styles.sectionTitle}>Notes and Performance</Text>
           <Text style={styles.inputLabel}>Issues/Notes/Requests</Text>
-          <TextInput style={styles.input} value={formData.issuesNotesRequests} onChangeText={text => setFormData({...formData, issuesNotesRequests: text})} placeholder="Issues/Notes/Requests" />
+            <TextInput
+              style={[styles.input, { height: 80 }]}
+              value={formData.issuesNotesRequests}
+              onChangeText={text => setFormData({ ...formData, issuesNotesRequests: text })}
+              placeholder="Issues/Notes/Requests"
+              multiline
+              numberOfLines={4}
+            />          
           <Text style={styles.inputLabel}>Learning Points</Text>
-          <TextInput style={styles.input} value={formData.learningPoints} onChangeText={text => setFormData({...formData, learningPoints: text})} placeholder="Learning Points" />
-          <Text style={styles.inputLabel}>Beer Market Size</Text>
-          <TextInput style={styles.input} value={formData.beerMarketSize} onChangeText={text => setFormData({...formData, beerMarketSize: text})} placeholder="Beer Market Size" />
-          <Text style={styles.inputLabel}>Total Guinness Sales</Text>
-          <TextInput style={styles.input} value={formData.totalGuinnessSales} onChangeText={text => setFormData({...formData, totalGuinnessSales: text})} placeholder="Total Guinness Sales" />
+          <TextInput 
+              style={[styles.input, { height: 80 }]} 
+              value={formData.learningPoints} 
+              onChangeText={text => setFormData({...formData, learningPoints: text})} 
+              placeholder="Learning Points" 
+              multiline
+              numberOfLines={4}
+          />
+          
           <Text style={styles.inputLabel}>Achievement Percentage</Text>
           <TextInput style={styles.input} value={formData.achievementPercentage} onChangeText={text => setFormData({...formData, achievementPercentage: text})} placeholder="Achievement Percentage" />
+
+          {/* Task Sales Report Detail Status Dropdown */}
+          <Text style={styles.inputLabel}>Task Sales Report Detail Status</Text>
+          <View style={[styles.input, { padding: 0 }]}> 
+            <Picker
+              selectedValue={formData.salesReportDetailStatus}
+              onValueChange={value => setFormData({ ...formData, salesReportDetailStatus: value })}
+              style={{ height: 40 }}
+            >
+              <Picker.Item label="" value="" />
+              <Picker.Item label="Done By BA" value="Done By BA" />
+              <Picker.Item label="Review back to BA" value="Review back to BA" />
+              <Picker.Item label="Done by TL" value="Done by TL" />
+              <Picker.Item label="Review back to TL" value="Review back to TL" />
+              <Picker.Item label="Done by AM" value="Done by AM" />
+            </Picker>
+          </View>
 
           <Text style={styles.sectionTitle}>Bali Specific Data</Text>
           <View style={styles.switchContainer}>
