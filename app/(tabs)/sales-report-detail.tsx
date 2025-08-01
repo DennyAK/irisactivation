@@ -45,7 +45,7 @@ export default function SalesReportDetailScreen() {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'add' | 'edit'>('add');
+  const [modalType, setModalType] = useState<'add' | 'edit' | 'review'>('add');
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
@@ -119,10 +119,14 @@ export default function SalesReportDetailScreen() {
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
         getDoc(userDocRef).then((docSnap: DocumentSnapshot) => {
-          if (docSnap.exists()) setUserRole(docSnap.data().role);
+          if (docSnap.exists()) {
+            setUserRole(docSnap.data().role);
+            console.log('User role:', docSnap.data().role);
+          }
         });
       } else {
         setUserRole(null);
+        console.log('User role: null');
       }
     });
     return () => unsubscribe();
@@ -182,7 +186,7 @@ export default function SalesReportDetailScreen() {
     }
   };
 
-  const handleOpenModal = (type: 'add' | 'edit', item?: any) => {
+  const handleOpenModal = (type: 'add' | 'edit' | 'review', item?: any) => {
     setModalType(type);
     if (type === 'edit' && item) {
       setSelectedReport(item);
@@ -250,12 +254,6 @@ export default function SalesReportDetailScreen() {
         competitorOnlyDrinkers = diff >= 0 ? diff.toString() : '';
       }
     }
-    const dataToSubmit: any = {
-      ...formData,
-      drinkerCompetitorOnly: competitorOnlyDrinkers,
-      date: formData.date ? new Date(formData.date) : null,
-      entryTimestamp: serverTimestamp(),
-    };
 
     // Prepare quick report data
     const quickFields = [
@@ -265,10 +263,52 @@ export default function SalesReportDetailScreen() {
     const quickData: any = {};
     quickFields.forEach(f => { quickData[f] = (formData as any)[f]; });
 
+    // If Iris BA or TL role and update, show confirmation and set status
+    if ((userRole === 'Iris - BA' || userRole === 'Iris - TL') && modalType === 'edit') {
+      let statusLabel = userRole === 'Iris - BA' ? 'Done By BA' : 'Done by TL';
+      Alert.alert('Are you sure?', `Do you want to submit as ${statusLabel}?`, [
+        { text: 'No', style: 'cancel' },
+        { text: 'Yes', onPress: () => {
+            const dataToSubmit: any = {
+              ...formData,
+              salesReportDetailStatus: statusLabel,
+              drinkerCompetitorOnly: competitorOnlyDrinkers,
+              date: formData.date ? new Date(formData.date) : null,
+              entryTimestamp: serverTimestamp(),
+            };
+            updateDoc(doc(db, "sales_report_detail", selectedReport.id), dataToSubmit)
+              .then(async () => {
+                if (formData.outletId) {
+                  const quickRef = collection(db, 'sales_report_quick');
+                  const snapshot = await getDocs(query(quickRef, where('outletId', '==', formData.outletId)));
+                  if (!snapshot.empty) {
+                    await updateDoc(doc(db, 'sales_report_quick', snapshot.docs[0].id), quickData);
+                  } else {
+                    await addDoc(collection(db, 'sales_report_quick'), {
+                      outletId: formData.outletId,
+                      ...quickData
+                    });
+                  }
+                }
+                fetchReports();
+                setIsModalVisible(false);
+              }).catch(error => Alert.alert("Update Failed", error.message));
+          }
+        }
+      ]);
+      return;
+    }
+
+    const dataToSubmit: any = {
+      ...formData,
+      drinkerCompetitorOnly: competitorOnlyDrinkers,
+      date: formData.date ? new Date(formData.date) : null,
+      entryTimestamp: serverTimestamp(),
+    };
+
     if (modalType === 'add') {
       addDoc(collection(db, "sales_report_detail"), dataToSubmit)
         .then(() => {
-          // Also add quick report if outletId exists
           if (formData.outletId) {
             addDoc(collection(db, "sales_report_quick"), {
               outletId: formData.outletId,
@@ -281,7 +321,6 @@ export default function SalesReportDetailScreen() {
     } else if (selectedReport) {
       updateDoc(doc(db, "sales_report_detail", selectedReport.id), dataToSubmit)
         .then(async () => {
-          // Also update quick report if outletId exists
           if (formData.outletId) {
             const quickRef = collection(db, 'sales_report_quick');
             const snapshot = await getDocs(query(quickRef, where('outletId', '==', formData.outletId)));
@@ -330,10 +369,36 @@ export default function SalesReportDetailScreen() {
       <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
       <Text>Created By: {item.createdBy || '-'}</Text>
       <Text>Task ID: {item.tasksId || '-'}</Text>
-      {canUpdate && (
+      <Text>Task Sales Report Detail Status: {item.salesReportDetailStatus || '-'} </Text>
+
+      {/* Sales Detail by BA button */}
+      {userRole === 'Iris - BA' && (item.salesReportDetailStatus === '' || item.salesReportDetailStatus === 'Review back to BA') && (
+        <View style={styles.buttonContainer}>
+          <Button title="Sales Detail by BA" onPress={() => handleOpenModal('edit', item)} />
+        </View>
+      )}
+      {/* Sales Detail by TL button */}
+      {userRole === 'Iris - TL' && (item.salesReportDetailStatus === 'Done By BA' || item.salesReportDetailStatus === 'Review back to TL') && (
+        <View style={styles.buttonContainer}>
+          <Button title="Sales Detail by TL" onPress={() => handleOpenModal('edit', item)} />
+        </View>
+      )}
+      {/* Area Manager Review button */}
+      {userRole === 'area manager' && item.salesReportDetailStatus === 'Done by TL' && (
+        <View style={styles.buttonContainer}>
+          <Button title="Review for Area Manager" onPress={() => handleOpenModal('review', item)} />
+        </View>
+      )}
+      {/* Edit button for admin/superadmin only */}
+      {(userRole === 'admin' || userRole === 'superadmin') && (
         <View style={styles.buttonContainer}>
           <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
-          {canDelete && <Button title="Delete" onPress={() => handleDelete(item.id)} />}
+        </View>
+      )}
+      {/* Delete button for superadmin only */}
+      {userRole === 'superadmin' && (
+        <View style={styles.buttonContainer}>
+          <Button title="Delete" onPress={() => handleDelete(item.id)} />
         </View>
       )}
     </View>
@@ -1452,22 +1517,26 @@ export default function SalesReportDetailScreen() {
           <Text style={styles.inputLabel}>Achievement Percentage</Text>
           <TextInput style={styles.input} value={formData.achievementPercentage} onChangeText={text => setFormData({...formData, achievementPercentage: text})} placeholder="Achievement Percentage" />
 
-          {/* Task Sales Report Detail Status Dropdown */}
-          <Text style={styles.inputLabel}>Task Sales Report Detail Status</Text>
-          <View style={[styles.input, { padding: 0 }]}> 
-            <Picker
-              selectedValue={formData.salesReportDetailStatus}
-              onValueChange={value => setFormData({ ...formData, salesReportDetailStatus: value })}
-              style={{ height: 40 }}
-            >
-              <Picker.Item label="" value="" />
-              <Picker.Item label="Done By BA" value="Done By BA" />
-              <Picker.Item label="Review back to BA" value="Review back to BA" />
-              <Picker.Item label="Done by TL" value="Done by TL" />
-              <Picker.Item label="Review back to TL" value="Review back to TL" />
-              <Picker.Item label="Done by AM" value="Done by AM" />
-            </Picker>
-          </View>
+          {/* Only show status picker for admin during edit/update modal */}
+          {userRole === 'admin' && modalType === 'edit' && (
+            <>
+              <Text style={styles.inputLabel}>Task Sales Report Detail Status</Text>
+              <View style={[styles.input, { padding: 0 }]}> 
+                <Picker
+                  selectedValue={formData.salesReportDetailStatus}
+                  onValueChange={value => setFormData({ ...formData, salesReportDetailStatus: value })}
+                  style={{ height: 40 }}
+                >
+                  <Picker.Item label="" value="" />
+                  <Picker.Item label="Done By BA" value="Done By BA" />
+                  <Picker.Item label="Review back to BA" value="Review back to BA" />
+                  <Picker.Item label="Done by TL" value="Done by TL" />
+                  <Picker.Item label="Review back to TL" value="Review back to TL" />
+                  <Picker.Item label="Done by AM" value="Done by AM" />
+                </Picker>
+              </View>
+            </>
+          )}
 
           <Text style={styles.sectionTitle}>Bali Specific Data</Text>
           <View style={styles.switchContainer}>
