@@ -47,6 +47,8 @@ export default function SalesReportDetailScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'add' | 'edit' | 'review'>('add');
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  // State for review modal
+  const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const initialFormData = {
@@ -353,6 +355,42 @@ export default function SalesReportDetailScreen() {
   const canDelete = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
   const canUpdate = canDelete || userRole === 'Iris - BA' || userRole === 'Iris - TL';
 
+  // Review Modal for Area Manager (read-only)
+  const renderReviewModal = () => {
+    return (
+      <Modal
+        visible={isReviewModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsReviewModalVisible(false)}
+      >
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>Review for Area Manager</Text>
+            {selectedReport ? (
+              <>
+                <Text>Assigned to BA: {selectedReport.assignedToBA || '-'}</Text>
+                <Text>Assigned to TL: {selectedReport.assignedToTL || '-'}</Text>
+                <Text>Outlet Name: {selectedReport.outletName || '-'}</Text>
+                <Text>Province: {selectedReport.outletProvince || '-'}</Text>
+                <Text>City: {selectedReport.outletCity || '-'}</Text>
+                <Text>Activity Name: {selectedReport.activityName || '-'}</Text>
+                <Text>Total Guinness Sales: {selectedReport.totalGuinnessSales || '-'}</Text>
+                <Text>Issues/Notes/Requests: {selectedReport.issuesNotesRequests || '-'}</Text>
+                <Text>Learning Points: {selectedReport.learningPoints || '-'}</Text>
+                {/* Add more fields as needed */}
+              </>
+            ) : (
+              <Text>No data available.</Text>
+            )}
+            <Button title="Close" onPress={() => setIsReviewModalVisible(false)} />
+          </View>
+        </ScrollView>
+      </Modal>
+    );
+  };
+
+
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
       <Text>Outlet ID: {item.outletId || '-'}</Text>
@@ -386,7 +424,10 @@ export default function SalesReportDetailScreen() {
       {/* Area Manager Review button */}
       {userRole === 'area manager' && item.salesReportDetailStatus === 'Done by TL' && (
         <View style={styles.buttonContainer}>
-          <Button title="Review for Area Manager" onPress={() => handleOpenModal('review', item)} />
+          <Button title="Review for Area Manager" onPress={() => {
+            setSelectedReport(item);
+            setIsReviewModalVisible(true);
+          }} />
         </View>
       )}
       {/* Edit button for admin/superadmin only */}
@@ -1601,6 +1642,7 @@ export default function SalesReportDetailScreen() {
         }
       />
       {renderModal()}
+      {renderReviewModal()}
     </View>
   );
 }
