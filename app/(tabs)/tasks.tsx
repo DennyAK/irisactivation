@@ -252,18 +252,20 @@ export default function TasksScreen() {
       // For each task, fetch the outlet name for display
       const tasksWithOutletNames = await Promise.all(taskList.map(async (task) => {
         let outletName = 'Unknown Outlet';
+        let outletProvince = '';
         if (task.outletId) {
           try {
             const outletDocRef = doc(db, 'outlets', task.outletId);
             const outletDocSnap = await getDoc(outletDocRef);
             if (outletDocSnap.exists()) {
               outletName = outletDocSnap.data().outletName;
+              outletProvince = outletDocSnap.data().province || '';
             }
           } catch (e) {
-            console.error("Error fetching outlet name: ", e);
+            console.error("Error fetching outlet name/province: ", e);
           }
         }
-        return { ...task, outletName };
+        return { ...task, outletName, outletProvince };
       }));
 
       setTasks(tasksWithOutletNames);
@@ -507,6 +509,7 @@ const fetchTLUsers = async () => {
     <View style={styles.itemContainer}>
       {/* Display all task details, including outlet and assigned users */}
       <Text style={styles.itemTitle}>Outlet: {item.outletName}</Text>
+      <Text>Province: {item.outletProvince || '-'}</Text>
       <Text>Task Start Date: {item.startDate?.toDate().toLocaleDateString()}</Text>
       <Text>Assigned to BA: {baUsers.find(u => u.id === item.assignedToUserBA)?.name || item.assignedToUserBA}</Text>
       <Text>Assigned to TL: {tlUsers.find(u => u.id === item.assignedToUserTLID)?.name || item.assignedToUserTLID}</Text>
@@ -687,6 +690,13 @@ const fetchTLUsers = async () => {
           <Picker.Item key={outlet.id} label={outlet.outletName} value={outlet.id} />
         ))}
       </Picker>
+      {/* Province display (read-only, based on selected outlet) */}
+      <Text style={styles.input}>
+        Province: {(() => {
+          const selectedOutlet = outlets.find(o => o.id === formData.outletId);
+          return selectedOutlet?.province || '-';
+        })()}
+      </Text>
       {/* Task Start Date below Outlet */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
         <Text style={styles.input}>{`Task Start Date: ${formData.startDate.toLocaleDateString()}`}</Text>

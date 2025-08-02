@@ -215,6 +215,7 @@ export default function OutletsScreen() {
   const renderOutlet = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
       <Text style={styles.itemTitle}>{item.outletName}</Text>
+      <Text>Province: {item.provinceName || '-'}</Text>
       <Text>Address: {item.outletCompleteAddress}, {item.cityName}, {item.provinceName}</Text>
       <Text>Contact: {item.outletContactNo}</Text>
       <Text>PIC: {item.outletPicName} ({item.outletPicContactNumber})</Text>
@@ -241,6 +242,13 @@ export default function OutletsScreen() {
           <Picker.Item key={province.id} label={province.name} value={province.id} />
         ))}
       </Picker>
+      {/* Province display (read-only, based on selected province) */}
+      <Text style={styles.input}>
+        Province: {(() => {
+          const selectedProvince = provinces.find(p => p.id === formData.outletProvince);
+          return selectedProvince?.name || '-';
+        })()}
+      </Text>
       <Picker
         selectedValue={formData.outletCity}
         onValueChange={(itemValue) => setFormData({...formData, outletCity: itemValue})}

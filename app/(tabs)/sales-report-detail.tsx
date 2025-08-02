@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
 
 export default function SalesReportDetailScreen() {
   // Pull-to-refresh state
@@ -50,6 +52,9 @@ export default function SalesReportDetailScreen() {
   // State for review modal
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  // State for description modal
+  const [isDescriptionModalVisible, setIsDescriptionModalVisible] = useState(false);
+  const [descriptionItem, setDescriptionItem] = useState<any>(null);
 
   const initialFormData = {
     // Activity Information
@@ -390,58 +395,74 @@ export default function SalesReportDetailScreen() {
     );
   };
 
-
   const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.itemContainer}>
-      <Text>Outlet ID: {item.outletId || '-'}</Text>
-      <Text>Outlet Name: {item.outletName || '-'}</Text>
-      <Text>Province: {item.outletProvince || '-'}</Text>
-      <Text>City: {item.outletCity || '-'}</Text>
-      <Text>Activity Name: {item.activityName || '-'}</Text>
-      <Text>Channel: {item.channel || '-'}</Text>
-      <Text>Tier: {item.tier || '-'}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+      <View style={{ flex: 1 }}>
+        <View style={styles.itemContainer}>
+          <Text>Outlet ID: {item.outletId || '-'}</Text>
+          <Text>Outlet Name: {item.outletName || '-'}</Text>
+          <Text>Province: {item.outletProvince || '-'}</Text>
+          <Text>City: {item.outletCity || '-'}</Text>
+          <Text>Activity Name: {item.activityName || '-'}</Text>
+          <Text>Channel: {item.channel || '-'}</Text>
+          <Text>Tier: {item.tier || '-'}</Text>
 
-      {/* New fields from Tasks */}
-      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
-      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
-      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
-      <Text>Created By: {item.createdBy || '-'}</Text>
-      <Text>Task ID: {item.tasksId || '-'}</Text>
-      <Text>Task Sales Report Detail Status: {item.salesReportDetailStatus || '-'} </Text>
+          {/* New fields from Tasks */}
+          <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
+          <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
+          <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
+          <Text>Created By: {item.createdBy || '-'}</Text>
+          <Text>Task ID: {item.tasksId || '-'}</Text>
+          <Text>Task Sales Report Detail Status: {item.salesReportDetailStatus || '-'} </Text>
 
-      {/* Sales Detail by BA button */}
-      {userRole === 'Iris - BA' && (!item.salesReportDetailStatus || item.salesReportDetailStatus === 'Review back to BA') && (
-        <View style={styles.buttonContainer}>
-          <Button title="Sales Detail by BA" onPress={() => handleOpenModal('edit', item)} />
+          {/* Sales Detail by BA button */}
+          {userRole === 'Iris - BA' && (!item.salesReportDetailStatus || item.salesReportDetailStatus === 'Review back to BA') && (
+            <View style={styles.buttonContainer}>
+              <Button title="Sales Detail by BA" onPress={() => handleOpenModal('edit', item)} />
+            </View>
+          )}
+          {/* Sales Detail by TL button */}
+          {userRole === 'Iris - TL' && (item.salesReportDetailStatus === 'Done By BA' || item.salesReportDetailStatus === 'Review back to TL') && (
+            <View style={styles.buttonContainer}>
+              <Button title="Sales Detail by TL" onPress={() => handleOpenModal('edit', item)} />
+            </View>
+          )}
+          {/* Area Manager Review button */}
+          {userRole === 'area manager' && item.salesReportDetailStatus === 'Done by TL' && (
+            <View style={styles.buttonContainer}>
+              <Button title="Review for Area Manager" onPress={() => {
+                setSelectedReport(item);
+                setIsReviewModalVisible(true);
+              }} />
+            </View>
+          )}
+          {/* Edit button for admin/superadmin only */}
+          {(userRole === 'admin' || userRole === 'superadmin') && (
+            <View style={styles.buttonContainer}>
+              <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
+            </View>
+          )}
+          {/* Delete button for superadmin only */}
+          {userRole === 'superadmin' && (
+            <View style={styles.buttonContainer}>
+              <Button title="Delete" onPress={() => handleDelete(item.id)} />
+            </View>
+          )}
+          {/* Detail icon button inside the item container */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => {
+                setDescriptionItem(item);
+                setIsDescriptionModalVisible(true);
+              }}
+              accessibilityLabel="Detail"
+            >
+              <Ionicons name="information-circle-outline" size={28} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
-      {/* Sales Detail by TL button */}
-      {userRole === 'Iris - TL' && (item.salesReportDetailStatus === 'Done By BA' || item.salesReportDetailStatus === 'Review back to TL') && (
-        <View style={styles.buttonContainer}>
-          <Button title="Sales Detail by TL" onPress={() => handleOpenModal('edit', item)} />
-        </View>
-      )}
-      {/* Area Manager Review button */}
-      {userRole === 'area manager' && item.salesReportDetailStatus === 'Done by TL' && (
-        <View style={styles.buttonContainer}>
-          <Button title="Review for Area Manager" onPress={() => {
-            setSelectedReport(item);
-            setIsReviewModalVisible(true);
-          }} />
-        </View>
-      )}
-      {/* Edit button for admin/superadmin only */}
-      {(userRole === 'admin' || userRole === 'superadmin') && (
-        <View style={styles.buttonContainer}>
-          <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
-        </View>
-      )}
-      {/* Delete button for superadmin only */}
-      {userRole === 'superadmin' && (
-        <View style={styles.buttonContainer}>
-          <Button title="Delete" onPress={() => handleDelete(item.id)} />
-        </View>
-      )}
+      </View>
     </View>
   );
 
@@ -1219,23 +1240,6 @@ export default function SalesReportDetailScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaGlass} onChangeText={text => setFormData({...formData, competitorSingarajaGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaPint} onChangeText={text => setFormData({...formData, competitorSingarajaPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaQuart} onChangeText={text => setFormData({...formData, competitorSingarajaQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaCanSmall} onChangeText={text => setFormData({...formData, competitorSingarajaCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaCanBig} onChangeText={text => setFormData({...formData, competitorSingarajaCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
             <View style={{ flex: 2 }}>
               <TextInput style={styles.input} value={formData.competitorSingarajaPromoDescription} onChangeText={text => setFormData({...formData, competitorSingarajaPromoDescription: text})} placeholder="Promo Description"/>
             </View>
@@ -1373,23 +1377,6 @@ export default function SalesReportDetailScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <TextInput style={styles.input} value={formData.competitorIslandBrewingCanBig} onChangeText={text => setFormData({...formData, competitorIslandBrewingCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorIslandBrewingGlass} onChangeText={text => setFormData({...formData, competitorIslandBrewingGlass: text})} placeholder="Glass" keyboardType="numeric" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorIslandBrewingPint} onChangeText={text => setFormData({...formData, competitorIslandBrewingPint: text})} placeholder="Pint" keyboardType="numeric" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorIslandBrewingQuart} onChangeText={text => setFormData({...formData, competitorIslandBrewingQuart: text})} placeholder="Quart" keyboardType="numeric" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorIslandBrewingCanSmall} onChangeText={text => setFormData({...formData, competitorIslandBrewingCanSmall: text})} placeholder="Can Small" keyboardType="numeric" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorIslandBrewingCanBig} onChangeText={text => setFormData({...formData, competitorIslandBrewingCanBig: text})} placeholder="Can Big" keyboardType="numeric" />
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
@@ -1627,10 +1614,46 @@ export default function SalesReportDetailScreen() {
     </Modal>
   );
 
+  const renderDescriptionModal = () => (
+    <Modal
+      visible={isDescriptionModalVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setIsDescriptionModalVisible(false)}
+    >
+      <ScrollView contentContainerStyle={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <Text style={styles.title}>Description</Text>
+          {descriptionItem ? (
+            <>
+              <Text>Outlet Name: {descriptionItem.outletName || '-'}</Text>
+              <Text>Province: {descriptionItem.outletProvince || '-'}</Text>
+              <Text>City: {descriptionItem.outletCity || '-'}</Text>
+              <Text>Activity Name: {descriptionItem.activityName || '-'}</Text>
+              <Text>Channel: {descriptionItem.channel || '-'}</Text>
+              <Text>Tier: {descriptionItem.tier || '-'}</Text>
+              <Text>Assigned to BA: {descriptionItem.assignedToBA || '-'}</Text>
+              <Text>Assigned to TL: {descriptionItem.assignedToTL || '-'}</Text>
+              <Text>Created At: {descriptionItem.createdAt?.toDate ? descriptionItem.createdAt.toDate().toLocaleString() : '-'}</Text>
+              <Text>Created By: {descriptionItem.createdBy || '-'}</Text>
+              <Text>Task ID: {descriptionItem.tasksId || '-'}</Text>
+              <Text>Task Sales Report Detail Status: {descriptionItem.salesReportDetailStatus || '-'}</Text>
+              <Text>Issues/Notes/Requests: {descriptionItem.issuesNotesRequests || '-'}</Text>
+              <Text>Learning Points: {descriptionItem.learningPoints || '-'}</Text>
+              {/* Add more fields as needed */}
+            </>
+          ) : (
+            <Text>No data available.</Text>
+          )}
+          <Button title="Close" onPress={() => setIsDescriptionModalVisible(false)} />
+        </View>
+      </ScrollView>
+    </Modal>
+  );
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sales Report Detail</Text>
-
       <FlatList
         data={reports}
         keyExtractor={(item) => item.id}
@@ -1648,6 +1671,7 @@ export default function SalesReportDetailScreen() {
       />
       {renderModal()}
       {renderReviewModal()}
+      {renderDescriptionModal()}
     </View>
   );
 }
@@ -1665,4 +1689,11 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 10, color: '#888', marginBottom: 2, marginLeft: 2 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
   switchContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  iconButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 4,
+    marginLeft: 8,
+  },
 });

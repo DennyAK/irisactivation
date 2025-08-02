@@ -63,9 +63,21 @@ export default function TaskAttendanceScreen() {
         setUserRole(null);
       }
     });
-    // fetchAttendances();
+    fetchOutlets();
     return () => unsubscribe();
   }, []);
+
+  // Fetch all outlets for lookup
+  const fetchOutlets = async () => {
+    try {
+      const outletsCollection = collection(db, 'outlets');
+      const outletSnapshot = await getDocs(outletsCollection);
+      const outletList = outletSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOutlets(outletList);
+    } catch (error) {
+      console.error("Error fetching outlets: ", error);
+    }
+  };
 
   const isFocused = useIsFocused();
   useEffect(() => {
@@ -329,7 +341,10 @@ export default function TaskAttendanceScreen() {
     <View style={styles.itemContainer}>
       <Text style={styles.itemTitle}>Assigned to BA:</Text>
       <Text style={styles.longText}>{item.assignedToBA || '-'}</Text>
-      <Text>Outlet: {item.outletId}</Text>
+      <Text>Outlet: {(() => {
+        const outlet = outlets.find(o => o.id === item.outletId);
+        return outlet?.outletName || item.outletId || '-';
+      })()}</Text>
       {/* Check-in fields */}
       <Text>Check-in: {item.checkIn?.toDate ? item.checkIn.toDate().toLocaleString() : '-'}</Text>
       <Text>Check-in Latitude: {item.checkInLatitude || '-'}</Text>
