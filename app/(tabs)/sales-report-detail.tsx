@@ -410,7 +410,7 @@ export default function SalesReportDetailScreen() {
       <Text>Task Sales Report Detail Status: {item.salesReportDetailStatus || '-'} </Text>
 
       {/* Sales Detail by BA button */}
-      {userRole === 'Iris - BA' && (item.salesReportDetailStatus === '' || item.salesReportDetailStatus === 'Review back to BA') && (
+      {userRole === 'Iris - BA' && (!item.salesReportDetailStatus || item.salesReportDetailStatus === 'Review back to BA') && (
         <View style={styles.buttonContainer}>
           <Button title="Sales Detail by BA" onPress={() => handleOpenModal('edit', item)} />
         </View>
@@ -1559,6 +1559,7 @@ export default function SalesReportDetailScreen() {
           <TextInput style={styles.input} value={formData.achievementPercentage} onChangeText={text => setFormData({...formData, achievementPercentage: text})} placeholder="Achievement Percentage" />
 
           {/* Only show status picker for admin during edit/update modal */}
+          {/* Refactored: status options as a constant array */}
           {userRole === 'admin' && modalType === 'edit' && (
             <>
               <Text style={styles.inputLabel}>Task Sales Report Detail Status</Text>
@@ -1568,12 +1569,16 @@ export default function SalesReportDetailScreen() {
                   onValueChange={value => setFormData({ ...formData, salesReportDetailStatus: value })}
                   style={{ height: 40 }}
                 >
-                  <Picker.Item label="" value="" />
-                  <Picker.Item label="Done By BA" value="Done By BA" />
-                  <Picker.Item label="Review back to BA" value="Review back to BA" />
-                  <Picker.Item label="Done by TL" value="Done by TL" />
-                  <Picker.Item label="Review back to TL" value="Review back to TL" />
-                  <Picker.Item label="Done by AM" value="Done by AM" />
+                  {[
+                    { label: '', value: '' },
+                    { label: 'Done By BA', value: 'Done By BA' },
+                    { label: 'Review back to BA', value: 'Review back to BA' },
+                    { label: 'Done by TL', value: 'Done by TL' },
+                    { label: 'Review back to TL', value: 'Review back to TL' },
+                    { label: 'Done by AM', value: 'Done by AM' },
+                  ].map(option => (
+                    <Picker.Item key={option.value} label={option.label} value={option.value} />
+                  ))}
                 </Picker>
               </View>
             </>
