@@ -449,18 +449,30 @@ export default function SalesReportDetailScreen() {
             </View>
           )}
           {/* Detail icon button inside the item container */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => {
-                setDescriptionItem(item);
-                setIsDescriptionModalVisible(true);
-              }}
-              accessibilityLabel="Detail"
-            >
-              <Ionicons name="information-circle-outline" size={28} color="#007AFF" />
-            </TouchableOpacity>
-          </View>
+          <View style={{ position: 'absolute', right: 24, bottom: 24, zIndex: 100 }}>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: 28,
+                  padding: 8,
+                  elevation: 4,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 2,
+                }}
+                onPress={() => {
+                  const item = descriptionItem || (reports.length > 0 ? reports[0] : null);
+                  if (item) {
+                    setDescriptionItem(item);
+                    setIsDescriptionModalVisible(true);
+                  }
+                }}
+                accessibilityLabel="Detail"
+              >
+                <Ionicons name="information-circle-outline" size={32} color="#007AFF" />
+              </TouchableOpacity>
+            </View>
         </View>
       </View>
     </View>
