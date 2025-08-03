@@ -449,7 +449,7 @@ export default function SalesReportDetailScreen() {
             </View>
           )}
           {/* Detail icon button inside the item container */}
-          <View style={{ position: 'absolute', right: 24, bottom: 24, zIndex: 100 }}>
+          <View style={{ position: 'absolute', right: 24, top: 24, zIndex: 100 }}>
               <TouchableOpacity
                 style={{
                   backgroundColor: '#fff',
@@ -470,7 +470,7 @@ export default function SalesReportDetailScreen() {
                 }}
                 accessibilityLabel="Detail"
               >
-                <Ionicons name="information-circle-outline" size={32} color="#007AFF" />
+                <Ionicons name="newspaper-outline" size={32} color="#007AFF" />
               </TouchableOpacity>
             </View>
         </View>
