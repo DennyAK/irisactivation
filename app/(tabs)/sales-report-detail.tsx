@@ -79,6 +79,12 @@ export default function SalesReportDetailScreen() {
     guinnessMicroDraughtPromotionAvailable: false, promoMicrodraughtDescription: '',
     guinnessGdicPromotionAvailable: false, promoGdicDescription: '', packagesSold: '', repeatOrders: '',
     promoSmoothRepeatOrder: '', promoSmoothSold: '', promoGfesRepeatOrder: '', promoGfesSold: '', promoKegsRepeatOrder: '', promoKegsSold: '', promoMicrodraughtRepeatOrder: '', promoMicrodraughtSold: '', promoGdicRepeatOrder: '', promoGdicSold: '',
+    //Type 2
+    promoSmoothDescriptionType2: '', promoSmoothRepeatOrderType2: '', promoSmoothSoldType2: '',
+    promoGfesDescriptionType2: '', promoGfesRepeatOrderType2: '', promoGfesSoldType2: '',
+    promoKegsDescriptionType2: '', promoKegsRepeatOrderType2: '', promoKegsSoldType2: '',
+    promoMicrodraughtDescriptionType2: '', promoMicrodraughtRepeatOrderType2: '', promoMicrodraughtSoldType2: '',
+    promoGdicDescriptionType2: '', promoGdicRepeatOrderType2: '', promoGdicSoldType2: '',
     // Visitor and Consumer Data
     visitorsOverall: '', visitorsAlcoholDrinkers: '', visitorsAllBeerDrinkers: '', visitorsAllGuinness: '', visitorsAllGuinnessMixedCompetitor: '',
     drinkersSmooth: '', drinkersGfes: '', drinkersKegs: '', drinkersMicrodraught: '', drinkersGdic: '', drinkersMixed: '',
@@ -100,8 +106,14 @@ export default function SalesReportDetailScreen() {
     competitorKuraKuraAvailable: false, competitorKuraKuraGlass: '', competitorKuraKuraPint: '', competitorKuraKuraQuart: '', competitorKuraKuraCanSmall: '', competitorKuraKuraCanBig: '', competitorKuraKuraPromoDescription: '', competitorKuraKuraPromoSold: '',
     competitorIslandBrewingAvailable: false, competitorIslandBrewingGlass: '', competitorIslandBrewingPint: '', competitorIslandBrewingQuart: '', competitorIslandBrewingCanSmall: '', competitorIslandBrewingCanBig: '', competitorIslandBrewingPromoDescription: '', competitorIslandBrewingPromoSold: '',
     competitorOthersAvailable: false, competitorOthersGlass: '', competitorOthersPint: '', competitorOthersQuart: '', competitorOthersCanSmall: '', competitorOthersCanBig: '', competitorOthersPromoDescription: '', competitorOthersPromoSold: '',
-    // Merchandise and Programs
+    competitorActivityDescription: '', competitorActivitySpgTotal: '',
+    // Merchandise
     merchandiseAvailable: false, merchandiseDistributed: '', stoutieProgramParticipation: false, loyaltyProgramDetails: '',
+    // Programs and Digital Activity
+    stoutieprogramParticipation: false, stoutieProgramDescription: '', stoutieProgramCallReach: '', stoutieProgramPacketSold: '', stoutieProgramEngagePeople: '',
+    loyaltyProgramParticipation: false, loyaltyProgramDescription: '', loyaltyProgramCallReach: '', loyaltyProgramPacketSold: '', loyaltyProgramEngagePeople: '',
+    brightballParticipation: false, brightballDescription: '', brightballCallReach: '', brightballPacketSold: '', brightballEngagePeople: '',
+    sovProgramParticipation: false, sovProgramDescription: '', sovProgramCallReach: '', sovProgramPacketSold: '', sovProgramEngagePeople: '',
     // Notes and Performance
     issuesNotesRequests: '', learningPoints: '', beerMarketSize: '', totalGuinnessSales: '', achievementPercentage: '',
     merchandiseDescription1: '', merchandiseSold1: '',
@@ -115,6 +127,7 @@ export default function SalesReportDetailScreen() {
     // AMS Data
     amsGfes: '', amsSmooth: '', amsMicrodraught: '', amsKegs: '', amsTotal: '',
     salesReportDetailStatus: '',
+    weatherStatus: '', // Added missing property
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -371,18 +384,209 @@ export default function SalesReportDetailScreen() {
       >
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.title}>Review for Area Manager</Text>
+            <Text selectable style={styles.title}>Review for Area Manager</Text>
             {selectedReport ? (
               <>
-                <Text>Assigned to BA: {selectedReport.assignedToBA || '-'}</Text>
-                <Text>Assigned to TL: {selectedReport.assignedToTL || '-'}</Text>
-                <Text>Outlet Name: {selectedReport.outletName || '-'}</Text>
-                <Text>Province: {selectedReport.outletProvince || '-'}</Text>
-                <Text>City: {selectedReport.outletCity || '-'}</Text>
-                <Text>Activity Name: {selectedReport.activityName || '-'}</Text>
-                <Text>Total Guinness Sales: {selectedReport.totalGuinnessSales || '-'}</Text>
-                <Text>Issues/Notes/Requests: {selectedReport.issuesNotesRequests || '-'}</Text>
-                <Text>Learning Points: {selectedReport.learningPoints || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Personnel Information</Text>
+                <Text selectable>Assigned to BA: {selectedReport.assignedToBA || '-'}</Text>
+                <Text selectable>Assigned to TL: {selectedReport.assignedToTL || '-'}</Text>
+                <Text selectable>BA Count: {selectedReport.baCount || '-'}</Text>
+                <Text selectable>Crew Canvasser Count: {selectedReport.crewCanvasserCount || '-'}</Text>
+                <Text selectable>Team Leader Name: {selectedReport.teamLeaderName || '-'}</Text>
+                <Text selectable>SPG Name: {selectedReport.spgName || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Outlet Information</Text>
+                <Text selectable>Outlet ID: {selectedReport.outletId || '-'}</Text>
+                <Text selectable>Outlet Name: {selectedReport.outletName || '-'}</Text>
+                <Text selectable>Province: {selectedReport.outletProvince || '-'}</Text>
+                <Text selectable>City: {selectedReport.outletCity || '-'}</Text>
+                <Text selectable>Activity Name: {selectedReport.activityName || '-'}</Text>
+                <Text selectable>Outlet Venue Name: {selectedReport.outletVenueName || '-'}</Text>
+                <Text selectable>Capacity: {selectedReport.capacity || '-'}</Text>
+                <Text selectable>Outlet Event PIC: {selectedReport.outletEventPic || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Guinness Selling Data</Text>
+                <Text selectable>Sales Kegs 330ml: {selectedReport.salesKegs330 || '-'}</Text>
+                <Text selectable>Sales Kegs 500ml: {selectedReport.salesKegs500 || '-'}</Text>
+                <Text selectable>Sales MD 500ml: {selectedReport.salesMd500 || '-'}</Text>
+                <Text selectable>Sales Gdic 400ml: {selectedReport.salesGdic400 || '-'}</Text>
+                <Text selectable>Sales Smooth Pint 330ml: {selectedReport.salesSmoothPint330 || '-'}</Text>
+                <Text selectable>Sales Smooth Can 330ml: {selectedReport.salesSmoothCan330 || '-'}</Text>
+                <Text selectable>Sales Gfes Pint 330ml: {selectedReport.salesGfesPint330 || '-'}</Text>
+                <Text selectable>Sales Gfes Can 330ml: {selectedReport.salesGfesCan330 || '-'}</Text>
+                <Text selectable>Sales Gfes Quart 620ml: {selectedReport.salesGfesQuart620 || '-'}</Text>
+                <Text selectable>Sales Gfes Can Big 500ml: {selectedReport.salesGfesCanbig500 || '-'}</Text>
+                <Text selectable>Sales Smooth Can: {selectedReport.salesSmoothCan || '-'}</Text>
+                <Text selectable>Sales Smooth Botol: {selectedReport.salesSmoothBotol || '-'}</Text>
+                <Text selectable>Sales Gfes Can: {selectedReport.salesGfesCan || '-'}</Text>
+                <Text selectable>Sales Gfes Can Big: {selectedReport.salesGfesCanBig || '-'}</Text>
+                <Text selectable>Sales Gfes Botol: {selectedReport.salesGfesBotol || '-'}</Text>
+                <Text selectable>Sales Gfes Quart: {selectedReport.salesGfesQuart || '-'}</Text>
+                <Text selectable>Sales Kegs: {selectedReport.salesKegs || '-'}</Text>
+                <Text selectable>Sales MD: {selectedReport.salesMd || '-'}</Text>
+                <Text selectable>Sales Gdic: {selectedReport.salesGdic || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Sampling Data</Text>
+                <Text selectable>Sampling Smooth Bottle: {selectedReport.samplingSmoothBottle || '-'}</Text>
+                <Text selectable>Sampling Smooth On Lips: {selectedReport.samplingSmoothOnLips || '-'}</Text>
+                <Text selectable>Sampling Gfes Bottle: {selectedReport.samplingGfesBottle || '-'}</Text>
+                <Text selectable>Sampling Gfes On Lips: {selectedReport.samplingGfesOnLips || '-'}</Text>
+                <Text selectable>Sampling Target Achievement: {selectedReport.samplingTargetAchievement || '-'}</Text>
+                <Text selectable>Sampling Total: {selectedReport.samplingTotal || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Call and Customer Data</Text>
+                <Text selectable>Calls Offers: {selectedReport.callsOffers || '-'}</Text>
+                <Text selectable>Effective Calls: {selectedReport.effectiveCalls || '-'}</Text>
+                <Text selectable>Calls vs Effective Percentage: {selectedReport.callsVsEffectivePercentage || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Promotional Activities</Text>
+                <Text selectable>Guinness Smooth Promotion Available: {selectedReport.guinnessSmoothPromotionAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Promo Smooth Description: {selectedReport.promoSmoothDescription || '-'}</Text>
+                <Text selectable>Guinness Gfes Promotion Available: {selectedReport.guinnessGfesPromotionAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Promo Gfes Description: {selectedReport.promoGfesDescription || '-'}</Text>
+                <Text selectable>Guinness Kegs Promotion Available: {selectedReport.guinnessKegsPromotionAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Promo Kegs Description: {selectedReport.promoKegsDescription || '-'}</Text>
+                <Text selectable>Guinness Microdraught Promotion Available: {selectedReport.guinnessMicroDraughtPromotionAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Promo Microdraught Description: {selectedReport.promoMicrodraughtDescription || '-'}</Text>
+                <Text selectable>Guinness Gdic Promotion Available: {selectedReport.guinnessGdicPromotionAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Promo Gdic Description: {selectedReport.promoGdicDescription || '-'}</Text>
+                <Text selectable>Packages Sold: {selectedReport.packagesSold || '-'}</Text>
+                <Text selectable>Repeat Orders: {selectedReport.repeatOrders || '-'}</Text>
+                <Text selectable>Promo Smooth Repeat Order: {selectedReport.promoSmoothRepeatOrder || '-'}</Text>
+                <Text selectable>Promo Smooth Sold: {selectedReport.promoSmoothSold || '-'}</Text>
+                <Text selectable>Promo Gfes Repeat Order: {selectedReport.promoGfesRepeatOrder || '-'}</Text>
+                <Text selectable>Promo Gfes Sold: {selectedReport.promoGfesSold || '-'}</Text>
+                <Text selectable>Promo Kegs Repeat Order: {selectedReport.promoKegsRepeatOrder || '-'}</Text>
+                <Text selectable>Promo Kegs Sold: {selectedReport.promoKegsSold || '-'}</Text>
+                <Text selectable>Promo Microdraught Repeat Order: {selectedReport.promoMicrodraughtRepeatOrder || '-'}</Text>
+                <Text selectable>Promo Microdraught Sold: {selectedReport.promoMicrodraughtSold || '-'}</Text>
+                <Text selectable>Promo Gdic Repeat Order: {selectedReport.promoGdicRepeatOrder || '-'}</Text>
+                <Text selectable>Promo Gdic Sold: {selectedReport.promoGdicSold || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Visitor and Consumer Data</Text>
+                <Text selectable>Visitors Overall: {selectedReport.visitorsOverall || '-'}</Text>
+                <Text selectable>Visitors Alcohol Drinkers: {selectedReport.visitorsAlcoholDrinkers || '-'}</Text>
+                <Text selectable>Visitors All Beer Drinkers: {selectedReport.visitorsAllBeerDrinkers || '-'}</Text>
+                <Text selectable>Visitors All Guinness: {selectedReport.visitorsAllGuinness || '-'}</Text>
+                <Text selectable>Visitors All Competitor: {selectedReport.visitorsAllCompetitor || '-'}</Text>
+                <Text selectable>Visitors All Guinness Mixed Competitor: {selectedReport.visitorsAllGuinnessMixedCompetitor || '-'}</Text>
+                <Text selectable>Drinkers Smooth: {selectedReport.drinkersSmooth || '-'}</Text>
+                <Text selectable>Drinkers Gfes: {selectedReport.drinkersGfes || '-'}</Text>
+                <Text selectable>Drinkers Kegs: {selectedReport.drinkersKegs || '-'}</Text>
+                <Text selectable>Drinkers Microdraught: {selectedReport.drinkersMicrodraught || '-'}</Text>
+                <Text selectable>Drinkers Gdic: {selectedReport.drinkersGdic || '-'}</Text>
+                <Text selectable>Drinkers Mixed: {selectedReport.drinkersMixed || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Tables Data</Text>
+                <Text selectable>Tables Overall: {selectedReport.tablesOverall || '-'}</Text>
+                <Text selectable>Tables Alcohol Drinkers: {selectedReport.tablesAlcoholDrinkers || '-'}</Text>
+                <Text selectable>Tables Non Alcohol Drinkers: {selectedReport.tablesNonAlcoholDrinkers || '-'}</Text>
+                <Text selectable>Tables All Beer Drinkers: {selectedReport.tablesAllBeerDrinkers || '-'}</Text>
+                <Text selectable>Tables All Guinness: {selectedReport.tablesAllGuinness || '-'}</Text>
+                <Text selectable>Tables All Competitor: {selectedReport.tablesAllCompetitor || '-'}</Text>
+                <Text selectable>Tables All Guinness Mixed Competitor: {selectedReport.tablesAllGuinnessMixedCompetitor || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Competitor Sales</Text>
+                <Text selectable>Competitor Bintang Available: {selectedReport.competitorBintangAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Bintang Glass: {selectedReport.competitorBintangGlass || '-'}</Text>
+                <Text selectable>Competitor Bintang Pint: {selectedReport.competitorBintangPint || '-'}</Text>
+                <Text selectable>Competitor Bintang Quart: {selectedReport.competitorBintangQuart || '-'}</Text>
+                <Text selectable>Competitor Bintang Can Small: {selectedReport.competitorBintangCanSmall || '-'}</Text>
+                <Text selectable>Competitor Bintang Can Big: {selectedReport.competitorBintangCanBig || '-'}</Text>
+                <Text selectable>Competitor Bintang Promo Description: {selectedReport.competitorBintangPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Bintang Promo Sold: {selectedReport.competitorBintangPromoSold || '-'}</Text>
+                <Text selectable>Competitor Bintang Crystal Available: {selectedReport.competitorBintangCrystalAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Bintang Crystal Glass: {selectedReport.competitorBintangCrystalGlass || '-'}</Text>
+                <Text selectable>Competitor Bintang Crystal Pint: {selectedReport.competitorBintangCrystalPint || '-'}</Text>
+                <Text selectable>Competitor Bintang Crystal Quart: {selectedReport.competitorBintangCrystalQuart || '-'}</Text>
+                <Text selectable>Competitor Bintang Crystal Can Small: {selectedReport.competitorBintangCrystalCanSmall || '-'}</Text>
+                <Text selectable>Competitor Bintang Crystal Can Big: {selectedReport.competitorBintangCrystalCanBig || '-'}</Text>
+                <Text selectable>Competitor Bintang Crystal Promo Description: {selectedReport.competitorBintangCrystalPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Bintang Crystal Promo Sold: {selectedReport.competitorBintangCrystalPromoSold || '-'}</Text>
+                <Text selectable>Competitor Heineken Available: {selectedReport.competitorHeinekenAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Heineken Glass: {selectedReport.competitorHeinekenGlass || '-'}</Text>
+                <Text selectable>Competitor Heineken Pint: {selectedReport.competitorHeinekenPint || '-'}</Text>
+                <Text selectable>Competitor Heineken Quart: {selectedReport.competitorHeinekenQuart || '-'}</Text>
+                <Text selectable>Competitor Heineken Can Small: {selectedReport.competitorHeinekenCanSmall || '-'}</Text>
+                <Text selectable>Competitor Heineken Can Big: {selectedReport.competitorHeinekenCanBig || '-'}</Text>
+                <Text selectable>Competitor Heineken Promo Description: {selectedReport.competitorHeinekenPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Heineken Promo Sold: {selectedReport.competitorHeinekenPromoSold || '-'}</Text>
+                <Text selectable>Competitor Heineken Import Available: {selectedReport.competitorHeinekenImportAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Heineken Import Glass: {selectedReport.competitorHeinekenImportGlass || '-'}</Text>
+                <Text selectable>Competitor Heineken Import Pint: {selectedReport.competitorHeinekenImportPint || '-'}</Text>
+                <Text selectable>Competitor Heineken Import Quart: {selectedReport.competitorHeinekenImportQuart || '-'}</Text>
+                <Text selectable>Competitor Heineken Import Can Small: {selectedReport.competitorHeinekenImportCanSmall || '-'}</Text>
+                <Text selectable>Competitor Heineken Import Can Big: {selectedReport.competitorHeinekenImportCanBig || '-'}</Text>
+                <Text selectable>Competitor Heineken Import Promo Description: {selectedReport.competitorHeinekenImportPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Heineken Import Promo Sold: {selectedReport.competitorHeinekenImportPromoSold || '-'}</Text>
+                <Text selectable>Competitor Erdinger Import Available: {selectedReport.competitorErdingerImportAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Erdinger Import Glass: {selectedReport.competitorErdingerImportGlass || '-'}</Text>
+                <Text selectable>Competitor Erdinger Import Pint: {selectedReport.competitorErdingerImportPint || '-'}</Text>
+                <Text selectable>Competitor Erdinger Import Quart: {selectedReport.competitorErdingerImportQuart || '-'}</Text>
+                <Text selectable>Competitor Erdinger Import Can Small: {selectedReport.competitorErdingerImportCanSmall || '-'}</Text>
+                <Text selectable>Competitor Erdinger Import Can Big: {selectedReport.competitorErdingerImportCanBig || '-'}</Text>
+                <Text selectable>Competitor Erdinger Import Promo Description: {selectedReport.competitorErdingerImportPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Erdinger Import Promo Sold: {selectedReport.competitorErdingerImportPromoSold || '-'}</Text>
+                <Text selectable>Competitor Budweizer Import Available: {selectedReport.competitorBudweizerImportAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Budweizer Import Glass: {selectedReport.competitorBudweizerImportGlass || '-'}</Text>
+                <Text selectable>Competitor Budweizer Import Pint: {selectedReport.competitorBudweizerImportPint || '-'}</Text>
+                <Text selectable>Competitor Budweizer Import Quart: {selectedReport.competitorBudweizerImportQuart || '-'}</Text>
+                <Text selectable>Competitor Budweizer Import Can Small: {selectedReport.competitorBudweizerImportCanSmall || '-'}</Text>
+                <Text selectable>Competitor Budweizer Import Can Big: {selectedReport.competitorBudweizerImportCanBig || '-'}</Text>
+                <Text selectable>Competitor Budweizer Import Promo Description: {selectedReport.competitorBudweizerImportPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Budweizer Import Promo Sold: {selectedReport.competitorBudweizerImportPromoSold || '-'}</Text>
+                <Text selectable>Competitor Anker Available: {selectedReport.competitorAnkerAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Anker Glass: {selectedReport.competitorAnkerGlass || '-'}</Text>
+                <Text selectable>Competitor Anker Pint: {selectedReport.competitorAnkerPint || '-'}</Text>
+                <Text selectable>Competitor Anker Quart: {selectedReport.competitorAnkerQuart || '-'}</Text>
+                <Text selectable>Competitor Anker Can Small: {selectedReport.competitorAnkerCanSmall || '-'}</Text>
+                <Text selectable>Competitor Anker Can Big: {selectedReport.competitorAnkerCanBig || '-'}</Text>
+                <Text selectable>Competitor Anker Promo Description: {selectedReport.competitorAnkerPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Anker Promo Sold: {selectedReport.competitorAnkerPromoSold || '-'}</Text>
+                <Text selectable>Competitor Bali Hai Available: {selectedReport.competitorBalihaiAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Bali Hai Glass: {selectedReport.competitorBalihaiGlass || '-'}</Text>
+                <Text selectable>Competitor Bali Hai Pint: {selectedReport.competitorBalihaiPint || '-'}</Text>
+                <Text selectable>Competitor Bali Hai Quart: {selectedReport.competitorBalihaiQuart || '-'}</Text>
+                <Text selectable>Competitor Bali Hai Can Small: {selectedReport.competitorBalihaiCanSmall || '-'}</Text>
+                <Text selectable>Competitor Bali Hai Can Big: {selectedReport.competitorBalihaiCanBig || '-'}</Text>
+                <Text selectable>Competitor Bali Hai Promo Description: {selectedReport.competitorBalihaiPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Bali Hai Promo Sold: {selectedReport.competitorBalihaiPromoSold || '-'}</Text>
+                <Text selectable>Competitor Carlsberg Available: {selectedReport.competitorCarlsbergAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Carlsberg Glass: {selectedReport.competitorCarlsbergGlass || '-'}</Text>
+                <Text selectable>Competitor Carlsberg Pint: {selectedReport.competitorCarlsbergPint || '-'}</Text>
+                <Text selectable>Competitor Carlsberg Quart: {selectedReport.competitorCarlsbergQuart || '-'}</Text>
+                <Text selectable>Competitor Carlsberg Can Small: {selectedReport.competitorCarlsbergCanSmall || '-'}</Text>
+                <Text selectable>Competitor Carlsberg Can Big: {selectedReport.competitorCarlsbergCanBig || '-'}</Text>
+                <Text selectable>Competitor Carlsberg Promo Description: {selectedReport.competitorCarlsbergPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Carlsberg Promo Sold: {selectedReport.competitorCarlsbergPromoSold || '-'}</Text>
+                <Text selectable>Competitor Others Available: {selectedReport.competitorOthersAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Others Glass: {selectedReport.competitorOthersGlass || '-'}</Text>
+                <Text selectable>Competitor Others Pint: {selectedReport.competitorOthersPint || '-'}</Text>
+                <Text selectable>Competitor Others Quart: {selectedReport.competitorOthersQuart || '-'}</Text>
+                <Text selectable>Competitor Others Can Small: {selectedReport.competitorOthersCanSmall || '-'}</Text>
+                <Text selectable>Competitor Others Can Big: {selectedReport.competitorOthersCanBig || '-'}</Text>
+                <Text selectable>Competitor Others Promo Description: {selectedReport.competitorOthersPromoDescription || '-'}</Text>
+                <Text selectable>Competitor Others Promo Sold: {selectedReport.competitorOthersPromoSold || '-'}</Text>
+
+                <Text selectable>Total Guinness Sales: {selectedReport.totalGuinnessSales || '-'}</Text>
+                <Text selectable>Issues/Notes/Requests: {selectedReport.issuesNotesRequests || '-'}</Text>
+                <Text selectable>Learning Points: {selectedReport.learningPoints || '-'}</Text>
+                <Text selectable>Sales Report Detail Status: {selectedReport.salesReportDetailStatus || '-'}</Text>
+                <Text selectable>Created At: {selectedReport.createdAt?.toDate ? selectedReport.createdAt.toDate().toLocaleString() : '-'}</Text>
+                <Text selectable>Created By: {selectedReport.createdBy || '-'}</Text>
+                <Text selectable>Task ID: {selectedReport.tasksId || '-'}</Text>
+                <Text selectable>Sales Report Detail Status: {selectedReport.salesReportDetailStatus || '-'}</Text>
+                <Text selectable style={styles.sectionTitle}>Merchandise Data</Text>
+                <Text selectable>Merchandise Description 1: {selectedReport.merchandiseDescription1 || '-'}</Text>
+                <Text selectable>Merchandise Sold 1: {selectedReport.merchandiseSold1 || '-'}</Text>
+                <Text selectable>Merchandise Description 2: {selectedReport.merchandiseDescription2 || '-'}</Text>
+                <Text selectable>Merchandise Sold 2: {selectedReport.merchandiseSold2 || '-'}</Text>
+                <Text selectable>Merchandise Description 3: {selectedReport.merchandiseDescription3 || '-'}</Text>
+                <Text selectable>Merchandise Sold 3: {selectedReport.merchandiseSold3 || '-'}</Text>
+                <Text selectable>Merchandise Description 4: {selectedReport.merchandiseDescription4 || '-'}</Text>
+                <Text selectable>Merchandise Sold 4: {selectedReport.merchandiseSold4 || '-'}</Text>
+                <Text selectable>Merchandise Description 5: {selectedReport.merchandiseDescription5 || '-'}</Text>
+                <Text selectable>Merchandise Sold 5: {selectedReport.merchandiseSold5 || '-'}</Text>
+                <Text selectable>Competitor Activity Description: {selectedReport.competitorActivityDescription || '-'}</Text>
+                <Text selectable>Competitor Activity SPG Total: {selectedReport.competitorActivitySpgTotal || '-'}</Text>
+                <Text selectable>Competitor Only Drinkers: {selectedReport.drinkerCompetitorOnly || '-'}</Text>
+                <Text selectable>Created At: {selectedReport.createdAt?.toDate ? selectedReport.createdAt.toDate().toLocaleString() : '-'}</Text>
+                <Text selectable>Created By: {selectedReport.createdBy || '-'}</Text>
+                <Text selectable>Task ID: {selectedReport.tasksId || '-'}</Text>
+                <Text selectable>Sales Report Detail Status: {selectedReport.salesReportDetailStatus || '-'}</Text>
+
                 {/* Add more fields as needed */}
               </>
             ) : (
@@ -478,6 +682,13 @@ export default function SalesReportDetailScreen() {
     </View>
   );
 
+  // Weather status options
+  const WEATHER_STATUS_OPTIONS = [
+    { label: 'Cerah', value: 'Cerah' },
+    { label: 'Berawan', value: 'Berawan' },
+    { label: 'Hujan', value: 'Hujan' },
+  ];
+
   const renderModal = () => (
     <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
@@ -502,19 +713,89 @@ export default function SalesReportDetailScreen() {
 
           <Text style={styles.inputLabel}>Capacity</Text>
           <TextInput style={styles.input} value={formData.capacity} onChangeText={text => setFormData({...formData, capacity: text})} placeholder="Capacity" keyboardType="numeric" />
-          
-          <Text style={styles.sectionTitle}>Sampling Data</Text>
-          <Text style={styles.inputLabel}>Smooth Bottle Sampling</Text>
-          <TextInput style={styles.input} value={formData.samplingSmoothBottle} onChangeText={text => setFormData({...formData, samplingSmoothBottle: text})} placeholder="Smooth Bottle Sampling" />
-          <Text style={styles.inputLabel}>Smooth On-Lips Sampling</Text>
-          <TextInput style={styles.input} value={formData.samplingSmoothOnLips} onChangeText={text => setFormData({...formData, samplingSmoothOnLips: text})} placeholder="Smooth On-Lips Sampling" />
-          <Text style={styles.inputLabel}>GFES Bottle Sampling</Text>
-          <TextInput style={styles.input} value={formData.samplingGfesBottle} onChangeText={text => setFormData({...formData, samplingGfesBottle: text})} placeholder="GFES Bottle Sampling" />
-          <Text style={styles.inputLabel}>GFES On-Lips Sampling</Text>
-          <TextInput style={styles.input} value={formData.samplingGfesOnLips} onChangeText={text => setFormData({...formData, samplingGfesOnLips: text})} placeholder="GFES On-Lips Sampling" />
-          <Text style={styles.inputLabel}>Target Achievement</Text>
-          <TextInput style={styles.input} value={formData.samplingTargetAchievement} onChangeText={text => setFormData({...formData, samplingTargetAchievement: text})} placeholder="Target Achievement" />
 
+          <Text style={styles.sectionTitle}>Sampling Data (if any)</Text>
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Sampling Available</Text>
+            <Switch value={formData.samplingDataAvailable} onValueChange={value => setFormData({...formData, samplingDataAvailable: value})} />
+          </View>
+            {formData.samplingDataAvailable && (
+              <>
+                <View style={styles.rowInputs}>
+                  <View style={{flex: 1, marginRight: 4}}>
+                    <Text style={styles.inputLabel}>Smooth Bottle Sampling</Text>
+                    <TextInput style={styles.input} value={formData.samplingSmoothBottle} onChangeText={text => setFormData({...formData, samplingSmoothBottle: text})} placeholder="Smooth Bottle Sampling"  keyboardType='numeric'/>
+                  </View>
+                  <View style={{flex: 1, marginRight: 4}}>
+                    <Text style={styles.inputLabel}>Smooth On-Lips Sampling</Text>
+                    <TextInput style={styles.input} value={formData.samplingSmoothOnLips} onChangeText={text => setFormData({...formData, samplingSmoothOnLips: text})} placeholder="Smooth On-Lips Sampling" keyboardType='numeric'/>
+                  </View>
+                  <View style={{flex: 1, marginRight: 4}}>
+                    <Text style={styles.inputLabel}>Smooth Sampling To Buy</Text>
+                    <TextInput style={styles.input} value={formData.samplingSmoothToBuy} onChangeText={text => setFormData({...formData, samplingSmoothToBuy: text})} placeholder="Smooth Sampling To Buy" keyboardType='numeric'/>
+                  </View>
+                </View>
+                <View style={styles.rowInputs}>
+                  <View style={{flex: 1, marginRight: 4}}>
+                    <Text style={styles.inputLabel}>GFES Bottle Sampling</Text>
+                    <TextInput style={styles.input} value={formData.samplingGfesBottle} onChangeText={text => setFormData({...formData, samplingGfesBottle: text})} placeholder="GFES Bottle Sampling" keyboardType='numeric'/>
+                  </View>
+                  <View style={{flex: 1, marginRight: 4}}>
+                    <Text style={styles.inputLabel}>GFES On-Lips Sampling</Text>
+                    <TextInput style={styles.input} value={formData.samplingGfesOnLips} onChangeText={text => setFormData({...formData, samplingGfesOnLips: text})} placeholder="GFES On-Lips Sampling" keyboardType='numeric'/>
+                  </View>
+                  <View style={{flex: 1, marginRight: 4}}>
+                    <Text style={styles.inputLabel}>GFES Sampling To Buy</Text>
+                    <TextInput style={styles.input} value={formData.samplingGfesToBuy} onChangeText={text => setFormData({...formData, samplingGfesToBuy: text})} placeholder="GFES Sampling To Buy" keyboardType='numeric'/>
+                  </View>
+                </View>
+                <View style={styles.rowInputs}>
+                    <View style={{flex: 1, marginRight: 4}}>
+                      <Text style={styles.inputLabel}>MD Sampling</Text>
+                      <TextInput style={styles.input} value={formData.samplingMd} onChangeText={text => setFormData({...formData, samplingMd: text})} placeholder="MD Sampling" keyboardType='numeric'/>
+                    </View>
+                    <View style={{flex: 1, marginRight: 4}}>
+                      <Text style={styles.inputLabel}>MD Sampling on-Lips</Text>
+                      <TextInput style={styles.input} value={formData.samplingMdOnLips} onChangeText={text => setFormData({...formData, samplingMdOnLips: text})} placeholder="MD Sampling on-Lips" keyboardType='numeric'/>
+                    </View>
+                    <View style={{flex: 1, marginRight: 4}}>
+                      <Text style={styles.inputLabel}>MD Sampling To Buy</Text>
+                      <TextInput style={styles.input} value={formData.samplingMdToBuy} onChangeText={text => setFormData({...formData, samplingMdToBuy: text})} placeholder="MD Sampling To Buy" keyboardType='numeric'/>
+                    </View>
+                </View>
+                <View style={styles.rowInputs}>
+                    <View style={{flex: 1, marginRight: 4}}>
+                      <Text style={styles.inputLabel}>GDIC Sampling</Text>
+                      <TextInput style={styles.input} value={formData.samplingGdic} onChangeText={text => setFormData({...formData, samplingGdic: text})} placeholder="GDIC Sampling" keyboardType='numeric'/>
+                    </View>
+                    <View style={{flex: 1, marginRight: 4}}>
+                        <Text style={styles.inputLabel}>GDIC Sampling On-Lips</Text>
+                        <TextInput style={styles.input} value={formData.samplingGdicOnLips} onChangeText={text => setFormData({...formData, samplingGdicOnLips: text})} placeholder="GDIC Sampling On-Lips" keyboardType='numeric'/>
+                    </View>
+                    <View style={{flex: 1, marginRight: 4}}>
+                        <Text style={styles.inputLabel}>GDIC Sampling To Buy</Text>
+                        <TextInput style={styles.input} value={formData.samplingGdicToBuy} onChangeText={text => setFormData({...formData, samplingGdicToBuy: text})} placeholder="GDIC Sampling To Buy" keyboardType='numeric'/>
+                    </View>
+                </View>
+                <View style={styles.rowInputs}>
+                    <View style={{flex: 1, marginRight: 4}}>
+                      <Text style={styles.inputLabel}>Kegs Sampling</Text>
+                      <TextInput style={styles.input} value={formData.samplingKegs} onChangeText={text => setFormData({...formData, samplingKegs: text})} placeholder="Kegs Sampling" keyboardType='numeric'/>
+                    </View>
+                    <View style={{flex: 1, marginRight: 4}}>
+                      <Text style={styles.inputLabel}>Kegs Sampling On-Lips</Text>
+                      <TextInput style={styles.input} value={formData.samplingKegsOnLips} onChangeText={text => setFormData({...formData, samplingKegsOnLips: text})} placeholder="Kegs Sampling On-Lips" keyboardType='numeric'/>
+                    </View>
+                    <View style={{flex: 1}}>
+                      <Text style={styles.inputLabel}>Kegs Sampling To Buy</Text>
+                      <TextInput style={styles.input} value={formData.samplingKegsToBuy} onChangeText={text => setFormData({...formData, samplingKegsToBuy: text})} placeholder="Kegs Sampling To Buy" keyboardType='numeric'/>
+                    </View>
+                </View>
+                
+              </>   
+                      
+          )}
+          
           <Text style={styles.sectionTitle}>Guinness Selling Data</Text>
           <Text style={styles.inputLabel}>(Fields below refer to the Quick Sales Report Collection)</Text>
           <View style={styles.rowInputs}>
@@ -608,9 +889,10 @@ export default function SalesReportDetailScreen() {
             <Switch value={formData.guinnessSmoothPromotionAvailable} onValueChange={value => setFormData({...formData, guinnessSmoothPromotionAvailable: value})} />
           </View>
           {formData.guinnessSmoothPromotionAvailable && (
+            <>
             <View style={styles.rowInputs}>
               <View style={{flex: 1, marginRight: 4}}>
-                <Text style={styles.inputLabel}>Promo Smooth Description</Text>
+                <Text style={styles.inputLabel}>Promo Smooth Description </Text>
                 <TextInput style={styles.input} value={formData.promoSmoothDescription} onChangeText={text => setFormData({...formData, promoSmoothDescription: text})} placeholder="Guinness SMOOTH Promotion" />
               </View>
               <View style={{flex: 1, marginRight: 4}}>
@@ -622,12 +904,29 @@ export default function SalesReportDetailScreen() {
                 <TextInput style={styles.input} value={formData.promoSmoothRepeatOrder} onChangeText={text => setFormData({...formData, promoSmoothRepeatOrder: text})} placeholder="Promo Smooth Repeat Order" keyboardType="numeric"/>
               </View>
             </View>
+            <View style={styles.rowInputs}>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo Smooth Description - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoSmoothDescriptionType2} onChangeText={text => setFormData({...formData, promoSmoothDescriptionType2: text})} placeholder="Guinness SMOOTH Promotion - Type 2" />
+              </View>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo Smooth Sold - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoSmoothSoldType2} onChangeText={text => setFormData({...formData, promoSmoothSoldType2: text})} placeholder="Promo Smooth Sold - Type 2" keyboardType="numeric"/>
+              </View>
+              <View style={{flex: 1}}>
+                <Text style={styles.inputLabel}>Promo Smooth Repeat Order - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoSmoothRepeatOrderType2} onChangeText={text => setFormData({...formData, promoSmoothRepeatOrderType2: text})} placeholder="Promo Smooth Repeat Order - Type 2" keyboardType="numeric"/>
+              </View>
+            </View>
+            </>
+
           )}
           <View style={styles.switchContainer}>
             <Text style={styles.inputLabel}>Guinness GFES Promotion Available</Text>
             <Switch value={formData.guinnessGfesPromotionAvailable} onValueChange={val => setFormData({...formData, guinnessGfesPromotionAvailable: val})} />
           </View>
           {formData.guinnessGfesPromotionAvailable && (
+            <>
             <View style={styles.rowInputs}>
               <View style={{flex: 1, marginRight: 4}}>
                 <Text style={styles.inputLabel}>Promo GFES Description</Text>
@@ -642,12 +941,28 @@ export default function SalesReportDetailScreen() {
                 <TextInput style={styles.input} value={formData.promoGfesRepeatOrder} onChangeText={text => setFormData({...formData, promoGfesRepeatOrder: text})} placeholder="Promo GFES Repeat Order" keyboardType="numeric"/>
               </View>
             </View>
+            <View style={styles.rowInputs}>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo GFES Description - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoGfesDescriptionType2} onChangeText={text => setFormData({...formData, promoGfesDescriptionType2: text})} placeholder="Guinness GFES Promotion - Type 2" />
+              </View>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo GFES Sold - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoGfesSoldType2} onChangeText={text => setFormData({...formData, promoGfesSoldType2: text})} placeholder="Promo GFES Sold - Type 2" keyboardType="numeric"/>
+              </View>
+              <View style={{flex: 1}}>
+                <Text style={styles.inputLabel}>Promo GFES Repeat Order - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoGfesRepeatOrderType2} onChangeText={text => setFormData({...formData, promoGfesRepeatOrderType2: text})} placeholder="Promo GFES Repeat Order - Type 2" keyboardType="numeric"/>
+              </View>
+            </View>
+            </>
           )}
           <View style={styles.switchContainer}>
             <Text style={styles.inputLabel}>Guinness KEGS Promotion Available</Text>
             <Switch value={formData.guinnessKegsPromotionAvailable} onValueChange={val => setFormData({...formData, guinnessKegsPromotionAvailable: val})} />
           </View>
           {formData.guinnessKegsPromotionAvailable && (
+            <>
             <View style={styles.rowInputs}>
               <View style={{flex: 1, marginRight: 4}}>
                 <Text style={styles.inputLabel}>Promo KEGS Description</Text>
@@ -662,12 +977,28 @@ export default function SalesReportDetailScreen() {
                 <TextInput style={styles.input} value={formData.promoKegsRepeatOrder} onChangeText={text => setFormData({...formData, promoKegsRepeatOrder: text})} placeholder="Promo KEGS Repeat Order" keyboardType="numeric"/>
               </View>
             </View>
+            <View style={styles.rowInputs}>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo KEGS Description - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoKegsDescriptionType2} onChangeText={text => setFormData({...formData, promoKegsDescriptionType2: text})} placeholder="Guinness KEGS Promotion - Type 2" />
+              </View>
+              <View style={{flex: 1}}>
+                <Text style={styles.inputLabel}>Promo KEGS Sold - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoKegsSoldType2} onChangeText={text => setFormData({...formData, promoKegsSoldType2: text})} placeholder="Promo KEGS Sold - Type 2" keyboardType="numeric"/>
+              </View>
+              <View style={{flex: 1}}>
+                <Text style={styles.inputLabel}>Promo KEGS Repeat Order - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoKegsRepeatOrderType2} onChangeText={text => setFormData({...formData, promoKegsRepeatOrderType2: text})} placeholder="Promo KEGS Repeat Order - Type 2" keyboardType="numeric"/>
+              </View>
+            </View>
+          </>
           )}
           <View style={styles.switchContainer}>
               <Text style={styles.inputLabel}>Guinness MICRODRAUGHT Promotion Available</Text>
               <Switch value={formData.guinnessMicroDraughtPromotionAvailable} onValueChange={val => setFormData({...formData, guinnessMicroDraughtPromotionAvailable: val})} />
             </View>
           {formData.guinnessMicroDraughtPromotionAvailable && (
+            <>
             <View style={styles.rowInputs}>
               <View style={{flex: 1, marginRight: 4}}>
                 <Text style={styles.inputLabel}>Promo MICRODRAUGHT Description</Text>
@@ -682,6 +1013,22 @@ export default function SalesReportDetailScreen() {
                 <TextInput style={styles.input} value={formData.promoMicrodraughtRepeatOrder} onChangeText={text => setFormData({...formData, promoMicrodraughtRepeatOrder: text})} placeholder="Promo MicroDraught Repeat Order" keyboardType="numeric"/>
               </View>
             </View>
+            <View style={styles.rowInputs}>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo MICRODRAUGHT Description - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoMicrodraughtDescriptionType2} onChangeText={text => setFormData({...formData, promoMicrodraughtDescriptionType2: text})} placeholder="Guinness MICRODRAUGHT Promotion - Type 2" />
+              </View>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo MicroDraught Sold - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoMicrodraughtSoldType2} onChangeText={text => setFormData({...formData, promoMicrodraughtSoldType2: text})} placeholder="Promo MicroDraught Sold - Type 2" keyboardType="numeric"/>
+              </View>
+              <View style={{flex: 1}}>
+                <Text style={styles.inputLabel}>Promo MicroDraught Repeat Order - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoMicrodraughtRepeatOrderType2} onChangeText={text => setFormData({...formData, promoMicrodraughtRepeatOrderType2: text})} placeholder="Promo MicroDraught Repeat Order - Type 2" keyboardType="numeric"/>
+              </View>
+            </View>
+            </>
+            
           )}
         
 
@@ -690,6 +1037,7 @@ export default function SalesReportDetailScreen() {
             <Switch value={formData.guinnessGdicPromotionAvailable} onValueChange={val => setFormData({...formData, guinnessGdicPromotionAvailable: val})} />
           </View>
           {formData.guinnessGdicPromotionAvailable && (
+            <>
             <View style={styles.rowInputs}>
               <View style={{flex: 1, marginRight: 4}}>
                 <Text style={styles.inputLabel}>Promo GDIC Description</Text>
@@ -704,6 +1052,22 @@ export default function SalesReportDetailScreen() {
                 <TextInput style={styles.input} value={formData.promoGdicRepeatOrder} onChangeText={text => setFormData({...formData, promoGdicRepeatOrder: text})} placeholder="Promo GDIC Repeat Order" keyboardType="numeric"/>
               </View>
             </View>
+            <View style={styles.rowInputs}>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo GDIC Description - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoGdicDescriptionType2} onChangeText={text => setFormData({...formData, promoGdicDescriptionType2: text})} placeholder="Guinness GDIC Promotion - Type 2" />
+              </View>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Promo GDIC Sold - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoGdicSoldType2} onChangeText={text => setFormData({...formData, promoGdicSoldType2: text})} placeholder="Promo GDIC Sold - Type 2" keyboardType="numeric"/>
+              </View>
+              <View style={{flex: 1}}>
+                <Text style={styles.inputLabel}>Promo GDIC Repeat Order - Type 2</Text>
+                <TextInput style={styles.input} value={formData.promoGdicRepeatOrderType2} onChangeText={text => setFormData({...formData, promoGdicRepeatOrderType2: text})} placeholder="Promo GDIC Repeat Order - Type 2" keyboardType="numeric"/>
+              </View>
+            </View>
+            </>
+            
           )}
           
           <Text style={styles.sectionTitle}>Visitor and Consumer Data</Text>
@@ -880,6 +1244,40 @@ export default function SalesReportDetailScreen() {
               />
             </View>
           </View>
+
+        <Text style={styles.sectionTitle}>Bali Only Specific Visitor Data</Text>
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Bali Only Specific Visitor Data</Text>
+            <Switch
+              value={formData.baliSpecificVisitorData}
+              onValueChange={val => setFormData({...formData, baliSpecificVisitorData: val})}
+            />
+          </View>
+          {formData.baliSpecificVisitorData && (
+            <View>
+              <View style={styles.rowInputs}>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Bali Local Visitors</Text>
+                  <TextInput style={styles.input} value={formData.baliLocalVisitors} onChangeText={text => setFormData({...formData, baliLocalVisitors: text})} placeholder="Bali Local Visitors" keyboardType="numeric" />
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Bali Foreign Visitors</Text>
+                  <TextInput style={styles.input} value={formData.baliForeignVisitors} onChangeText={text => setFormData({...formData, baliForeignVisitors: text})} placeholder="Bali Foreign Visitors" keyboardType="numeric" />
+                </View>
+              </View>
+              <View style={styles.rowInputs}>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Bali Local Guinness Buyers</Text>
+                  <TextInput style={styles.input} value={formData.baliLocalGuinnessBuyers} onChangeText={text => setFormData({...formData, baliLocalGuinnessBuyers: text})} placeholder="Bali Local Guinness Buyers" keyboardType="numeric" />
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Bali Foreign Guinness Buyers</Text>
+                  <TextInput style={styles.input} value={formData.baliForeignGuinnessBuyers} onChangeText={text => setFormData({...formData, baliForeignGuinnessBuyers: text})} placeholder="Bali Foreign Guinness Buyers" keyboardType="numeric" />
+                </View>
+              </View>
+            </View>
+          )}
+
 
           <Text style={styles.sectionTitle}>Competitor Sales and Promotion</Text>
           <View style={styles.switchContainer}>
@@ -1455,8 +1853,11 @@ export default function SalesReportDetailScreen() {
           )}
           <Text style={styles.inputLabel}>Beer Market Size</Text>
           <TextInput style={styles.input} value={formData.beerMarketSize} onChangeText={text => setFormData({...formData, beerMarketSize: text})} placeholder="Beer Market Size" />
-          
-          <Text style={styles.sectionTitle}>Merchandise and Programs</Text>
+          <Text style={styles.inputLabel}>Competitor Activity</Text>
+          <TextInput style={styles.input} value={formData.competitorActivityDescription} onChangeText={text => setFormData({...formData, competitorActivityDescription: text})} placeholder="Competitor Activity Description" />
+          <TextInput style={styles.input} value={formData.competitorActivitySpgTotal} onChangeText={text => setFormData({...formData, competitorActivitySpgTotal: text})} placeholder="Competitor Activity SPG Total" keyboardType='numeric' />
+
+          <Text style={styles.sectionTitle}>Merchandise</Text>
           {/* Merchandise Available now uses early_task_assessment's merchandiseAvailable */}
           <View style={styles.switchContainer}>
             <Text>Merchandise Available</Text>
@@ -1527,14 +1928,114 @@ export default function SalesReportDetailScreen() {
               </View>
             </>
           )}
-          
-          
-          
-          <View style={styles.switchContainer}><Text>Stoutie Program Participation</Text><Switch value={formData.stoutieProgramParticipation} onValueChange={val => setFormData({...formData, stoutieProgramParticipation: val})} /></View>
-          <Text style={styles.inputLabel}>Loyalty Program Details</Text>
-          <TextInput style={styles.input} value={formData.loyaltyProgramDetails} onChangeText={text => setFormData({...formData, loyaltyProgramDetails: text})} placeholder="Loyalty Program Details" />
 
-          <Text style={styles.sectionTitle}>Notes and Performance</Text>
+          <Text style={styles.sectionTitle}>Programs and Digital Engagement</Text>
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>MICRODRAUGHT STOUTIE EXPERIENCE </Text>
+            <Switch value={formData.stoutieProgramParticipation} onValueChange={val => setFormData({...formData, stoutieProgramParticipation: val})} />
+          </View>
+          {formData.stoutieProgramParticipation && (
+            <>
+              <View style={styles.rowInputs}>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Stoutie Program Call Reach</Text>
+                  <TextInput style={styles.input} value={formData.stoutieProgramCallReach} onChangeText={text => setFormData({...formData, stoutieProgramCallReach: text})} placeholder="Stoutie Program Call reach" />
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Stoutie Program Packet Sold</Text>
+                  <TextInput style={styles.input} value={formData.stoutieProgramPacketSold} onChangeText={text => setFormData({...formData, stoutieProgramPacketSold: text})} placeholder="Stoutie Program Packet Sold" />
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Stoutie Program Engage - People</Text>
+                  <TextInput style={styles.input} value={formData.stoutieProgramEngagePeople} onChangeText={text => setFormData({...formData, stoutieProgramEngagePeople: text})} placeholder="Stoutie Program Engage - People" />
+                </View>
+              </View>
+            </>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>LOYALTY PROGRAM PARTICIPATION</Text>
+            <Switch value={formData.loyaltyProgramParticipation} onValueChange={val => setFormData({...formData, loyaltyProgramParticipation: val})} />
+          </View>
+          {formData.loyaltyProgramParticipation && (
+            <>
+              <View style={styles.rowInputs}>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Loyalty Program Call Reach</Text>
+                  <TextInput style={styles.input} value={formData.loyaltyProgramCallReach} onChangeText={text => setFormData({...formData, loyaltyProgramCallReach: text})} placeholder="Loyalty Program Call Reach" />
+                </View>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Loyalty Program Packet Sold</Text>
+                  <TextInput style={styles.input} value={formData.loyaltyProgramPacketSold} onChangeText={text => setFormData({...formData, loyaltyProgramPacketSold: text})} placeholder="Loyalty Program Packet Sold" />
+                </View>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Loyalty Program Engage - People</Text>
+                  <TextInput style={styles.input} value={formData.loyaltyProgramEngagePeople} onChangeText={text => setFormData({...formData, loyaltyProgramEngagePeople: text})} placeholder="Loyalty Program Engage - People" />
+                </View>
+              </View>
+            </>
+          )}
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>BRIGHTBALL PROGRAM</Text>
+            <Switch value={formData.brightballParticipation} onValueChange={val => setFormData({...formData, brightballParticipation: val})} />
+          </View>
+          {formData.brightballParticipation && (
+            <>
+            <View style={styles.rowInputs}>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Brightball Call Reach</Text>
+                <TextInput style={styles.input} value={formData.brightballCallReach} onChangeText={text => setFormData({...formData, brightballCallReach: text})} placeholder="Brightball Call Reach" />
+              </View>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Brightball Packet Sold</Text>
+                <TextInput style={styles.input} value={formData.brightballPacketSold} onChangeText={text => setFormData({...formData, brightballPacketSold: text})} placeholder="Brightball Packet Sold" />
+              </View>
+              <View style={{flex: 1, marginRight: 4}}>
+                <Text style={styles.inputLabel}>Brightball Engage - People</Text>
+                <TextInput style={styles.input} value={formData.brightballEngagePeople} onChangeText={text => setFormData({...formData, brightballEngagePeople: text})} placeholder="Brightball Engage - People" />
+              </View>
+            </View>
+            </>
+          )}
+          
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>SOV PROGRAM</Text>
+            <Switch value={formData.sovProgramParticipation} onValueChange={val => setFormData({...formData, sovProgramParticipation: val})} />
+          </View>
+          {formData.sovProgramParticipation && (
+            <>
+              <View style={styles.rowInputs}>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>SOV Program Call Reach</Text>
+                  <TextInput style={styles.input} value={formData.sovProgramCallReach} onChangeText={text => setFormData({...formData, sovProgramCallReach: text})} placeholder="SOV Program Call Reach" />
+                </View>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>SOV Program Packet Sold</Text>
+                  <TextInput style={styles.input} value={formData.sovProgramPacketSold} onChangeText={text => setFormData({...formData, sovProgramPacketSold: text})} placeholder="SOV Program Packet Sold" />
+                </View>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>SOV Program Engage - People</Text>
+                  <TextInput style={styles.input} value={formData.sovProgramEngagePeople} onChangeText={text => setFormData({...formData, sovProgramEngagePeople: text})} placeholder="SOV Program Engage - People" />
+                </View>
+              </View>
+            </>
+          )}
+      
+          <Text style={styles.sectionTitle}>Weather</Text>
+          <Text style={styles.inputLabel}>Weather Status</Text>
+          <View style={[styles.input, { padding: 0 }]}> 
+            <Picker
+              selectedValue={formData.weatherStatus}
+              onValueChange={value => setFormData({ ...formData, weatherStatus: value })}
+              style={{ height: 40 }}
+            >
+              <Picker.Item label="" value="" />
+              {WEATHER_STATUS_OPTIONS.map(option => (
+                <Picker.Item key={option.value} label={option.label} value={option.value} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.sectionTitle}>Sales Report Summary Notes and Learning</Text>
           <Text style={styles.inputLabel}>Issues/Notes/Requests</Text>
             <TextInput
               style={[styles.input, { height: 80 }]}
@@ -1554,9 +2055,6 @@ export default function SalesReportDetailScreen() {
               numberOfLines={4}
           />
           
-          <Text style={styles.inputLabel}>Achievement Percentage</Text>
-          <TextInput style={styles.input} value={formData.achievementPercentage} onChangeText={text => setFormData({...formData, achievementPercentage: text})} placeholder="Achievement Percentage" />
-
           {/* Only show status picker for admin during edit/update modal */}
           {/* Refactored: status options as a constant array */}
           {userRole === 'admin' && modalType === 'edit' && (
@@ -1583,39 +2081,7 @@ export default function SalesReportDetailScreen() {
             </>
           )}
 
-          <Text style={styles.sectionTitle}>Bali Specific Data</Text>
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Bali Specific Visitor Data</Text>
-            <Switch
-              value={formData.baliSpecificVisitorData}
-              onValueChange={val => setFormData({...formData, baliSpecificVisitorData: val})}
-            />
-          </View>
-          {formData.baliSpecificVisitorData && (
-            <View>
-              <View style={styles.rowInputs}>
-                <View style={{flex: 1, marginRight: 4}}>
-                  <Text style={styles.inputLabel}>Bali Local Visitors</Text>
-                  <TextInput style={styles.input} value={formData.baliLocalVisitors} onChangeText={text => setFormData({...formData, baliLocalVisitors: text})} placeholder="Bali Local Visitors" keyboardType="numeric" />
-                </View>
-                <View style={{flex: 1}}>
-                  <Text style={styles.inputLabel}>Bali Foreign Visitors</Text>
-                  <TextInput style={styles.input} value={formData.baliForeignVisitors} onChangeText={text => setFormData({...formData, baliForeignVisitors: text})} placeholder="Bali Foreign Visitors" keyboardType="numeric" />
-                </View>
-              </View>
-              <View style={styles.rowInputs}>
-                <View style={{flex: 1, marginRight: 4}}>
-                  <Text style={styles.inputLabel}>Bali Local Guinness Buyers</Text>
-                  <TextInput style={styles.input} value={formData.baliLocalGuinnessBuyers} onChangeText={text => setFormData({...formData, baliLocalGuinnessBuyers: text})} placeholder="Bali Local Guinness Buyers" keyboardType="numeric" />
-                </View>
-                <View style={{flex: 1}}>
-                  <Text style={styles.inputLabel}>Bali Foreign Guinness Buyers</Text>
-                  <TextInput style={styles.input} value={formData.baliForeignGuinnessBuyers} onChangeText={text => setFormData({...formData, baliForeignGuinnessBuyers: text})} placeholder="Bali Foreign Guinness Buyers" keyboardType="numeric" />
-                </View>
-              </View>
-            </View>
-          )}
-
+          
           
           <View style={styles.buttonContainer}>
             <Button title={modalType === 'add' ? 'Add' : 'Update'} onPress={handleFormSubmit} />
