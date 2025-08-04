@@ -6,6 +6,7 @@ import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import * as Clipboard from 'expo-clipboard';
 
 
 export default function SalesReportDetailScreen() {
@@ -380,6 +381,8 @@ export default function SalesReportDetailScreen() {
 
   const canDelete = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
   const canUpdate = canDelete || userRole === 'Iris - BA' || userRole === 'Iris - TL';
+
+
 
   // Review Modal for Area Manager (read-only)
   const renderReviewModal = () => {
@@ -2175,6 +2178,206 @@ export default function SalesReportDetailScreen() {
     </Modal>
   );
 
+
+// Add this inside your component, before renderDescriptionModal
+const getDescriptionText = (item: any) => {
+  if (!item) return '';
+  return `
+Personnel Information
+Assigned to BA: ${item.assignedToBA || '-'}
+Assigned to TL: ${item.assignedToTL || '-'}
+BA Count: ${item.baCount || '-'}
+Crew Canvasser Count: ${item.crewCanvasserCount || '-'}
+Team Leader Name: ${item.teamLeaderName || '-'}
+SPG Name: ${item.spgName || '-'}
+Sales Report Detail Status: ${item.salesReportDetailStatus || '-'}
+Created At: ${item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}
+Created By: ${item.createdBy || '-'}
+Task ID: ${item.tasksId || '-'}
+Outlet Information
+Outlet ID: ${item.outletId || '-'}
+Outlet Name: ${item.outletName || '-'}
+Province: ${item.outletProvince || '-'}
+City: ${item.outletCity || '-'}
+Activity Name: ${item.activityName || '-'}
+Outlet Venue Name: ${item.outletVenueName || '-'}
+Capacity: ${item.capacity || '-'}
+Outlet Event PIC: ${item.outletEventPic || '-'}
+Guinness Selling Data
+Sales Kegs 330ml: ${item.salesKegs330 || '-'}
+Sales Kegs 500ml: ${item.salesKegs500 || '-'}
+Sales MD 500ml: ${item.salesMd500 || '-'}
+Sales Gdic 400ml: ${item.salesGdic400 || '-'}
+Sales Smooth Pint 330ml: ${item.salesSmoothPint330 || '-'}
+Sales Smooth Can 330ml: ${item.salesSmoothCan330 || '-'}
+Sales Gfes Pint 330ml: ${item.salesGfesPint330 || '-'}
+Sales Gfes Can 330ml: ${item.salesGfesCan330 || '-'}
+Sales Gfes Quart 620ml: ${item.salesGfesQuart620 || '-'}
+Sales Gfes Can Big 500ml: ${item.salesGfesCanbig500 || '-'}
+Sampling Data
+Sampling available: ${item.samplingAvailable || '-'}
+Sampling Smooth Bottle: ${item.samplingSmoothBottle || '-'}
+Sampling Smooth On Lips: ${item.samplingSmoothOnLips || '-'}
+Sampling Smooth Bottle To Buy: ${item.samplingSmoothBottleToBuy || '-'}
+Sampling Gfes Bottle: ${item.samplingGfesBottle || '-'}
+Sampling Gfes On Lips: ${item.samplingGfesOnLips || '-'}
+Sampling Gfes To Buy: ${item.samplingGfesToBuy || '-'}
+Sampling Kegs: ${item.samplingKegs || '-'}
+Sampling Kegs On Lips: ${item.samplingKegsOnLips || '-'}
+Sampling Kegs To Buy: ${item.samplingKegsToBuy || '-'}
+Sampling Md: ${item.samplingMd || '-'}
+Sampling Md On Lips: ${item.samplingMdOnLips || '-'}
+Sampling Md To Buy: ${item.samplingMdToBuy || '-'}
+Sampling Gdic: ${item.samplingGdic || '-'}
+Competitor Data
+Competitor bintang Available: ${item.competitorBintangAvailable ? 'Yes' : 'No'}
+Competitor Bintang Glass: ${item.competitorBintangGlass || '-'}
+Competitor Bintang Pint: ${item.competitorBintangPint || '-'}
+Competitor Bintang Quart: ${item.competitorBintangQuart || '-'}
+Competitor Bintang Can Small: ${item.competitorBintangCanSmall || '-'}
+Competitor Bintang Can Big: ${item.competitorBintangCanBig || '-'}
+Competitor Bintang Promo Description: ${item.competitorBintangPromoDescription || '-'}
+Competitor Bintang Promo Sold: ${item.competitorBintangPromoSold || '-'}
+Competitor Bintang Crystal Available: ${item.competitorBintangCrystalAvailable ? 'Yes' : 'No'}
+Competitor Bintang Crystal Glass: ${item.competitorBintangCrystalGlass || '-'}
+Competitor Bintang Crystal Pint: ${item.competitorBintangCrystalPint || '-'}
+Competitor Bintang Crystal Quart: ${item.competitorBintangCrystalQuart || '-'}
+Competitor Bintang Crystal Can Small: ${item.competitorBintangCrystalCanSmall || '-'}
+Competitor Bintang Crystal Can Big: ${item.competitorBintangCrystalCanBig || '-'}
+Competitor Bintang Crystal Promo Description: ${item.competitorBintangCrystalPromoDescription || '-'}
+Competitor Bintang Crystal Promo Sold: ${item.competitorBintangCrystalPromoSold || '-'}
+Competitor Heineken Available: ${item.competitorHeinekenAvailable ? 'Yes' : 'No'}
+Competitor Heineken Glass: ${item.competitorHeinekenGlass || '-'}
+Competitor Heineken Pint: ${item.competitorHeinekenPint || '-'}
+Competitor Heineken Quart: ${item.competitorHeinekenQuart || '-'}
+Competitor Heineken Can Small: ${item.competitorHeinekenCanSmall || '-'}
+Competitor Heineken Can Big: ${item.competitorHeinekenCanBig || '-'}
+Competitor Heineken Promo Description: ${item.competitorHeinekenPromoDescription || '-'}
+Competitor Heineken Promo Sold: ${item.competitorHeinekenPromoSold || '-'}
+Competitor Heineken import Available: ${item.competitorHeinekenImportAvailable ? 'Yes' : 'No'}
+Competitor Heineken Import Glass: ${item.competitorHeinekenImportGlass || '-'}
+Competitor Heineken Import Pint: ${item.competitorHeinekenImportPint || '-'}
+Competitor Heineken Import Quart: ${item.competitorHeinekenImportQuart || '-'}
+Competitor Heineken Import Can Small: ${item.competitorHeinekenImportCanSmall || '-'}
+Competitor Heineken Import Can Big: ${item.competitorHeinekenImportCanBig || '-'}
+Competitor Heineken Import Promo Description: ${item.competitorHeinekenImportPromoDescription || '-'}
+Competitor Heineken Import Promo Sold: ${item.competitorHeinekenImportPromoSold || '-'}
+Competitor Erdinger Available: ${item.competitorErdingerAvailable ? 'Yes' : 'No'}
+Competitor Erdinger Glass: ${item.competitorErdingerGlass || '-'}
+Competitor Erdinger Pint: ${item.competitorErdingerPint || '-'} 
+Competitor Erdinger Quart: ${item.competitorErdingerQuart || '-'}
+Competitor Erdinger Can Small: ${item.competitorErdingerCanSmall || '-'}
+Competitor Erdinger Can Big: ${item.competitorErdingerCanBig || '-'}
+Competitor Erdinger Promo Description: ${item.competitorErdingerPromoDescription || '-'}
+Competitor Erdinger Promo Sold: ${item.competitorErdingerPromoSold || '-'}
+Competitor Budweiser Available: ${item.competitorBudweiserAvailable ? 'Yes' : 'No'}
+Competitor Budweiser Glass: ${item.competitorBudweiserGlass || '-'}
+Competitor Budweiser Pint: ${item.competitorBudweiserPint || '-'}
+Competitor Budweiser Quart: ${item.competitorBudweiserQuart || '-'}
+Competitor Budweiser Can Small: ${item.competitorBudweiserCanSmall || '-'}
+Competitor Budweiser Can Big: ${item.competitorBudweiserCanBig || '-'}
+Competitor Budweiser Promo Description: ${item.competitorBudweiserPromoDescription || '-'}
+Competitor Budweiser Promo Sold: ${item.competitorBudweiserPromoSold || '-'}
+Competitor Anker Available: ${item.competitorAnchorAvailable ? 'Yes' : 'No'}
+Competitor Anker Glass: ${item.competitorAnchorGlass || '-'}
+Competitor Anker Pint: ${item.competitorAnchorPint || '-'}
+Competitor Anker Quart: ${item.competitorAnchorQuart || '-'}
+Competitor Anker Can Small: ${item.competitorAnchorCanSmall || '-'}
+Competitor Anker Can Big: ${item.competitorAnchorCanBig || '-'}
+Competitor Anker Promo Description: ${item.competitorAnchorPromoDescription || '-'}
+Competitor Anker Promo Sold: ${item.competitorAnchorPromoSold || '-'}
+Competitor Bali Hai Available: ${item.competitorBaliHaiAvailable ? 'Yes' : 'No'}
+Competitor Bali Hai Glass: ${item.competitorBaliHaiGlass || '-'}
+Competitor Bali Hai Pint: ${item.competitorBaliHaiPint || '-'}
+Competitor Bali Hai Quart: ${item.competitorBaliHaiQuart || '-'}
+Competitor Bali Hai Can Small: ${item.competitorBaliHaiCanSmall || '-'}
+Competitor Bali Hai Can Big: ${item.competitorBaliHaiCanBig || '-'}
+Competitor Bali Hai Promo Description: ${item.competitorBaliHaiPromoDescription || '-'}
+Competitor Bali Hai Promo Sold: ${item.competitorBaliHaiPromoSold || '-'}
+Competitor Prost Available: ${item.competitorProstAvailable ? 'Yes' : 'No'}
+Competitor Prost Glass: ${item.competitorProstGlass || '-'}
+Competitor Prost Pint: ${item.competitorProstPint || '-'}
+Competitor Prost Quart: ${item.competitorProstQuart || '-'}
+Competitor Prost Can Small: ${item.competitorProstCanSmall || '-'}
+Competitor Prost Can Big: ${item.competitorProstCanBig || '-'}
+Competitor Prost Promo Description: ${item.competitorProstPromoDescription || '-'}
+Competitor Prost Promo Sold: ${item.competitorProstPromoSold || '-'}
+Competitor San Miguel Available: ${item.competitorSanMiguelAvailable ? 'Yes' : 'No'}
+Competitor San Miguel Glass: ${item.competitorSanMiguelGlass || '-'}
+Competitor San Miguel Pint: ${item.competitorSanMiguelPint || '-'}
+Competitor San Miguel Quart: ${item.competitorSanMiguelQuart || '-'}
+Competitor San Miguel Can Small: ${item.competitorSanMiguelCanSmall || '-'}
+Competitor San Miguel Can Big: ${item.competitorSanMiguelCanBig || '-'}
+Competitor San Miguel Promo Description: ${item.competitorSanMiguelPromoDescription || '-'}
+Competitor San Miguel Promo Sold: ${item.competitorSanMiguelPromoSold || '-'}
+Competitor Singaraja Available: ${item.competitorSingarajaAvailable ? 'Yes' : 'No'}
+Competitor Singaraja Glass: ${item.competitorSingarajaGlass || '-'}
+Competitor Singaraja Pint: ${item.competitorSingarajaPint || '-'}
+Competitor Singaraja Quart: ${item.competitorSingarajaQuart || '-'}
+Competitor Singaraja Can Small: ${item.competitorSingarajaCanSmall || '-'}
+Competitor Singaraja Can Big: ${item.competitorSingarajaCanBig || '-'}
+Competitor Singaraja Promo Description: ${item.competitorSingarajaPromoDescription || '-'}
+Competitor Singaraja Promo Sold: ${item.competitorSingarajaPromoSold || '-'}
+Competitor Carlsberg Available: ${item.competitorCarlsbergAvailable ? 'Yes' : 'No'}
+Competitor Carlsberg Glass: ${item.competitorCarlsbergGlass || '-'}
+Competitor Carlsberg Pint: ${item.competitorCarlsbergPint || '-'}
+Competitor Carlsberg Quart: ${item.competitorCarlsbergQuart || '-'}
+Competitor Carlsberg Can Small: ${item.competitorCarlsbergCanSmall || '-'}
+Competitor Carlsberg Can Big: ${item.competitorCarlsbergCanBig || '-'}
+Competitor Carlsberg Promo Description: ${item.competitorCarlsbergPromoDescription || '-'}
+Competitor Carlsberg Promo Sold: ${item.competitorCarlsbergPromoSold || '-'}
+Competitor Draftbeer Available: ${item.competitorDraftbeerAvailable ? 'Yes' : 'No'}
+Competitor Draftbeer Glass: ${item.competitorDraftbeerGlass || '-'}
+Competitor Draftbeer Pint: ${item.competitorDraftbeerPint || '-'}
+Competitor Draftbeer Quart: ${item.competitorDraftbeerQuart || '-'}
+Competitor Draftbeer Can Small: ${item.competitorDraftbeerCanSmall || '-'}
+Competitor Draftbeer Can Big: ${item.competitorDraftbeerCanBig || '-'} 
+Competitor Draftbeer Promo Description: ${item.competitorDraftbeerPromoDescription || '-'}
+Competitor Draftbeer Promo Sold: ${item.competitorDraftbeerPromoSold || '-'}
+Competitor Kura Kura Available: ${item.competitorKuraKuraAvailable ? 'Yes' : 'No'}
+Competitor Kura Kura Glass: ${item.competitorKuraKuraGlass || '-'}
+Competitor Kura Kura Pint: ${item.competitorKuraKuraPint || '-'}
+Competitor Kura Kura Quart: ${item.competitorKuraKuraQuart || '-'}
+Competitor Kura Kura Can Small: ${item.competitorKuraKuraCanSmall || '-'}
+Competitor Kura Kura Can Big: ${item.competitorKuraKuraCanBig || '-'}
+Competitor Kura Kura Promo Description: ${item.competitorKuraKuraPromoDescription || '-'}
+Competitor Kura Kura Promo Sold: ${item.competitorKuraKuraPromoSold || '-'} 
+Competitor island brewing Available: ${item.competitorIslandBrewingAvailable ? 'Yes' : 'No'}
+Competitor Island Brewing Glass: ${item.competitorIslandBrewingGlass || '-'}
+Competitor Island Brewing Pint: ${item.competitorIslandBrewingPint || '-'}
+Competitor Island Brewing Quart: ${item.competitorIslandBrewingQuart || '-'}
+Competitor Island Brewing Can Small: ${item.competitorIslandBrewingCanSmall || '-'}
+Competitor Island Brewing Can Big: ${item.competitorIslandBrewingCanBig || '-'}
+Competitor Island Brewing Promo Description: ${item.competitorIslandBrewingPromoDescription || '-'}
+Competitor Island Brewing Promo Sold: ${item.competitorIslandBrewingPromoSold || '-'}
+Competitor Others Available: ${item.competitorOthersAvailable ? 'Yes' : 'No'}
+Competitor Others Glass: ${item.competitorOthersGlass || '-'}
+Competitor Others Pint: ${item.competitorOthersPint || '-'}
+Competitor Others Quart: ${item.competitorOthersQuart || '-'}
+Competitor Others Can Small: ${item.competitorOthersCanSmall || '-'}
+Competitor Others Can Big: ${item.competitorOthersCanBig || '-'}
+Competitor Others Promo Description: ${item.competitorOthersPromoDescription || '-'}
+Competitor Others Promo Sold: ${item.competitorOthersPromoSold || '-'}
+Merchandise Data
+Merchandise Available: ${item.merchandiseAvailable ? 'Yes' : 'No'}
+Merchandise Type 1: ${item.merchandiseDescription1 || '-'}
+Merchandise Out Sold 1: ${item.merchandiseSold1 || '-'}
+Merchandise Type 2: ${item.merchandiseDescription2 || '-'}
+Merchandise Out Sold 2: ${item.merchandiseSold2 || '-'}
+Merchandise Type 3: ${item.merchandiseDescription3 || '-'}
+Merchandise Out Sold 3: ${item.merchandiseSold3 || '-'}
+Merchandise Type 4: ${item.merchandiseDescription4 || '-'}
+Merchandise Out Sold 4: ${item.merchandiseSold4 || '-'}
+Merchandise Type 5: ${item.merchandiseDescription5 || '-'}
+Merchandise Out Sold 5: ${item.merchandiseSold5 || '-'}
+Weather Data
+Weather Status: ${item.weatherStatus || '-'}
+Sales Report Summary Notes and Learning
+Issues/Notes/Requests: ${item.issuesNotesRequests || '-'}
+Learning Points: ${item.learningPoints || '-'}
+...`; // Add more fields as needed
+};
+
   const renderDescriptionModal = () => (
     <Modal
       visible={isDescriptionModalVisible}
@@ -2467,6 +2670,10 @@ export default function SalesReportDetailScreen() {
           ) : (
             <Text>No data available.</Text>
           )}
+          <Button
+                  title="Copy All"
+                  onPress={() => Clipboard.setString(getDescriptionText(descriptionItem))}
+                />
           <Button title="Close" onPress={() => setIsDescriptionModalVisible(false)} />
         </View>
       </ScrollView>
