@@ -1,22 +1,20 @@
 const styles = StyleSheet.create({
   tabBarContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    backgroundColor: 'white',
-    borderTopColor: '#ccc',
-    borderTopWidth: 1,
-    paddingTop: 5,
-  },
+  flexDirection: 'row',
+  height: 56,
+  alignItems: 'center',
+},
   tabItem: {
-    flexBasis: '20%', // 5 items per row
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 5,
+    paddingHorizontal: 16,
   },
 });
 import React, { useState, useEffect } from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Link, Tabs } from 'expo-router';
-import { Pressable, ActivityIndicator, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Pressable, ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
@@ -51,59 +49,66 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
   }
 
   return (
-    <View style={[styles.tabBarContainer, { paddingBottom: bottom }]}> 
-      {filteredRoutes.map((route, index) => {
-        const { options } = descriptors[route.key];
-        const label =
-          options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
-            ? options.title
-            : route.name;
+    <View style={{ backgroundColor: 'white', borderTopColor: '#ccc', borderTopWidth: 1, height: 56 + bottom, paddingBottom: bottom }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ height: 56 }}
+        contentContainerStyle={styles.tabBarContainer}
+      >
+        {filteredRoutes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const label =
+            options.tabBarLabel !== undefined
+              ? options.tabBarLabel
+              : options.title !== undefined
+              ? options.title
+              : route.name;
 
-        const isFocused = state.index === state.routes.findIndex(r => r.key === route.key);
+          const isFocused = state.index === state.routes.findIndex(r => r.key === route.key);
 
-        const onPress = () => {
-          if (userRole === 'guest' && route.name !== 'index') return;
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
+          const onPress = () => {
+            if (userRole === 'guest' && route.name !== 'index') return;
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name, route.params);
-          }
-        };
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
 
-        const onLongPress = () => {
-          if (userRole === 'guest' && route.name !== 'index') return;
-          navigation.emit({
-            type: 'tabLongPress',
-            target: route.key,
-          });
-        };
+          const onLongPress = () => {
+            if (userRole === 'guest' && route.name !== 'index') return;
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
 
-        // Only render the index tab for guests
-        if (userRole === 'guest' && route.name !== 'index') return null;
+          // Only render the index tab for guests
+          if (userRole === 'guest' && route.name !== 'index') return null;
 
-        return (
-          <TouchableOpacity
-            key={route.key}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel}
-            onPress={onPress}
-            onLongPress={onLongPress}
-            style={styles.tabItem}
-          >
-            {options.tabBarIcon && options.tabBarIcon({ focused: isFocused, color: isFocused ? activeColor : inactiveColor, size: 24 })}
-            <Text style={{ color: isFocused ? activeColor : inactiveColor, fontSize: 10, textAlign: 'center' }}>
-              {typeof label === 'string' ? label : ''}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+          return (
+            <TouchableOpacity
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              style={styles.tabItem}
+            >
+              {options.tabBarIcon && options.tabBarIcon({ focused: isFocused, color: isFocused ? activeColor : inactiveColor, size: 24 })}
+              <Text style={{ color: isFocused ? activeColor : inactiveColor, fontSize: 10, textAlign: 'center' }}>
+                {typeof label === 'string' ? label : ''}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
@@ -203,6 +208,7 @@ export default function TabLayout() {
         }}
       />
       {/* All other tabs for non-guests */}
+      
       <Tabs.Screen name="user-management" options={{
         title: 'Users',
         tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />, 
@@ -431,7 +437,27 @@ export default function TabLayout() {
         ),
         href: '/city-list',
       }} />
+      <Tabs.Screen name="admin-role-requests" options={{
+        title: 'Admin Requests',
+        tabBarIcon: ({ color }) => <TabBarIcon name="shield" color={color} />, 
+        headerRight: () => (
+          <Link href="/modal" asChild>
+            <Pressable>
+              {({ pressed }) => (
+                <FontAwesome
+                  name="ellipsis-h"
+                  size={25}
+                  color={Colors[colorScheme ?? 'light'].text}
+                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                />
+              )}
+            </Pressable>
+          </Link>
+        ),
+        href: '/admin-role-requests',
+      }} />
     </Tabs>
+    
   );
 }
 
