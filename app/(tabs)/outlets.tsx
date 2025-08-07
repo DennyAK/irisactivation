@@ -22,11 +22,15 @@ export default function OutletsScreen() {
     outletName: '',
     outletProvince: '',
     outletCity: '',
+    outletChannel: '',
+    outletTier: '',
     outletCompleteAddress: '',
     outletContactNo: '',
     outletPicName: '',
     outletPicContactNumber: '',
     outletSocialMedia: '',
+    outletCapacity: '',
+    outletNoOfTableAVailable: '',
     longitude: '',
     latitude: '',
   });
@@ -140,9 +144,9 @@ export default function OutletsScreen() {
 
   const resetFormData = () => {
     setFormData({
-        outletName: '', outletProvince: '', outletCity: '', outletCompleteAddress: '',
+        outletName: '', outletProvince: '', outletCity: '', outletChannel: '', outletTier: '', outletCompleteAddress: '',
         outletContactNo: '', outletPicName: '', outletPicContactNumber: '',
-        outletSocialMedia: '', longitude: '', latitude: '',
+        outletSocialMedia: '', outletCapacity: '', outletNoOfTableAVailable: '', longitude: '', latitude: '',
     });
   };
 
@@ -169,11 +173,15 @@ export default function OutletsScreen() {
         outletName: outlet.outletName || '',
         outletProvince: outlet.outletProvince || '',
         outletCity: outlet.outletCity || '',
+        outletChannel: outlet.outletChannel || '',
+        outletTier: outlet.outletTier || '',
         outletCompleteAddress: outlet.outletCompleteAddress || '',
         outletContactNo: outlet.outletContactNo || '',
         outletPicName: outlet.outletPicName || '',
         outletPicContactNumber: outlet.outletPicContactNumber || '',
         outletSocialMedia: outlet.outletSocialMedia || '',
+        outletCapacity: outlet.outletCapacity || '',
+        outletNoOfTableAVailable: outlet.outletNoOfTableAVailable || '',
         longitude: outlet.longitude || '',
         latitude: outlet.latitude || '',
     });
@@ -230,6 +238,8 @@ export default function OutletsScreen() {
     </View>
   );
 
+
+  
   const renderModalFields = () => (
     <>
       <TextInput style={styles.input} value={formData.outletName} onChangeText={(text) => setFormData({...formData, outletName: text})} placeholder="Outlet Name" />
@@ -259,11 +269,39 @@ export default function OutletsScreen() {
           <Picker.Item key={city.id} label={city.name} value={city.id} />
         ))}
       </Picker>
+      
+
+      <Picker
+        selectedValue={formData.outletChannel}
+        onValueChange={(itemValue) => setFormData({ ...formData, outletChannel: itemValue })}
+      >
+        <Picker.Item label="Select Channel" value="" />
+        <Picker.Item label="MOT" value="MOT" />
+        <Picker.Item label="MOT WEEKLY" value="MOT WEEKLY" />
+        <Picker.Item label="MOT MONTHLY" value="MOT MONTHLY" />
+        <Picker.Item label="MM" value="MM" />
+        <Picker.Item label="EVENT" value="EVENT" />
+      </Picker>
+
+      <Picker
+        selectedValue={formData.outletTier}
+        onValueChange={(itemValue) => setFormData({ ...formData, outletTier: itemValue })}
+      >
+        <Picker.Item label="Select Tier" value="" />
+        <Picker.Item label="2.1 (kegs)" value="2.1(kegs)" />
+        <Picker.Item label="2.2 (md)" value="2.2(md)" />
+        <Picker.Item label="3 (gdic)" value="3(gdic)" />
+        <Picker.Item label="4 (smooth&gfes)" value="4(smooth&gfes)" />
+      </Picker>
+
       <TextInput style={styles.input} value={formData.outletCompleteAddress} onChangeText={(text) => setFormData({...formData, outletCompleteAddress: text})} placeholder="Complete Address" />
       <TextInput style={styles.input} value={formData.outletContactNo} onChangeText={(text) => setFormData({...formData, outletContactNo: text})} placeholder="Contact Number" />
       <TextInput style={styles.input} value={formData.outletPicName} onChangeText={(text) => setFormData({...formData, outletPicName: text})} placeholder="PIC Name" />
       <TextInput style={styles.input} value={formData.outletPicContactNumber} onChangeText={(text) => setFormData({...formData, outletPicContactNumber: text})} placeholder="PIC Contact Number" />
       <TextInput style={styles.input} value={formData.outletSocialMedia} onChangeText={(text) => setFormData({...formData, outletSocialMedia: text})} placeholder="Social Media" />
+      <TextInput style={styles.input} value={formData.outletCapacity} onChangeText={(text) => setFormData({...formData, outletCapacity: text})} placeholder="Capacity (Person)" keyboardType='numeric' />
+      <TextInput style={styles.input} value={formData.outletNoOfTableAVailable} onChangeText={(text) => setFormData({...formData, outletNoOfTableAVailable: text})} placeholder="No. of Tables Available (tables)" keyboardType='numeric'/>
+
       <Button title="Get Current Location" onPress={getLocation} />
       <TextInput style={styles.input} value={formData.latitude} onChangeText={(text) => setFormData({...formData, latitude: text})} placeholder="Latitude" />
       <TextInput style={styles.input} value={formData.longitude} onChangeText={(text) => setFormData({...formData, longitude: text})} placeholder="Longitude" />

@@ -241,6 +241,25 @@ export default function TabLayout() {
         ),
         href: '/projects',
       }} />
+      <Tabs.Screen name="activation" options={{
+        title: 'Activation',
+        tabBarIcon: ({ color }) => <TabBarIcon name="bolt" color={color} />, 
+        headerRight: () => (
+          <Link href="/modal" asChild>
+            <Pressable>
+              {({ pressed }) => (
+                <FontAwesome
+                  name="ellipsis-h"
+                  size={25}
+                  color={Colors[colorScheme ?? 'light'].text}
+                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                />
+              )}
+            </Pressable>
+          </Link>
+        ),
+        href: '/activation',
+      }} />
       <Tabs.Screen name="outlets" options={{
         title: 'Outlets',
         tabBarIcon: ({ color }) => <TabBarIcon name="building" color={color} />, 

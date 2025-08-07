@@ -45,6 +45,14 @@ export default function SalesReportDetailScreen() {
     salesReportDetailStatus?: string;
     [key: string]: any;
   };
+  type Outlet = {
+  outletName?: string;
+  outletProvince?: string;
+  outletCity?: string;
+  outletCapacity?: string;
+  outletNoOfTableAVailable?: string;
+  // ...other properties
+  };
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -61,7 +69,7 @@ export default function SalesReportDetailScreen() {
     // Activity Information
     week: '', channel: '', activityName: '', tier: '', date: '', city: '', area: '', outletVenueName: '', capacity: '', outletId: '',
     // Outlet Info
-    outletName: '', outletProvince: '', outletCity: '',
+    outletName: '', outletProvince: '', outletCity: '', outletCapacity: '', outletNoOfTableAVailable: '',
     // Assigned
     assignedToBA: '', assignedToTL: '',
     // Guinness Selling Data
@@ -179,6 +187,10 @@ export default function SalesReportDetailScreen() {
         assignedToTL: doc.data().assignedToTL,
         outletId: doc.data().outletId || '',
         outletName: doc.data().outletName || '',
+        outletProvince: doc.data().outletProvince || '', // Add this
+        outletCity: doc.data().outletCity || '',         // Add this
+        outletCapacity: doc.data().outletCapacity || '', // Add this
+        outletNoOfTableAVailable: doc.data().outletNoOfTableAVailable || '', // Add this  
         ...doc.data()
       }));
       // Filter for BA role: only show records assigned to current user
@@ -192,9 +204,9 @@ export default function SalesReportDetailScreen() {
 
       // Fetch all outlets and build a map
       const outletsSnapshot = await getDocs(collection(db, 'outlets'));
-      const outletMap: Record<string, any> = {};
+      const outletMap: Record<string, Outlet> = {};
       outletsSnapshot.forEach(doc => {
-        outletMap[doc.id] = doc.data();
+        outletMap[doc.id] = doc.data() as Outlet;
       });
 
       // Merge outlet name into each report
@@ -203,6 +215,10 @@ export default function SalesReportDetailScreen() {
         return {
           ...report,
           outletName: outlet.outletName || report.outletName || '-',
+          outletProvince: outlet.outletProvince || report.outletProvince || '-',
+          outletCity: outlet.outletCity || report.outletCity || '-',
+          outletCapacity: outlet.outletCapacity || report.outletCapacity || '-',
+          outletNoOfTableAVailable: outlet.outletNoOfTableAVailable || report.outletNoOfTableAVailable || '-',
         };
       });
 
@@ -418,9 +434,10 @@ export default function SalesReportDetailScreen() {
                 <Text selectable>City: {selectedReport.outletCity || '-'}</Text>
                 <Text selectable>Activity Name: {selectedReport.activityName || '-'}</Text>
                 <Text selectable>Outlet Venue Name: {selectedReport.outletVenueName || '-'}</Text>
-                <Text selectable>Capacity: {selectedReport.capacity || '-'}</Text>
+                <Text selectable>Capacity: {selectedReport.outletCapacity || '-'}</Text>
+                <Text selectable>Outlet No. of Table Available: {selectedReport.outletNoOfTableAVailable || '-'}</Text>
                 <Text selectable>Outlet Event PIC: {selectedReport.outletEventPic || '-'}</Text>
-                
+                                
                 <Text selectable style={styles.sectionTitle}>Guinness Selling Data</Text>
                 <Text selectable>Sales Kegs 330ml: {selectedReport.salesKegs330 || '-'}</Text>
                 <Text selectable>Sales Kegs 500ml: {selectedReport.salesKegs500 || '-'}</Text>
@@ -740,29 +757,26 @@ export default function SalesReportDetailScreen() {
           )}
           {/* Detail icon button inside the item container */}
           <View style={{ position: 'absolute', right: 24, top: 24, zIndex: 100 }}>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#fff',
-                  borderRadius: 28,
-                  padding: 8,
-                  elevation: 4,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 2,
-                }}
-                onPress={() => {
-                  const item = descriptionItem || (reports.length > 0 ? reports[0] : null);
-                  if (item) {
-                    setDescriptionItem(item);
-                    setIsDescriptionModalVisible(true);
-                  }
-                }}
-                accessibilityLabel="Detail"
-              >
-                <Ionicons name="newspaper-outline" size={32} color="#007AFF" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 28,
+                padding: 8,
+                elevation: 4,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 2,
+              }}
+              onPress={() => {
+                setDescriptionItem(item);
+                setIsDescriptionModalVisible(true);
+              }}
+              accessibilityLabel="Detail"
+            >
+              <Ionicons name="newspaper-outline" size={32} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -796,10 +810,9 @@ export default function SalesReportDetailScreen() {
           <Text>Activity Name: {formData.activityName || '-'}</Text>
           <Text>Channel: {formData.channel || '-'}</Text>
           <Text>Tier: {formData.tier || '-'}</Text>
-
-          <Text style={styles.inputLabel}>Capacity</Text>
-          <TextInput style={styles.input} value={formData.capacity} onChangeText={text => setFormData({...formData, capacity: text})} placeholder="Capacity" keyboardType="numeric" />
-
+          <Text>Outlet Capacity: {formData.outletCapacity || '-'}</Text>
+          <Text>Outlet No. of Tables Available: {formData.outletNoOfTableAVailable || '-'}</Text>
+          
           <Text style={styles.sectionTitle}>Sampling Data (if any)</Text>
           <View style={styles.switchContainer}>
             <Text style={styles.inputLabel}>Sampling Available</Text>
@@ -2203,6 +2216,8 @@ Activity Name: ${item.activityName || '-'}
 Outlet Venue Name: ${item.outletVenueName || '-'}
 Capacity: ${item.capacity || '-'}
 Outlet Event PIC: ${item.outletEventPic || '-'}
+Outlet Capacity: ${item.outletCapacity || '-'}
+Outlet No. of Tables Available: ${item.outletNoOfTableAVailable || '-'}
 Guinness Selling Data
 Sales Kegs 330ml: ${item.salesKegs330 || '-'}
 Sales Kegs 500ml: ${item.salesKegs500 || '-'}
@@ -2214,6 +2229,10 @@ Sales Gfes Pint 330ml: ${item.salesGfesPint330 || '-'}
 Sales Gfes Can 330ml: ${item.salesGfesCan330 || '-'}
 Sales Gfes Quart 620ml: ${item.salesGfesQuart620 || '-'}
 Sales Gfes Can Big 500ml: ${item.salesGfesCanbig500 || '-'}
+Call and Customer Data
+Call Reach: ${item.callsOffers || '-'}
+Effective Calls: ${item.effectiveCalls || '-'}
+Calls vs Effective Percentage: ${item.callsVsEffectivePercentage || '-'}
 Sampling Data
 Sampling available: ${item.samplingAvailable || '-'}
 Sampling Smooth Bottle: ${item.samplingSmoothBottle || '-'}
@@ -2229,6 +2248,48 @@ Sampling Md: ${item.samplingMd || '-'}
 Sampling Md On Lips: ${item.samplingMdOnLips || '-'}
 Sampling Md To Buy: ${item.samplingMdToBuy || '-'}
 Sampling Gdic: ${item.samplingGdic || '-'}
+Guinness Promotional Activity Data
+
+Guinness Promo Available: ${item.guinessPromoAvailable ? 'Yes' : 'No'}
+Guinness Promo Description: ${item.guinessPromoDescription || '-'}
+Guinness Promo Sold: ${item.guinessPromoSold || '-'}
+
+Guinness Smooth Promo Available: ${item.guinessSmoothPromoAvailable ? 'Yes' : 'No'}
+Guinness Smooth Promo Description: ${item.guinessSmoothPromoDescription || '-'}
+Guinness Smooth Promo Sold: ${item.guinessSmoothPromoSold || '-'}
+Guinness Smooth Promo Repeat Order: ${item.guinessSmoothPromoRepeatOrder || '-'}
+Guinness smooth promo Description - Type 2: ${item.guinessSmoothPromoDescriptionType2 || '-'}
+Guinness smooth promo Sold - Type 2: ${item.guinessSmoothPromoSoldType2 || '-'}
+Guinness smooth promo repeat order - type 2: ${item.guinessSmoothPromoRepeatOrderType2 || '-'}
+Guinness Gfes Promo Available: ${item.guinessGfesPromoAvailable ? 'Yes' : 'No'}
+Guinness Gfes Promo Description: ${item.guinessGfesPromoDescription || '-'}
+Guinness Gfes Promo Sold: ${item.guinessGfesPromoSold || '-'}
+Guinness Gfes Promo Repeat Order: ${item.guinessGfesPromoRepeatOrder || '-'}
+Guinness Gfes Promo Description - Type 2: ${item.guinessGfesPromoDescriptionType2 || '-'}
+Guinness Gfes Promo Sold - Type 2: ${item.guinessGfesPromoSoldType2 || '-'}
+Guinness Gfes Promo Repeat Order - Type 2: ${item.guinessGfesPromoRepeatOrderType2 || '-'}
+Guinness Kegs Promo Available: ${item.guinessKegsPromoAvailable ? 'Yes' : 'No'}
+Guinness Kegs Promo Description: ${item.guinessKegsPromoDescription || '-'}
+Guinness Kegs Promo Sold: ${item.guinessKegsPromoSold || '-'}
+Guinness Kegs Promo Repeat Order: ${item.guinessKegsPromoRepeatOrder || '-'}
+Guinness Kegs Promo Description - Type 2: ${item.guinessKegsPromoDescriptionType2 || '-'}
+Guinness Kegs Promo Sold - Type 2: ${item.guinessKegsPromoSoldType2 || '-'}
+Guinness Kegs Promo Repeat Order - Type 2: ${item.guinessKegsPromoRepeatOrderType2 || '-'}
+Guinness Md Promo Available: ${item.guinessMdPromoAvailable ? 'Yes' : 'No'}
+Guinness Md Promo Description: ${item.guinessMdPromoDescription || '-'}
+Guinness Md Promo Sold: ${item.guinessMdPromoSold || '-'}
+Guinness Md Promo Repeat Order: ${item.guinessMdPromoRepeatOrder || '-'}
+Guinness Md Promo Description - Type 2: ${item.guinessMdPromoDescriptionType2 || '-'}
+Guinness Md Promo Sold - Type 2: ${item.guinessMdPromoSoldType2 || '-'}
+Guinness Md Promo Repeat Order - Type 2: ${item.guinessMdPromoRepeatOrderType2 || '-'}
+Guinness Gdic Promo Available: ${item.guinessGdicPromoAvailable ? 'Yes' : 'No'}
+Guinness Gdic Promo Description: ${item.guinessGdicPromoDescription || '-'}
+Guinness Gdic Promo Sold: ${item.guinessGdicPromoSold || '-'}
+Guinness Gdic Promo Repeat Order: ${item.guinessGdicPromoRepeatOrder || '-'}
+Guinness Gdic Promo Description - Type 2: ${item.guinessGdicPromoDescriptionType2 || '-'}
+Guinness Gdic Promo Sold - Type 2: ${item.guinessGdicPromoSoldType2 || '-'}
+Guinness Gdic Promo Repeat Order - Type 2: ${item.guinessGdicPromoRepeatOrderType2 || '-'}
+
 Competitor Data
 Competitor bintang Available: ${item.competitorBintangAvailable ? 'Yes' : 'No'}
 Competitor Bintang Glass: ${item.competitorBintangGlass || '-'}
@@ -2410,9 +2471,10 @@ Learning Points: ${item.learningPoints || '-'}
                 <Text selectable>City: {descriptionItem.outletCity || '-'}</Text>
                 <Text selectable>Activity Name: {descriptionItem.activityName || '-'}</Text>
                 <Text selectable>Outlet Venue Name: {descriptionItem.outletVenueName || '-'}</Text>
-                <Text selectable>Capacity: {descriptionItem.capacity || '-'}</Text>
                 <Text selectable>Outlet Event PIC: {descriptionItem.outletEventPic || '-'}</Text>
-                
+                <Text selectable>Outlet Capacity: {descriptionItem.outletCapacity || '-'}</Text>
+                <Text selectable>Outlet No. of Tables Available: {descriptionItem.outletNoOfTableAVailable || '-'}</Text>
+
                 <Text selectable style={styles.sectionTitle}>Guinness Selling Data</Text>
                 <Text selectable>Sales Kegs 330ml: {descriptionItem.salesKegs330 || '-'}</Text>
                 <Text selectable>Sales Kegs 500ml: {descriptionItem.salesKegs500 || '-'}</Text>
@@ -2651,10 +2713,6 @@ Learning Points: ${item.learningPoints || '-'}
                 <Text selectable>Competitor Activity Description: {descriptionItem.competitorActivityDescription || '-'}</Text>
                 <Text selectable>Competitor Activity SPG Total: {descriptionItem.competitorActivitySpgTotal || '-'}</Text>
                 <Text selectable>Competitor Only Drinkers: {descriptionItem.drinkerCompetitorOnly || '-'}</Text>
-                <Text selectable>Created At: {descriptionItem.createdAt?.toDate ? descriptionItem.createdAt.toDate().toLocaleString() : '-'}</Text>
-                <Text selectable>Created By: {descriptionItem.createdBy || '-'}</Text>
-                <Text selectable>Task ID: {descriptionItem.tasksId || '-'}</Text>
-                <Text selectable>Sales Report Detail Status: {descriptionItem.salesReportDetailStatus || '-'}</Text>
                 
                 <Text selectable style={styles.sectionTitle}>Weather Data</Text>
                 <Text selectable>Weather Status: {descriptionItem.weatherStatus || '-'}</Text>
@@ -2672,7 +2730,7 @@ Learning Points: ${item.learningPoints || '-'}
           )}
           <Button
                   title="Copy All"
-                  onPress={() => Clipboard.setString(getDescriptionText(descriptionItem))}
+                  onPress={() => Clipboard.setStringAsync(getDescriptionText(descriptionItem))}
                 />
           <Button title="Close" onPress={() => setIsDescriptionModalVisible(false)} />
         </View>
