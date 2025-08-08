@@ -7,7 +7,20 @@ import { Link } from 'expo-router';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function TasksMenu() {
-  const menuItems = [
+  type MenuItem = {
+    label: string;
+    icon: string;
+    subtitle: string;
+    href: 
+      | '/tasks-screens/tasks-detail'
+      | '/tasks-screens/task-quick-quiz'
+      | '/tasks-screens/task-attendance'
+      | '/tasks-screens/task-early-assessment'
+      | '/tasks-screens/quick-sales-report'
+      | '/tasks-screens/sales-report-detail';
+  };
+
+  const menuItems: MenuItem[] = [
     {
       label: 'Task Detail',
       icon: 'list-outline',
@@ -51,7 +64,7 @@ export default function TasksMenu() {
       <Text style={styles.header}>Tasks Menu</Text>
       <View style={styles.grid}>
         {menuItems.map((item) => (
-          <Link key={item.label} href={item.href as any} asChild>
+          <Link key={item.label} href={item.href} asChild>
             <TouchableOpacity style={styles.card} activeOpacity={0.85}>
               <Ionicons name={item.icon} size={36} color="#007AFF" style={{ marginBottom: 8 }} />
               <Text style={styles.cardTitle}>{item.label}</Text>

@@ -12,13 +12,13 @@ export default function ProjectDetailMenu() {
       label: 'Project Overview',
       icon: 'briefcase-outline',
       subtitle: 'View project details and status',
-      href: '/projects-screens/projects',
+      href: '/projects-screens/projects' as const,
     },
     {
       label: 'Activation',
       icon: 'flash-outline',
       subtitle: 'View and manage activation requests',
-      href: '/projects-screens/activation',
+      href: '/projects-screens/activation' as const,
     },
     
   ];

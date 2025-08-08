@@ -247,25 +247,7 @@ export default function TabLayout() {
         ),
         href: '/projects-detail',
       }} />
-      <Tabs.Screen name="activation" options={{
-        title: 'Activation',
-        tabBarIcon: ({ color }) => <TabBarIcon name="bolt" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/activation',
-      }} />
+      
       <Tabs.Screen name="outlets-detail" options={{
         title: 'Outlets',
         tabBarIcon: ({ color }) => <TabBarIcon name="building" color={color} />, 
@@ -303,84 +285,7 @@ export default function TabLayout() {
           </Link>
         ),
         href: '/tasks',
-      }} />
-      <Tabs.Screen name="quick-sales-report" options={{
-        title: 'Sales',
-        tabBarIcon: ({ color }) => <TabBarIcon name="line-chart" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/quick-sales-report',
-      }} />
-      <Tabs.Screen name="sales-report-detail" options={{
-        title: 'Sales Detail',
-        tabBarIcon: ({ color }) => <TabBarIcon name="bar-chart" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/sales-report-detail',
-      }} />
-      <Tabs.Screen name="province-list" options={{
-        title: 'Provinces',
-        tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/province-list',
-      }} />
-      <Tabs.Screen name="city-list" options={{
-        title: 'Cities',
-        tabBarIcon: ({ color }) => <TabBarIcon name="map-marker" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/city-list',
-      }} />
-      
+      }} />      
     </Tabs>
     
   );

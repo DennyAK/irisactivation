@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator, Button, Modal, TextInput, Alert, Image, Platform } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, Button, Modal, TextInput, Alert, Image, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { auth, db, storage } from '../../firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -130,39 +130,70 @@ export default function TabOneScreen() {
 
   if (!user) {
     return (
-      <View style={styles.container}>
-        <Text>Please log in to see your profile.</Text>
+      <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#f5f7fa'}}>
+        <Text style={{color:'#555'}}>Please log in to see your profile.</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.bg} contentContainerStyle={{ paddingBottom: 40 }}>
       <Ionicons
         name="information-circle-outline"
-        size={32}
+        size={30}
         color="#007bff"
-        style={{ position: 'absolute', top: 40, right: 24, zIndex: 10 }}
+        style={styles.infoIcon}
         onPress={() => router.push('/modal')}
       />
-      <Text style={styles.title}>Welcome User Profile Page</Text>
-      {image && <Image source={{ uri: image }} style={styles.image} />}
-      <Button title="Change Profile Picture" onPress={pickImage} />
-      <Text>Email: {user.email}</Text>
-      {/* Display latest role request status */}
-      {latestRoleRequest && (
-        <View style={{ marginBottom: 8, alignItems: 'center' }}>
-          <Text style={{ fontWeight: 'bold' }}>Role Request Status:</Text>
-          <Text>Requested Role: {latestRoleRequest.requestedRole}</Text>
-          <Text>Status: {latestRoleRequest.status}</Text>
-          {latestRoleRequest.reason ? <Text>Reason: {latestRoleRequest.reason}</Text> : null}
+      <View style={styles.profileCard}>
+        <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper} activeOpacity={0.85}>
+          {image ? (
+            <Image source={{ uri: image }} style={styles.avatar} />
+          ) : (
+            <Ionicons name="person-circle-outline" size={110} color="#c7c7c7" />
+          )}
+          <View style={styles.cameraBadge}>
+            <Ionicons name="camera" size={18} color="#fff" />
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.profileName}>
+          {(formData.firstName || '').trim() || 'First Name'} {(formData.lastName || '').trim()}
+        </Text>
+        <Text style={styles.profileEmail}>{user.email}</Text>
+        <View style={styles.roleRow}>
+          <Text style={styles.roleLabel}>Role:</Text>
+            <Text style={styles.roleValue}>{user.role}</Text>
+            {user.role === 'guest' && (
+              <TouchableOpacity style={styles.roleRequestBtn} onPress={() => setIsRoleRequestModalVisible(true)}>
+                <Ionicons name="add-circle-outline" size={16} color="#007bff" />
+                <Text style={styles.roleRequestBtnText}>Request Role</Text>
+              </TouchableOpacity>
+            )}
         </View>
-      )}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-        <Text>Role: {user.role}</Text>
-        {user.role === 'guest' && (
-          <Button title="Ask New Role?" onPress={() => setIsRoleRequestModalVisible(true)} />
+        {latestRoleRequest && (
+          <View style={styles.statusCard}>
+            <Text style={styles.statusTitle}>Role Request Status</Text>
+            <Text style={styles.statusText}>Requested: {latestRoleRequest.requestedRole}</Text>
+            <Text style={styles.statusText}>Status: {latestRoleRequest.status}</Text>
+            {latestRoleRequest.reason ? (
+              <Text style={styles.statusText}>Reason: {latestRoleRequest.reason}</Text>
+            ) : null}
+          </View>
         )}
+        <TouchableOpacity style={styles.editBtn} onPress={() => setIsModalVisible(true)}>
+          <Ionicons name="create-outline" size={18} color="#fff" />
+          <Text style={styles.editBtnText}>Edit Profile</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.infoSection}>
+        <Text style={styles.sectionTitle}>Personal Info</Text>
+        <InfoRow label="First Name" value={formData.firstName} />
+        <InfoRow label="Last Name" value={formData.lastName} />
+        <InfoRow label="Phone" value={formData.phone} />
+        <InfoRow label="Province" value={formData.province} />
+        <InfoRow label="City" value={formData.city} />
+        <InfoRow label="Email" value={user.email} />
       </View>
 
       {/* Role Request Modal */}
@@ -172,8 +203,8 @@ export default function TabOneScreen() {
         animationType="slide"
         onRequestClose={() => setIsRoleRequestModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
             <Text style={styles.title}>Request New Role</Text>
             <Text>Select Role</Text>
             <View style={{ borderWidth: 1, borderColor: 'gray', borderRadius: 5, marginBottom: 12 }}>
@@ -236,21 +267,14 @@ export default function TabOneScreen() {
           </View>
         </View>
       </Modal>
-      <Text>First Name: {user.firstName}</Text>
-      <Text>Last Name: {user.lastName}</Text>
-      <Text>Phone: {user.phone}</Text>
-      <Text>Province: {user.province}</Text>
-      <Text>City: {user.city}</Text>
-      <Button title="Edit Profile" onPress={() => setIsModalVisible(true)} />
-
       <Modal
         visible={isModalVisible}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setIsModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
             <Text style={styles.title}>Edit Profile</Text>
             <TextInput style={styles.input} value={formData.firstName} onChangeText={(text) => setFormData({...formData, firstName: text})} placeholder="First Name" />
             <TextInput style={styles.input} value={formData.lastName} onChangeText={(text) => setFormData({...formData, lastName: text})} placeholder="Last Name" />
@@ -293,51 +317,68 @@ export default function TabOneScreen() {
           </View>
         </View>
       </Modal>
+    </ScrollView>
+  );
+}
+
+// Reusable info row component
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value || '-'}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  bg: { flex: 1, backgroundColor: '#f5f7fa' },
+  infoIcon: { position: 'absolute', top: 18, right: 20, zIndex: 20 },
+  profileCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginTop: 56,
+    borderRadius: 20,
+    padding: 24,
     alignItems: 'center',
-    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  avatarWrapper: { position: 'relative', marginBottom: 10 },
+  avatar: { width: 110, height: 110, borderRadius: 55, borderWidth: 2, borderColor: '#e5e7eb' },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: '#007bff',
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 20,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    minHeight: 320,
-    justifyContent: 'center',
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 8,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  }
+  profileName: { fontSize: 22, fontWeight: '700', color: '#222', marginTop: 6 },
+  profileEmail: { color: '#6b7280', marginBottom: 8, fontSize: 14 },
+  roleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  roleLabel: { fontWeight: '600', color: '#374151', marginRight: 4 },
+  roleValue: { fontWeight: '700', color: '#007bff' },
+  roleRequestBtn: { flexDirection: 'row', alignItems: 'center', marginLeft: 10, backgroundColor: '#eaf4ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14 },
+  roleRequestBtnText: { color: '#007bff', marginLeft: 4, fontSize: 12, fontWeight: '600' },
+  statusCard: { backgroundColor: '#f0f6ff', padding: 12, width: '100%', borderRadius: 12, marginTop: 8 },
+  statusTitle: { fontSize: 13, fontWeight: '700', color: '#0369a1', marginBottom: 2 },
+  statusText: { fontSize: 12, color: '#374151' },
+  editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#007bff', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, marginTop: 14 },
+  editBtnText: { color: '#fff', fontWeight: '600', marginLeft: 8, fontSize: 14 },
+  infoSection: { backgroundColor: '#fff', marginTop: 20, marginHorizontal: 20, borderRadius: 20, padding: 20, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#222', marginBottom: 12 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f2f4' },
+  infoLabel: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
+  infoValue: { fontSize: 14, color: '#111827', fontWeight: '600', maxWidth: '55%', textAlign: 'right' },
+  title: { fontSize: 18, fontWeight: '700', marginBottom: 14, textAlign: 'center' },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 20 },
+  modalContent: { width: '100%', backgroundColor: '#fff', borderRadius: 20, padding: 22 },
+  input: { height: 44, borderColor: '#d1d5db', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, marginBottom: 12, backgroundColor: '#fff' },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
 });
