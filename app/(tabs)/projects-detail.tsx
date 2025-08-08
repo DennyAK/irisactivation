@@ -1,57 +1,34 @@
 export const options = {
-  title: "Tasks",
+  title: "Project Detail",
 };
 
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-export default function TasksMenu() {
+export default function ProjectDetailMenu() {
   const menuItems = [
     {
-      label: 'Task Detail',
-      icon: 'list-outline',
-      subtitle: 'View and manage task details',
-      href: '/tasks-screens/tasks-detail',
+      label: 'Project Overview',
+      icon: 'briefcase-outline',
+      subtitle: 'View project details and status',
+      href: '/projects-screens/projects',
     },
     {
-      label: 'Quick Quiz',
-      icon: 'help-circle-outline',
-      subtitle: 'Take or review quick quizzes',
-      href: '/tasks-screens/task-quick-quiz',
+      label: 'Activation',
+      icon: 'flash-outline',
+      subtitle: 'View and manage activation requests',
+      href: '/projects-screens/activation',
     },
-    {
-      label: 'Attendance',
-      icon: 'checkbox-outline',
-      subtitle: 'Check in/out and manage attendance',
-      href: '/tasks-screens/task-attendance',
-    },
-    {
-      label: 'Early Assessment',
-      icon: 'clipboard-outline',
-      subtitle: 'Complete early assessment tasks',
-      href: '/tasks-screens/task-early-assessment',
-    },
-    {
-      label: 'Quick Sales Report',
-      icon: 'file-tray-outline',
-      subtitle: 'View and manage Sales Report',
-      href: '/tasks-screens/quick-sales-report',
-    },
-    {
-      label: 'Sales Report Detail',
-      icon: 'file-tray-full-outline',
-      subtitle: 'View and manage Sales Report Detailed',
-      href: '/tasks-screens/sales-report-detail',
-    },
+    
   ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Tasks Menu</Text>
+      <Text style={styles.header}>Project Detail</Text>
       <View style={styles.grid}>
         {menuItems.map((item) => (
-          <Link key={item.label} href={item.href as any} asChild>
+          <Link key={item.label} href={item.href} asChild>
             <TouchableOpacity style={styles.card} activeOpacity={0.85}>
               <Ionicons name={item.icon} size={36} color="#007AFF" style={{ marginBottom: 8 }} />
               <Text style={styles.cardTitle}>{item.label}</Text>
@@ -100,7 +77,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    textAlign: 'center',
     fontWeight: 'bold',
     color: '#222',
     marginBottom: 4,

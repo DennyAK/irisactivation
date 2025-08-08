@@ -1,57 +1,44 @@
 export const options = {
-  title: "Tasks",
+  title: "Outlet Detail",
 };
 
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-export default function TasksMenu() {
-  const menuItems = [
+export default function OutletDetailMenu() {
+  const menuItems: {
+    label: string;
+    icon: string;
+    subtitle: string;
+    href: '/outlets-screens/outlets' | '/outlets-screens/province-list' | '/outlets-screens/city-list';
+  }[] = [
     {
-      label: 'Task Detail',
-      icon: 'list-outline',
-      subtitle: 'View and manage task details',
-      href: '/tasks-screens/tasks-detail',
+      label: 'Outlet Detail',
+      icon: 'storefront-outline',
+      subtitle: 'View outlet details and status',
+      href: '/outlets-screens/outlets',
     },
     {
-      label: 'Quick Quiz',
-      icon: 'help-circle-outline',
-      subtitle: 'Take or review quick quizzes',
-      href: '/tasks-screens/task-quick-quiz',
+      label: 'Province',
+      icon: 'earth-outline',
+      subtitle: 'View and manage province list',
+      href: '/outlets-screens/province-list',
     },
     {
-      label: 'Attendance',
-      icon: 'checkbox-outline',
-      subtitle: 'Check in/out and manage attendance',
-      href: '/tasks-screens/task-attendance',
-    },
-    {
-      label: 'Early Assessment',
-      icon: 'clipboard-outline',
-      subtitle: 'Complete early assessment tasks',
-      href: '/tasks-screens/task-early-assessment',
-    },
-    {
-      label: 'Quick Sales Report',
-      icon: 'file-tray-outline',
-      subtitle: 'View and manage Sales Report',
-      href: '/tasks-screens/quick-sales-report',
-    },
-    {
-      label: 'Sales Report Detail',
-      icon: 'file-tray-full-outline',
-      subtitle: 'View and manage Sales Report Detailed',
-      href: '/tasks-screens/sales-report-detail',
+      label: 'City',
+      icon: 'map-outline',
+      subtitle: 'View and manage city list',
+      href: '/outlets-screens/city-list',
     },
   ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Tasks Menu</Text>
+      <Text style={styles.header}>Outlets Detail</Text>
       <View style={styles.grid}>
         {menuItems.map((item) => (
-          <Link key={item.label} href={item.href as any} asChild>
+          <Link key={item.label} href={item.href} asChild>
             <TouchableOpacity style={styles.card} activeOpacity={0.85}>
               <Ionicons name={item.icon} size={36} color="#007AFF" style={{ marginBottom: 8 }} />
               <Text style={styles.cardTitle}>{item.label}</Text>
@@ -100,7 +87,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    textAlign: 'center',
     fontWeight: 'bold',
     color: '#222',
     marginBottom: 4,

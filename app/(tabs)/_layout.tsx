@@ -209,8 +209,8 @@ export default function TabLayout() {
       />
       {/* All other tabs for non-guests */}
       
-      <Tabs.Screen name="user-management" options={{
-        title: 'Users',
+      <Tabs.Screen name="user-manager" options={{
+        title: 'Users Manager',
         tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />, 
         headerRight: () => (
           <Link href="/modal" asChild>
@@ -226,9 +226,9 @@ export default function TabLayout() {
             </Pressable>
           </Link>
         ),
-        href: '/user-management',
+        href: '/user-manager',
       }} />
-      <Tabs.Screen name="projects" options={{
+      <Tabs.Screen name="projects-detail" options={{
         title: 'Projects',
         tabBarIcon: ({ color }) => <TabBarIcon name="briefcase" color={color} />, 
         headerRight: () => (
@@ -245,7 +245,7 @@ export default function TabLayout() {
             </Pressable>
           </Link>
         ),
-        href: '/projects',
+        href: '/projects-detail',
       }} />
       <Tabs.Screen name="activation" options={{
         title: 'Activation',
@@ -266,7 +266,7 @@ export default function TabLayout() {
         ),
         href: '/activation',
       }} />
-      <Tabs.Screen name="outlets" options={{
+      <Tabs.Screen name="outlets-detail" options={{
         title: 'Outlets',
         tabBarIcon: ({ color }) => <TabBarIcon name="building" color={color} />, 
         headerRight: () => (
@@ -283,7 +283,7 @@ export default function TabLayout() {
             </Pressable>
           </Link>
         ),
-        href: '/outlets',
+        href: '/outlets-detail',
       }} />
       <Tabs.Screen name="tasks" options={{
         title: 'Tasks',
@@ -303,63 +303,6 @@ export default function TabLayout() {
           </Link>
         ),
         href: '/tasks',
-      }} />
-      <Tabs.Screen name="task-attendance" options={{
-        title: 'Attendance',
-        tabBarIcon: ({ color }) => <TabBarIcon name="check-square-o" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/task-attendance',
-      }} />
-      <Tabs.Screen name="task-quick-quiz" options={{
-        title: 'Quiz',
-        tabBarIcon: ({ color }) => <TabBarIcon name="question-circle" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/task-quick-quiz',
-      }} />
-      <Tabs.Screen name="task-early-assessment" options={{
-        title: 'Assessment',
-        tabBarIcon: ({ color }) => <TabBarIcon name="clipboard" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/task-early-assessment',
       }} />
       <Tabs.Screen name="quick-sales-report" options={{
         title: 'Sales',
@@ -437,25 +380,7 @@ export default function TabLayout() {
         ),
         href: '/city-list',
       }} />
-      <Tabs.Screen name="admin-role-requests" options={{
-        title: 'Admin Requests',
-        tabBarIcon: ({ color }) => <TabBarIcon name="shield" color={color} />, 
-        headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
-        ),
-        href: '/admin-role-requests',
-      }} />
+      
     </Tabs>
     
   );
