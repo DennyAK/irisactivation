@@ -4,6 +4,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl } from 'react-native';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
+import { StatusPill } from '../../components/ui/StatusPill';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -375,41 +379,45 @@ export default function TaskEarlyAssessmentScreen() {
     ]);
   };
 
-  if (loading) return <ActivityIndicator />;
+  if (loading) return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
 
   const canManage = ['admin', 'superadmin'].includes(userRole || '');
   const isAreaManager = userRole === 'area manager';
   const canUpdate = canManage || isAreaManager || userRole === 'Iris - BA' || userRole === 'Iris - TL';
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>{item.outletName}</Text>
-      {/* Assigned to BA (bold) */}
-      <Text style={{ fontWeight: 'bold' }}>Assigned to BA: {item.assignedToBA || '-'}</Text>
-      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
-      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
-      <Text>Created By: {item.createdBy || '-'}</Text>
-      <Text>Task ID: {item.tasksId || '-'}</Text>
-      {/* Task Early Assessment Status */}
-      <Text>Task Early Assessment Status: {item.status || '-'}</Text>
-      <View style={styles.buttonContainer}>
-        {/* Only show ASSESS by BA for Iris - BA and if status is empty */}
-        {userRole === 'Iris - BA' && (!item.status || item.status === '') && (
-          <Button title="ASSESS by BA" onPress={() => handleOpenModal('edit', item)} />
-        )}
-        {/* Show ASSESS by TL for Iris - TL if status is 'ASSESS BY BA' or 'RE ASSESS BY TL' */}
-        {userRole === 'Iris - TL' && (item.status === 'ASSESS BY BA' || item.status === 'RE ASSESS BY TL') && (
-          <Button title="ASSESS by TL" onPress={() => handleOpenModal('edit', item)} />
-        )}
-        {/* Only admin and superadmin see Edit, but only superadmin sees Delete, not area manager */}
-        {canManage && <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />}
-        {userRole === 'superadmin' && <Button title="Delete" onPress={() => handleDelete(item.id)} />}
-        {isAreaManager && item.status === 'ASSESS BY TL' && (
-          <Button title="ASSESS by AM" onPress={() => { setSelectedAssessment(item); setIsReviewModalVisible(true); }} />
-        )}
+  const renderItem = ({ item }: { item: any }) => {
+    const status = item.status || '-';
+    const tone = status.includes('AM') ? 'success' : status.includes('TL') ? 'info' : status.includes('BA') ? 'warning' : 'neutral';
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{item.outletName || 'Outlet'}</Text>
+          <StatusPill label={status} tone={tone as any} />
+        </View>
+        <Text style={styles.meta}>Assigned BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={styles.meta}>Assigned TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
+        <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={styles.meta}>Task ID: <Text style={styles.metaValue}>{item.tasksId || '-'}</Text></Text>
+        <View style={styles.actionsRow}>
+          {userRole === 'Iris - BA' && (!item.status || item.status === '') && (
+            <PrimaryButton title="Assess BA" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+          )}
+          {userRole === 'Iris - TL' && (item.status === 'ASSESS BY BA' || item.status === 'RE ASSESS BY TL') && (
+            <PrimaryButton title="Assess TL" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+          )}
+          {canManage && (
+            <SecondaryButton title="Edit" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+          )}
+          {userRole === 'superadmin' && (
+            <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={styles.actionBtn} />
+          )}
+          {isAreaManager && item.status === 'ASSESS BY TL' && (
+            <PrimaryButton title="Assess AM" onPress={() => { setSelectedAssessment(item); setIsReviewModalVisible(true); }} style={styles.actionBtn} />
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
   // Render review modal for area manager
   const renderReviewModal = () => {
     if (!selectedAssessment) return null;
@@ -1093,10 +1101,10 @@ export default function TaskEarlyAssessmentScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Task Early Assessment</Text>
+    <View style={styles.screen}>
+      <Text style={styles.screenTitle}>Task Early Assessment</Text>
       {userRole === 'superadmin' && (
-        <Button title="Add New Assessment" onPress={() => handleOpenModal('add')} />
+        <PrimaryButton title="Add Assessment" onPress={() => handleOpenModal('add')} style={{ marginBottom: spacing(5) }} />
       )}
       <FlatList
         data={assessments}
@@ -1120,15 +1128,24 @@ export default function TaskEarlyAssessmentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginTop: 15, marginBottom: 5, borderTopColor: '#ccc', borderTopWidth: 1, paddingTop: 10 },
-  itemContainer: { marginBottom: 10, padding: 10, borderColor: 'gray', borderWidth: 1, borderRadius: 5 },
-  itemTitle: { fontSize: 16, fontWeight: 'bold' },
-  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10, marginVertical: 50 },
-  input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8, borderRadius: 5 },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
-  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 8 },
-  switchLabel: { fontSize: 10, fontWeight: '500', marginBottom: 4 },
+  // Legacy references retained where still used inside modal
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: spacing(5) },
+  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(3), paddingHorizontal: spacing(2) },
+  switchLabel: { fontSize: 10, fontWeight: '500', marginBottom: spacing(1) },
+  sectionTitle: { ...typography.h2, marginTop: spacing(6), marginBottom: spacing(3), color: palette.text, borderTopColor: palette.border, borderTopWidth: 1, paddingTop: spacing(4) },
+  input: { height: 44, borderColor: palette.border, borderWidth: 1, marginBottom: spacing(3), paddingHorizontal: spacing(3), borderRadius: radius.md, backgroundColor: palette.surfaceAlt },
+  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: spacing(6) },
+  modalContent: { width: '92%', backgroundColor: palette.surface, padding: spacing(6), borderRadius: radius.lg, marginVertical: spacing(10) },
+  modalTitle: { ...typography.h2, color: palette.text, textAlign: 'center', marginBottom: spacing(4) },
+  title: { ...typography.h2, color: palette.text, textAlign: 'center', marginBottom: spacing(4) },
+  // New screen styles
+  screen: { flex: 1, backgroundColor: palette.bg, paddingTop: spacing(10), paddingHorizontal: spacing(5) },
+  screenTitle: { ...typography.h1, color: palette.text, marginBottom: spacing(6), textAlign: 'center' },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(5), ...shadow.card },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing(2) },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: palette.text, flex: 1, marginRight: spacing(3) },
+  meta: { fontSize: 12, color: palette.textMuted, marginBottom: 2 },
+  metaValue: { color: palette.text, fontWeight: '600' },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing(4) },
+  actionBtn: { flexGrow: 1, marginRight: spacing(3), marginBottom: spacing(3) },
 });

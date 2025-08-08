@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl } from 'react-native';
+// Phase 4 UI integration
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
+import { StatusPill } from '../../components/ui/StatusPill';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -171,45 +176,48 @@ export default function QuickSalesReportScreen() {
     ]);
   };
 
-  if (loading) return <ActivityIndicator />;
+  if (loading) return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
 
   const canManage = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
   const canUpdate = canManage || userRole === 'Iris - BA' || userRole === 'Iris - TL';
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.itemContainer}>
-      <Text>Outlet ID: {item.outletId || '-'}</Text>
-      <Text style={styles.itemTitle}>{item.outletName} - {item.guardDate?.toDate ? item.guardDate.toDate().toLocaleDateString() : '-'}</Text>
-      <Text>Province: {item.outletProvince || '-'}</Text>
-      <Text>City: {item.outletCity || '-'}</Text>
-      <Text>Outlet Tier: {item.outletTier || '-'}</Text>
-      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
-      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
-      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
-      <Text>Created By: {item.createdBy || '-'}</Text>
-      <Text>Task ID: {item.tasksId || '-'}</Text>
-      <Text>Task Sales Report Quick Status: {item.taskSalesReportQuickStatus || '-'}</Text>
-      <View style={styles.buttonContainer}>
-        {/* QR by BA */}
-        {userRole === 'Iris - BA' && (!item.taskSalesReportQuickStatus || item.taskSalesReportQuickStatus === '') && (
-          <Button title="QR by BA" onPress={() => handleOpenModal('edit', item)} />
-        )}
-        {/* QR by TL: Only Iris TL can view when status is QR Done by BA or Review back to TL */}
-        {userRole === 'Iris - TL' && (item.taskSalesReportQuickStatus === 'QR Done by BA' || item.taskSalesReportQuickStatus === 'Review back to TL') && (
-          <Button title="QR by TL" onPress={() => handleOpenModal('edit', item)} />
-        )}
-        {/* QR by AM */}
-        {userRole === 'area manager' && item.taskSalesReportQuickStatus === 'QR Done by TL' && (
-          <Button title="QR by AM" onPress={() => { setSelectedReport(item); setIsAMReviewModalVisible(true); }} />
-        )}
-        {/* Edit button only for admin/superadmin */}
-        {(userRole === 'admin' || userRole === 'superadmin') && (
-          <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
-        )}
-        {userRole === 'superadmin' && <Button title="Delete" onPress={() => handleDelete(item.id)} />}
+  const renderItem = ({ item }: { item: any }) => {
+    const status = item.taskSalesReportQuickStatus || '';
+    const statusTone = !status ? 'neutral' : status.includes('Review') ? 'warning' : status.includes('Done') ? 'success' : status.includes('AM') ? 'info' : 'primary';
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>{item.outletName || '-'}</Text>
+          <StatusPill label={status || '—'} tone={statusTone as any} />
+        </View>
+        <Text style={styles.metaText}>Outlet ID: <Text style={styles.metaValue}>{item.outletId || '-'}</Text></Text>
+        <Text style={styles.metaText}>Date: <Text style={styles.metaValue}>{item.guardDate?.toDate ? item.guardDate.toDate().toLocaleDateString() : '-'}</Text></Text>
+        <Text style={styles.metaText}>Province: <Text style={styles.metaValue}>{item.outletProvince || '-'}</Text></Text>
+        <Text style={styles.metaText}>City: <Text style={styles.metaValue}>{item.outletCity || '-'}</Text></Text>
+        <Text style={styles.metaText}>Tier: <Text style={styles.metaValue}>{item.outletTier || '-'}</Text></Text>
+        <Text style={styles.metaText}>BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={styles.metaText}>TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
+        <Text style={styles.metaText}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        <View style={styles.actionsRow}>
+          {userRole === 'Iris - BA' && (!status) && (
+            <PrimaryButton title="QR by BA" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+          )}
+          {userRole === 'Iris - TL' && (status === 'QR Done by BA' || status === 'Review back to TL') && (
+            <PrimaryButton title="QR by TL" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+          )}
+            {userRole === 'area manager' && status === 'QR Done by TL' && (
+            <PrimaryButton title="QR by AM" onPress={() => { setSelectedReport(item); setIsAMReviewModalVisible(true); }} style={styles.actionBtn} />
+          )}
+          {(userRole === 'admin' || userRole === 'superadmin') && (
+            <SecondaryButton title="Edit" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+          )}
+          {userRole === 'superadmin' && (
+            <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={styles.actionBtnDanger} />
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderModal = () => (
     <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
@@ -365,8 +373,8 @@ export default function QuickSalesReportScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Quick Sales Report</Text>
+    <View style={styles.screen}>
+      <Text style={styles.screenTitle}>Quick Sales Report</Text>
       {/* Removed Add New Report button as requested */}
       <FlatList
         data={reports}
@@ -390,16 +398,25 @@ export default function QuickSalesReportScreen() {
 }
 
 const styles = StyleSheet.create({
-  rowInputs: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 },
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginTop: 15, marginBottom: 5, borderTopColor: '#ccc', borderTopWidth: 1, paddingTop: 10 },
-  itemContainer: { marginBottom: 10, padding: 10, borderColor: 'gray', borderWidth: 1, borderRadius: 5 },
-  itemTitle: { fontSize: 16, fontWeight: 'bold' },
+  screen: { flex: 1, backgroundColor: palette.bg, paddingHorizontal: spacing(5), paddingTop: spacing(10) },
+  screenTitle: { ...typography.h1, color: palette.text, marginBottom: spacing(6) },
+  // Backwards compatibility for existing internal modal text using styles.title / styles.itemTitle
+  title: { ...typography.h2, color: palette.text, marginBottom: spacing(5), textAlign: 'center' },
+  itemTitle: { fontSize: 16, fontWeight: '700', color: palette.text },
+  rowInputs: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: spacing(4) },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: spacing(6), marginBottom: spacing(3), color: palette.text },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(5), ...shadow.card },
+  cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(2) },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: palette.text, flex: 1, marginRight: spacing(3) },
+  metaText: { fontSize: 12, color: palette.textMuted, marginBottom: 2 },
+  metaValue: { color: palette.text, fontWeight: '600' },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing(4) },
+  actionBtn: { flexGrow: 1, marginRight: spacing(3), marginBottom: spacing(3) },
+  actionBtnDanger: { flexGrow: 1, marginRight: spacing(3), marginBottom: spacing(3), backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fecaca' },
   modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10, marginVertical: 50 },
-  input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8, borderRadius: 5 },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
-  inputLabel: { fontSize: 10, color: '#888', marginBottom: 2, marginLeft: 2 },
-  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 8 },
+  modalContent: { width: '92%', backgroundColor: palette.surface, padding: spacing(6), borderRadius: radius.lg, marginVertical: spacing(10) },
+  input: { borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, padding: spacing(3), marginBottom: spacing(4), backgroundColor: palette.surfaceAlt },
+  buttonContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing(3), marginTop: spacing(5) },
+  inputLabel: { fontSize: 11, color: palette.textMuted, marginBottom: 2, marginLeft: 2, fontWeight: '500' },
+  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(4), paddingHorizontal: spacing(2) },
 });

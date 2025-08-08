@@ -4,6 +4,10 @@
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl } from 'react-native';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
+import { StatusPill } from '../../components/ui/StatusPill';
 import { db, auth, storage } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, Timestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -305,7 +309,7 @@ export default function TaskAttendanceScreen() {
   };
 
   if (loading) {
-    return <ActivityIndicator />;
+    return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
   }
 
   // Only these roles can CRUD
@@ -337,33 +341,26 @@ export default function TaskAttendanceScreen() {
     }
   };
 
-  const renderAttendance = ({ item }: { item: any }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>Assigned to BA:</Text>
-      <Text style={styles.longText}>{item.assignedToBA || '-'}</Text>
-      <Text>Outlet: {(() => {
-        const outlet = outlets.find(o => o.id === item.outletId);
-        return outlet?.outletName || item.outletId || '-';
-      })()}</Text>
-      {/* Check-in fields */}
-      <Text>Check-in: {item.checkIn?.toDate ? item.checkIn.toDate().toLocaleString() : '-'}</Text>
-      <Text>Check-in Latitude: {item.checkInLatitude || '-'}</Text>
-      <Text>Check-in Longitude: {item.checkInLongitude || '-'}</Text>
-      {/* Check-out fields */}
-      <Text>Check-out: {item.checkOut?.toDate ? item.checkOut.toDate().toLocaleString() : '-'}</Text>
-      <Text>Check-out Latitude: {item.checkOutLatitude || '-'}</Text>
-      <Text>Check-out Longitude: {item.checkOutLongitude || '-'}</Text>
-      <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
-      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
-      <Text>Created By: {item.createdBy || '-'}</Text>
-      <Text>Task ID: {item.tasksId || '-'}</Text>
-      <Text>Task Attendance Status: {item.taskAttendanceStatus || '-'}</Text>
-      {item.selfieUrl && item.selfieUrl !== '' ? <Image source={{ uri: item.selfieUrl }} style={styles.thumbnail} /> : <Text>No Selfie</Text>}
-      {canReadUpdate && (
-        <View style={styles.buttonContainer}>
-          {/* Check In Now button for BA, only if not checked in yet */}
-          {userRole === 'Iris - BA' && !item.checkIn && (
-            <Button title="Check In Now" onPress={async () => {
+  const renderAttendance = ({ item }: { item: any }) => {
+    const status = item.taskAttendanceStatus || '-';
+    const statusTone = status.includes('approved by AM') ? 'success' : status.includes('approved by TL') ? 'info' : status === 'pending' ? 'warning' : 'neutral';
+    const outletName = (() => { const outlet = outlets.find(o => o.id === item.outletId); return outlet?.outletName || item.outletId || '-'; })();
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{outletName}</Text>
+          <StatusPill label={status} tone={statusTone as any} />
+        </View>
+        <Text style={styles.meta}>BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={styles.meta}>TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
+        <Text style={styles.meta}>Check-in: <Text style={styles.metaValue}>{item.checkIn?.toDate ? item.checkIn.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={styles.meta}>Check-out: <Text style={styles.metaValue}>{item.checkOut?.toDate ? item.checkOut.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        {item.selfieUrl ? <Image source={{ uri: item.selfieUrl }} style={styles.thumbnail} /> : <Text style={styles.meta}>No Selfie</Text>}
+        {canReadUpdate && (
+          <View style={styles.actionsRow}>
+            {userRole === 'Iris - BA' && !item.checkIn && (
+              <PrimaryButton title="Check In" onPress={async () => {
               let { status } = await Location.requestForegroundPermissionsAsync();
               if (status !== 'granted') {
                 Alert.alert('Permission denied', 'Permission to access location was denied');
@@ -386,11 +383,10 @@ export default function TaskAttendanceScreen() {
                   }
                 }}
               ]);
-            }} />
-          )}
-          {/* Check Out Now button for BA, only if checked in and not checked out yet */}
-          {userRole === 'Iris - BA' && item.checkIn && !item.checkOut && (
-            <Button title="Check Out Now" onPress={async () => {
+              }} style={styles.actionBtn} />
+            )}
+            {userRole === 'Iris - BA' && item.checkIn && !item.checkOut && (
+              <PrimaryButton title="Check Out" onPress={async () => {
               let { status } = await Location.requestForegroundPermissionsAsync();
               if (status !== 'granted') {
                 Alert.alert('Permission denied', 'Permission to access location was denied');
@@ -413,11 +409,10 @@ export default function TaskAttendanceScreen() {
                   }
                 }}
               ]);
-            }} />
-          )}
-          {/* Upload Selfie button for BA, only if not uploaded yet */}
-          {userRole === 'Iris - BA' && (!item.selfieUrl || item.selfieUrl === '') && (
-            <Button title="Upload Selfie" onPress={async () => {
+              }} style={styles.actionBtn} />
+            )}
+            {userRole === 'Iris - BA' && (!item.selfieUrl || item.selfieUrl === '') && (
+              <SecondaryButton title="Selfie" onPress={async () => {
               try {
                 let result = await ImagePicker.launchImageLibraryAsync({
                   mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -446,19 +441,19 @@ export default function TaskAttendanceScreen() {
               } catch (error) {
                 Alert.alert("Upload Failed", `An error occurred. Check the console for more details.`);
               }
-            }} />
-          )}
-          {/* Edit and Delete buttons removed as requested */}
-          {userRole === 'Iris - TL' && item.taskAttendanceStatus !== 'approved by TL' && item.taskAttendanceStatus !== 'approved by AM' && (
-            <Button title="Approved by TL" onPress={() => handleApproveByTL(item.id)} />
-          )}
-          {userRole === 'area manager' && item.taskAttendanceStatus === 'approved by TL' && (
-            <Button title="Approved by AM" onPress={() => handleApproveByAM(item.id)} />
-          )}
-        </View>
-      )}
-    </View>
-  );
+              }} style={styles.actionBtn} />
+            )}
+            {userRole === 'Iris - TL' && item.taskAttendanceStatus !== 'approved by TL' && item.taskAttendanceStatus !== 'approved by AM' && (
+              <PrimaryButton title="Approve TL" onPress={() => handleApproveByTL(item.id)} style={styles.actionBtn} />
+            )}
+            {userRole === 'area manager' && item.taskAttendanceStatus === 'approved by TL' && (
+              <PrimaryButton title="Approve AM" onPress={() => handleApproveByAM(item.id)} style={styles.actionBtn} />
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderModalFields = () => (
     <>
@@ -497,8 +492,8 @@ export default function TaskAttendanceScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Task Attendance</Text>
+    <View style={styles.screen}>
+      <Text style={styles.screenTitle}>Task Attendance</Text>
       <FlatList
         data={attendances}
         keyExtractor={(item) => item.id}
@@ -543,17 +538,22 @@ export default function TaskAttendanceScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  itemContainer: { marginBottom: 10, padding: 10, borderColor: 'gray', borderWidth: 1, borderRadius: 5 },
-  itemTitle: { fontSize: 16, fontWeight: 'bold' },
-  longText: { fontSize: 15, marginBottom: 8, color: '#333', flexWrap: 'wrap' },
+  screen: { flex: 1, backgroundColor: palette.bg, paddingTop: spacing(10), paddingHorizontal: spacing(5) },
+  screenTitle: { ...typography.h1, color: palette.text, marginBottom: spacing(6) },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(5), ...shadow.card },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(2) },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: palette.text, flex: 1, marginRight: spacing(3) },
+  meta: { fontSize: 12, color: palette.textMuted, marginBottom: 2 },
+  metaValue: { color: palette.text, fontWeight: '600' },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing(4) },
+  actionBtn: { flexGrow: 1, marginRight: spacing(3), marginBottom: spacing(3) },
   modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10 },
-  input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8, borderRadius: 5 },
+  modalContent: { width: '90%', backgroundColor: palette.surface, padding: spacing(6), borderRadius: radius.lg },
+  input: { height: 40, borderColor: palette.border, borderWidth: 1, marginBottom: spacing(4), padding: spacing(3), borderRadius: radius.md, backgroundColor: palette.surfaceAlt },
   multiLineInput: { minHeight: 40, maxHeight: 80, textAlignVertical: 'top' },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
-  checkInOutContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingHorizontal: 10 },
-  selfieImage: { width: 100, height: 100, alignSelf: 'center', marginVertical: 10, borderRadius: 5 },
-  thumbnail: { width: 50, height: 50, borderRadius: 5, marginTop: 10 }
+  checkInOutContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(4), paddingHorizontal: spacing(3) },
+  selfieImage: { width: 100, height: 100, alignSelf: 'center', marginVertical: spacing(4), borderRadius: radius.md },
+  thumbnail: { width: 60, height: 60, borderRadius: radius.md, marginTop: spacing(3) }
+  ,title: { ...typography.h2, color: palette.text, textAlign: 'center', marginBottom: spacing(4) }
+  ,buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: spacing(4) }
 });

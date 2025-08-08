@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
+import StatusPill from '../../components/ui/StatusPill';
 
 export default function OutletsScreen() {
   const router = useRouter();
@@ -214,25 +217,42 @@ export default function OutletsScreen() {
   };
 
   if (loading) {
-    return <ActivityIndicator />;
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
+        <ActivityIndicator />
+      </View>
+    );
   }
 
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
   const canCreateOrEdit = isAdmin || userRole === 'area manager';
 
+  const channelTone = (val: string): any => {
+    if (!val) return 'neutral';
+    if (val.includes('EVENT')) return 'info';
+    if (val.includes('WEEKLY') || val.includes('MONTHLY')) return 'primary';
+    return 'success';
+  };
+
   const renderOutlet = ({ item }: { item: any }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>{item.outletName}</Text>
-      <Text>Province: {item.provinceName || '-'}</Text>
-      <Text>Address: {item.outletCompleteAddress}, {item.cityName}, {item.provinceName}</Text>
-      <Text>Contact: {item.outletContactNo}</Text>
-      <Text>PIC: {item.outletPicName} ({item.outletPicContactNumber})</Text>
-      <Text>Social Media: {item.outletSocialMedia}</Text>
-      <Text>Coords: ({item.latitude}, {item.longitude})</Text>
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{item.outletName}</Text>
+      </View>
+      <View style={styles.metaRow}>
+        {!!item.outletChannel && <StatusPill label={item.outletChannel} tone={channelTone(item.outletChannel)} style={styles.pill} />}
+        {!!item.outletTier && <StatusPill label={item.outletTier} tone="warning" style={styles.pill} />}
+      </View>
+      <Text style={styles.metaText}>Province: <Text style={styles.metaStrong}>{item.provinceName || '-'}</Text></Text>
+      <Text style={styles.metaText}>Address: <Text style={styles.metaStrong}>{item.outletCompleteAddress || '-'}, {item.cityName || '-'}, {item.provinceName || '-'}</Text></Text>
+      <Text style={styles.metaText}>Contact: <Text style={styles.metaStrong}>{item.outletContactNo || '-'}</Text></Text>
+      <Text style={styles.metaText}>PIC: <Text style={styles.metaStrong}>{item.outletPicName || '-'} ({item.outletPicContactNumber || '-'})</Text></Text>
+      {!!item.outletSocialMedia && <Text style={styles.metaText}>Social: <Text style={styles.metaStrong}>{item.outletSocialMedia}</Text></Text>}
+      <Text style={styles.coords}>Coords: {item.latitude}, {item.longitude}</Text>
       {canCreateOrEdit && (
-        <View style={styles.buttonContainer}>
-          <Button title="Edit" onPress={() => handleEditOutlet(item)} />
-          {isAdmin && <Button title="Delete" onPress={() => handleDeleteOutlet(item.id)} />}
+        <View style={styles.actionsRow}>
+          <SecondaryButton title="Edit" onPress={() => handleEditOutlet(item)} />
+          {isAdmin && <SecondaryButton title="Delete" onPress={() => handleDeleteOutlet(item.id)} style={styles.dangerBtn} />}
         </View>
       )}
     </View>
@@ -302,7 +322,7 @@ export default function OutletsScreen() {
       <TextInput style={styles.input} value={formData.outletCapacity} onChangeText={(text) => setFormData({...formData, outletCapacity: text})} placeholder="Capacity (Person)" keyboardType='numeric' />
       <TextInput style={styles.input} value={formData.outletNoOfTableAVailable} onChangeText={(text) => setFormData({...formData, outletNoOfTableAVailable: text})} placeholder="No. of Tables Available (tables)" keyboardType='numeric'/>
 
-      <Button title="Get Current Location" onPress={getLocation} />
+  <SecondaryButton title="Get Current Location" onPress={getLocation} />
       <TextInput style={styles.input} value={formData.latitude} onChangeText={(text) => setFormData({...formData, latitude: text})} placeholder="Latitude" />
       <TextInput style={styles.input} value={formData.longitude} onChangeText={(text) => setFormData({...formData, longitude: text})} placeholder="Longitude" />
     </>
@@ -310,12 +330,15 @@ export default function OutletsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Outlets</Text>
-      {canCreateOrEdit && <Button title="Add New Outlet" onPress={() => setIsAddModalVisible(true)} />}
+      <Text style={styles.screenTitle}>Outlets</Text>
+      {canCreateOrEdit && (
+        <PrimaryButton title="Add New Outlet" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />
+      )}
       <FlatList
         data={outlets}
         keyExtractor={(item) => item.id}
         renderItem={renderOutlet}
+        contentContainerStyle={{ paddingBottom: spacing(30) }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -329,28 +352,28 @@ export default function OutletsScreen() {
       />
       
       {/* Add Modal */}
-      <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
+      <Modal visible={isAddModalVisible} transparent animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Add New Outlet</Text>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Add New Outlet</Text>
             {renderModalFields()}
-            <View style={styles.buttonContainer}>
-              <Button title="Add" onPress={handleAddOutlet} />
-              <Button title="Cancel" onPress={() => setIsAddModalVisible(false)} />
+            <View style={styles.modalActions}>
+              <PrimaryButton title="Add" onPress={handleAddOutlet} style={styles.flexBtn} />
+              <SecondaryButton title="Cancel" onPress={() => setIsAddModalVisible(false)} style={styles.flexBtn} />
             </View>
           </View>
         </ScrollView>
       </Modal>
 
       {/* Edit Modal */}
-      <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
+      <Modal visible={isEditModalVisible} transparent animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Edit Outlet</Text>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Edit Outlet</Text>
             {renderModalFields()}
-            <View style={styles.buttonContainer}>
-              <Button title="Update" onPress={handleUpdateOutlet} />
-              <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+            <View style={styles.modalActions}>
+              <PrimaryButton title="Update" onPress={handleUpdateOutlet} style={styles.flexBtn} />
+              <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.flexBtn} />
             </View>
           </View>
         </ScrollView>
@@ -360,12 +383,41 @@ export default function OutletsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  itemContainer: { marginBottom: 10, padding: 10, borderColor: 'gray', borderWidth: 1 },
-  itemTitle: { fontSize: 16, fontWeight: 'bold' },
-  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10 },
-  input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8 },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 }
+  container: { flex: 1, backgroundColor: palette.bg, padding: spacing(4) },
+  screenTitle: { ...typography.h1, marginBottom: spacing(4), textAlign: 'center' },
+  addBtn: { marginBottom: spacing(4) },
+  card: {
+    backgroundColor: palette.surface,
+    borderRadius: radius.lg,
+    padding: spacing(4),
+    marginBottom: spacing(3),
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.card,
+  },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(2) },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: palette.text, flexShrink: 1 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(2), gap: spacing(2) },
+  pill: { marginRight: spacing(2), marginBottom: spacing(1) },
+  metaText: { fontSize: 13, color: palette.textMuted, marginBottom: spacing(1.2) },
+  metaStrong: { color: palette.text },
+  coords: { fontSize: 12, color: palette.textMuted, marginTop: spacing(1) },
+  actionsRow: { flexDirection: 'row', gap: spacing(3), marginTop: spacing(3) },
+  dangerBtn: { backgroundColor: '#fee2e2', borderColor: '#fecaca' },
+  // Modal styles
+  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: spacing(6), backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalSheet: { width: '100%', backgroundColor: palette.surface, borderRadius: radius.xl, padding: spacing(5), maxHeight: '90%' },
+  modalTitle: { ...typography.h2, textAlign: 'center', marginBottom: spacing(4), color: palette.text },
+  modalActions: { flexDirection: 'row', gap: spacing(3), marginTop: spacing(4) },
+  flexBtn: { flex: 1 },
+  input: {
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing(3),
+    paddingVertical: spacing(3),
+    marginBottom: spacing(3),
+    backgroundColor: palette.surfaceAlt,
+    fontSize: 14,
+  },
 });

@@ -8,6 +8,11 @@ import { auth, db } from '../../firebaseConfig';
 import { collection, getDocs, doc, updateDoc, query, where, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'expo-router';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
+import { StatusPill } from '../../components/ui/StatusPill';
+import { InfoRow } from '../../components/ui/InfoRow';
 
 export default function UserManagementScreen() {
   type UserItem = {
@@ -114,23 +119,29 @@ export default function UserManagementScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>User Management</Text>
+    <View style={styles.screen}>
+      <Text style={styles.screenTitle}>User Management</Text>
       <FlatList
         data={users}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.userContainer}>
-            <Text>Email: {item.email}</Text>
-            <Text>Role: {item.role}</Text>
-            <Text>Name: {item.firstName} {item.lastName}</Text>
-            <Text>Phone: {item.phone}</Text>
-            <Text>Location: {item.city}, {item.province}</Text>
-            <View style={styles.buttonContainer}>
-              {canEdit && <Button title="Edit" onPress={() => handleEdit(item)} />}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{item.email || 'Unknown'}</Text>
+              <StatusPill label={item.role || '-'} tone={item.role?.includes('admin') ? 'primary' : item.role?.includes('manager') ? 'info' : 'neutral'} />
             </View>
+            <InfoRow label="Name" value={`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'} />
+            <InfoRow label="Phone" value={item.phone || '-'} />
+            <InfoRow label="City" value={item.city || '-'} />
+            <InfoRow label="Province" value={item.province || '-'} />
+            {canEdit && (
+              <View style={styles.actionsRow}>
+                <SecondaryButton title="Edit" onPress={() => handleEdit(item)} style={styles.actionBtn} />
+              </View>
+            )}
           </View>
         )}
+        contentContainerStyle={{ paddingBottom: spacing(15) }}
       />
       {selectedUser && (
         <Modal
@@ -140,11 +151,10 @@ export default function UserManagementScreen() {
           onRequestClose={() => setIsModalVisible(false)}
         >
           <View style={styles.modalContainer}>
-            <ScrollView style={styles.modalContent}>
-              <Text style={styles.title}>Edit User: {selectedUser.email}</Text>
-              <Text>Role</Text>
-              {/* Role dropdown: only show 'admin' if userRole is 'superadmin' */}
-              <View style={{ borderWidth: 1, borderColor: 'gray', borderRadius: 5, marginBottom: 12 }}>
+            <ScrollView contentContainerStyle={styles.modalScroll} style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Edit User</Text>
+              <Text style={styles.fieldLabel}>Role</Text>
+              <View style={styles.pickerWrapper}>
                 <Picker
                   selectedValue={formData.role}
                   onValueChange={(itemValue) => setFormData({ ...formData, role: itemValue })}
@@ -158,19 +168,19 @@ export default function UserManagementScreen() {
                   {userRole === 'superadmin' && <Picker.Item label="admin" value="admin" />}
                 </Picker>
               </View>
-              <Text>First Name</Text>
+              <Text style={styles.fieldLabel}>First Name</Text>
               <TextInput style={styles.input} value={formData.firstName} onChangeText={(text) => setFormData({...formData, firstName: text})} placeholder="First Name" />
-              <Text>Last Name</Text>
+              <Text style={styles.fieldLabel}>Last Name</Text>
               <TextInput style={styles.input} value={formData.lastName} onChangeText={(text) => setFormData({...formData, lastName: text})} placeholder="Last Name" />
-              <Text>Phone</Text>
+              <Text style={styles.fieldLabel}>Phone</Text>
               <TextInput style={styles.input} value={formData.phone} onChangeText={(text) => setFormData({...formData, phone: text})} placeholder="Phone" />
-              <Text>Province</Text>
+              <Text style={styles.fieldLabel}>Province</Text>
               <TextInput style={styles.input} value={formData.province} onChangeText={(text) => setFormData({...formData, province: text})} placeholder="Province" />
-              <Text>City</Text>
+              <Text style={styles.fieldLabel}>City</Text>
               <TextInput style={styles.input} value={formData.city} onChangeText={(text) => setFormData({...formData, city: text})} placeholder="City" />
-              <View style={styles.buttonContainer}>
-                <Button title="Update" onPress={handleUpdate} />
-                <Button title="Cancel" onPress={() => setIsModalVisible(false)} />
+              <View style={styles.modalActions}>
+                <PrimaryButton title="Update" onPress={handleUpdate} style={{ flex:1 }} />
+                <SecondaryButton title="Cancel" onPress={() => setIsModalVisible(false)} style={{ flex:1 }} />
               </View>
             </ScrollView>
           </View>
@@ -181,43 +191,19 @@ export default function UserManagementScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  userContainer: {
-    marginBottom: 10,
-    padding: 10,
-    borderColor: 'gray',
-    borderWidth: 1,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 8,
-  },
+  screen: { flex: 1, backgroundColor: palette.bg, paddingHorizontal: spacing(5), paddingTop: spacing(10) },
+  screenTitle: { ...typography.h1, color: palette.text, marginBottom: spacing(6) },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(5), ...shadow.card },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(2) },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: palette.text, flex: 1, marginRight: spacing(3) },
+  actionsRow: { flexDirection: 'row', marginTop: spacing(4) },
+  actionBtn: { flex: 1 },
+  modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalContent: { maxHeight: '90%', backgroundColor: palette.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingHorizontal: spacing(6), paddingTop: spacing(6) },
+  modalScroll: { paddingBottom: spacing(15) },
+  modalTitle: { ...typography.h2, color: palette.text, textAlign: 'center', marginBottom: spacing(6) },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: palette.textMuted, marginBottom: spacing(2), marginLeft: spacing(1) },
+  pickerWrapper: { borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, marginBottom: spacing(5), backgroundColor: palette.surfaceAlt },
+  input: { borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, padding: spacing(4), marginBottom: spacing(5), backgroundColor: palette.surfaceAlt, fontSize: 14, color: palette.text },
+  modalActions: { flexDirection: 'row', gap: spacing(4), marginTop: spacing(2), marginBottom: spacing(8) },
 });

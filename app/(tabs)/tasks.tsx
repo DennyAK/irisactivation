@@ -2,9 +2,9 @@ export const options = {
   title: "Tasks",
 };
 
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { View, Text, StyleSheet } from 'react-native';
+import { MenuGrid } from '../../components/ui/MenuCard';
+import { palette, spacing, typography } from '../../constants/Design';
 
 export default function TasksMenu() {
   type MenuItem = {
@@ -61,67 +61,13 @@ export default function TasksMenu() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Tasks Menu</Text>
-      <View style={styles.grid}>
-        {menuItems.map((item) => (
-          <Link key={item.label} href={item.href} asChild>
-            <TouchableOpacity style={styles.card} activeOpacity={0.85}>
-              <Ionicons name={item.icon} size={36} color="#007AFF" style={{ marginBottom: 8 }} />
-              <Text style={styles.cardTitle}>{item.label}</Text>
-              <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-            </TouchableOpacity>
-          </Link>
-        ))}
-      </View>
+      <Text style={styles.header}>Tasks</Text>
+      <MenuGrid items={menuItems} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    backgroundColor: '#f7f7f7',
-    paddingTop: 40,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 32,
-    color: '#222',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 18,
-  },
-  card: {
-    width: 150,
-    height: 150,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  cardTitle: {
-    fontSize: 18,
-    textAlign: 'center',
-    fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-    paddingHorizontal: 6,
-  },
+  container: { flex: 1, backgroundColor: palette.bg, paddingTop: spacing(10), paddingHorizontal: spacing(6) },
+  header: { ...typography.h1, color: palette.text, marginBottom: spacing(6) },
 });

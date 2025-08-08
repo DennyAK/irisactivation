@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
+import { StatusPill } from '../../components/ui/StatusPill';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -309,54 +313,40 @@ export default function TaskQuickQuizScreen() {
   };
 
   if (loading) {
-    return <ActivityIndicator />;
+    return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
   }
 
   const canManage = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
   const canUpdate = canManage || userRole === 'Iris - BA' || userRole === 'Iris - TL';
 
-  const renderQuiz = ({ item }: { item: any }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>Quiz ID: {item.id}</Text>
-      <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
-      <Text>Date: {item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate}</Text>
-      <Text>Result: {item.quickQuizResult}</Text>
-      {/* Task Quick Quiz Status logic */}
-      <Text>Task Quick Quiz Status: {item.taskQuickQuizStatus || (() => {
-        let status = 'Pending';
-        let score = 0;
-        if (typeof item.quickQuizResult === 'string') {
-          const match = item.quickQuizResult.match(/(\d+)[^\d]*/);
-          if (match) {
-            score = parseInt(match[1], 10);
-          }
-        }
-        if (score >= 8) {
-          status = 'Done';
-        }
-        return status;
-      })()}</Text>
-      <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
-      <Text>Created By: {item.createdBy || '-'}</Text>
-      <Text>Task ID: {item.tasksId || '-'}</Text>
-      <View style={styles.buttonContainer}>
-        {/* Hide Take Quiz Now if status is Done */}
-        {(() => {
-          let score = 0;
-          if (typeof item.quickQuizResult === 'string') {
-            const match = item.quickQuizResult.match(/(\d+)[^\d]*/);
-            if (match) {
-              score = parseInt(match[1], 10);
-            }
-          }
-          if (score < 8) {
-            return <Button title="Take Quiz Now" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} />;
-          }
-          return null;
-        })()}
+  const renderQuiz = ({ item }: { item: any }) => {
+    let score = 0;
+    if (typeof item.quickQuizResult === 'string') {
+      const match = item.quickQuizResult.match(/(\d+)[^\d]*/);
+      if (match) score = parseInt(match[1], 10);
+    }
+    let status = item.taskQuickQuizStatus;
+    if (!status) {
+      status = score >= 8 ? 'Done' : 'Pending';
+    }
+    const tone = status === 'Done' ? 'success' : 'warning';
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Quiz: {item.id}</Text>
+          <StatusPill label={status} tone={tone as any} />
+        </View>
+        <Text style={styles.meta}>Assigned BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={styles.meta}>Date: <Text style={styles.metaValue}>{item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate || '-'}</Text></Text>
+        <Text style={styles.meta}>Result: <Text style={styles.metaValue}>{item.quickQuizResult || '-'}</Text></Text>
+        <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={styles.meta}>Task ID: <Text style={styles.metaValue}>{item.tasksId || '-'}</Text></Text>
+        {score < 8 && (
+          <PrimaryButton title="Take Quiz" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} style={styles.actionBtn} />
+        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderModalFields = () => (
     <>
@@ -368,7 +358,7 @@ export default function TaskQuickQuizScreen() {
   );
 
   return (
-    <View style={styles.container}>
+  <View style={styles.screen}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 60 }}
         refreshControl={
@@ -382,27 +372,29 @@ export default function TaskQuickQuizScreen() {
           />
         }
       >
-        <Text style={styles.title}>Task Quick Quiz</Text>
+  <Text style={styles.screenTitle}>Task Quick Quiz</Text>
 
 
         {/* Quiz Questions List for Superadmin/Admin */}
         {(userRole === 'superadmin' || userRole === 'admin') && (
-          <View style={{ marginTop: 30 }}>
-            <Text style={styles.title}>Quiz Questions (CRUD)</Text>
-            <Button title="Add New Question" onPress={() => setIsQuestionModalVisible(true)} />
+          <View style={styles.block}>
+            <View style={styles.blockHeaderRow}>
+              <Text style={styles.blockTitle}>Quiz Questions</Text>
+              <PrimaryButton title="Add" onPress={() => setIsQuestionModalVisible(true)} style={styles.addBtn} />
+            </View>
             {questionsLoading ? (
               <ActivityIndicator />
             ) : (
               allQuestions.map(item => (
-                <View style={styles.itemContainer} key={item.id}>
-                  <Text style={styles.itemTitle}>{item.question}</Text>
+                <View style={styles.card} key={item.id}>
+                  <Text style={styles.cardTitle}>{item.question}</Text>
                   {Object.entries(item.options).map(([key, value]) => (
-                    <Text key={key}>{key}: {String(value)}</Text>
+                    <Text key={key} style={styles.meta}>{key}: <Text style={styles.metaValue}>{String(value)}</Text></Text>
                   ))}
-                  <Text>Answer: {item.answer}</Text>
-                  <View style={styles.buttonContainer}>
-                    <Button title="Edit" onPress={() => handleEditQuestion(item)} />
-                    <Button title="Delete" onPress={() => handleDeleteQuestion(item.id)} />
+                  <Text style={styles.meta}>Answer: <Text style={styles.metaValue}>{item.answer}</Text></Text>
+                  <View style={styles.actionsRow}>
+                    <SecondaryButton title="Edit" onPress={() => handleEditQuestion(item)} style={styles.actionBtn} />
+                    <SecondaryButton title="Delete" onPress={() => handleDeleteQuestion(item.id)} style={styles.actionBtn} />
                   </View>
                 </View>
               ))
@@ -411,8 +403,8 @@ export default function TaskQuickQuizScreen() {
         )}
 
         {/* Quiz Results List - always visible below questions */}
-        <View style={{ marginTop: 30 }}>
-          <Text style={styles.title}>Quiz Results</Text>
+        <View style={styles.block}>
+          <Text style={styles.blockTitle}>Quiz Results</Text>
           {quizzes.length === 0 ? (
             <Text>No quiz records found.</Text>
           ) : (
@@ -432,18 +424,18 @@ export default function TaskQuickQuizScreen() {
             {quizScore === null ? (
               quizQuestions.length > 0 && currentQuestionIndex < quizQuestions.length ? (
                 <>
-                  <Text style={styles.title}>Question {currentQuestionIndex + 1} of {quizQuestions.length}</Text>
+                  <Text style={styles.modalTitle}>Question {currentQuestionIndex + 1} of {quizQuestions.length}</Text>
                   <Text style={{ marginBottom: 16 }}>{quizQuestions[currentQuestionIndex].question}</Text>
                   {Object.entries(quizQuestions[currentQuestionIndex].options).map(([key, value]) => (
-                    <Button key={key} title={`${key}: ${value}`} onPress={() => handleAnswer(key)} />
+                    <PrimaryButton key={key} title={`${key}: ${value}`} onPress={() => handleAnswer(key)} style={styles.actionBtn} />
                   ))}
                 </>
               ) : <ActivityIndicator />
             ) : (
               <>
-                <Text style={styles.title}>Quiz Complete!</Text>
+                <Text style={styles.modalTitle}>Quiz Complete!</Text>
                 <Text>Your Score: {quizScore}/10</Text>
-                <Button title="Close" onPress={handleQuizModalClose} />
+                <PrimaryButton title="Close" onPress={handleQuizModalClose} />
               </>
             )}
           </View>
@@ -454,7 +446,7 @@ export default function TaskQuickQuizScreen() {
       <Modal visible={isQuestionModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsQuestionModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.title}>{questionForm.id ? 'Edit' : 'Add'} Quiz Question</Text>
+            <Text style={styles.modalTitle}>{questionForm.id ? 'Edit' : 'Add'} Quiz Question</Text>
             <TextInput
               style={styles.input}
               value={questionForm.question}
@@ -477,9 +469,9 @@ export default function TaskQuickQuizScreen() {
               placeholder="Answer (A/B/C/D)"
               maxLength={1}
             />
-            <View style={styles.buttonContainer}>
-              <Button title={questionForm.id ? 'Update' : 'Add'} onPress={handleSaveQuestion} />
-              <Button title="Cancel" onPress={() => { setIsQuestionModalVisible(false); setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null }); }} />
+            <View style={styles.actionsRow}>
+              <PrimaryButton title={questionForm.id ? 'Update' : 'Add'} onPress={handleSaveQuestion} style={styles.actionBtn} />
+              <SecondaryButton title="Cancel" onPress={() => { setIsQuestionModalVisible(false); setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null }); }} style={styles.actionBtn} />
             </View>
           </View>
         </ScrollView>
@@ -489,11 +481,11 @@ export default function TaskQuickQuizScreen() {
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.title}>Add Quiz Record</Text>
+            <Text style={styles.modalTitle}>Add Quiz Record</Text>
             {renderModalFields()}
-            <View style={styles.buttonContainer}>
-              <Button title="Add" onPress={handleAddQuiz} />
-              <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
+            <View style={styles.actionsRow}>
+              <PrimaryButton title="Add" onPress={handleAddQuiz} style={styles.actionBtn} />
+              <SecondaryButton title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
             </View>
           </View>
         </ScrollView>
@@ -503,11 +495,11 @@ export default function TaskQuickQuizScreen() {
       <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.title}>Edit Quiz Record</Text>
+            <Text style={styles.modalTitle}>Edit Quiz Record</Text>
             {renderModalFields()}
-            <View style={styles.buttonContainer}>
-              <Button title="Update" onPress={handleUpdateQuiz} />
-              <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+            <View style={styles.actionsRow}>
+              <PrimaryButton title="Update" onPress={handleUpdateQuiz} style={styles.actionBtn} />
+              <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
             </View>
           </View>
         </ScrollView>
@@ -517,12 +509,29 @@ export default function TaskQuickQuizScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  itemContainer: { marginBottom: 10, padding: 10, borderColor: 'gray', borderWidth: 1, borderRadius: 5 },
-  itemTitle: { fontSize: 16, fontWeight: 'bold' },
-  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10 },
-  input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8, borderRadius: 5 },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 }
+  // Legacy references (will be gradually removed if unused)
+  container: { flex: 1, padding: spacing(5) },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: spacing(5), textAlign: 'center' },
+  itemContainer: { marginBottom: spacing(5), padding: spacing(5), borderColor: palette.border, borderWidth: 1, borderRadius: radius.md },
+  itemTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: spacing(2) },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: spacing(4) },
+  // New screen layout
+  screen: { flex: 1, backgroundColor: palette.bg, paddingTop: spacing(10), paddingHorizontal: spacing(5) },
+  screenTitle: { ...typography.h1, color: palette.text, marginBottom: spacing(6), textAlign: 'center' },
+  block: { marginTop: spacing(8) },
+  blockHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing(4) },
+  blockTitle: { ...typography.h2, color: palette.text, flex: 1 },
+  addBtn: { paddingHorizontal: spacing(6) },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(5), ...shadow.card },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing(2) },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: palette.text, flex: 1, marginRight: spacing(3) },
+  meta: { fontSize: 12, color: palette.textMuted, marginBottom: 2 },
+  metaValue: { color: palette.text, fontWeight: '600' },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing(4) },
+  actionBtn: { flexGrow: 1, marginRight: spacing(3), marginBottom: spacing(3) },
+  // Modal & forms
+  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: spacing(6) },
+  modalContent: { width: '100%', backgroundColor: palette.surface, padding: spacing(6), borderRadius: radius.lg },
+  modalTitle: { ...typography.h2, color: palette.text, textAlign: 'center', marginBottom: spacing(5) },
+  input: { height: 44, borderColor: palette.border, borderWidth: 1, marginBottom: spacing(4), paddingHorizontal: spacing(3), borderRadius: radius.md, backgroundColor: palette.surfaceAlt },
 });

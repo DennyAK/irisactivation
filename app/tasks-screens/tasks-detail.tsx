@@ -3,8 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { Animated } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl, Switch } from 'react-native';
+// Ionicons removed (unused)
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl, Switch } from 'react-native';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
+import { StatusPill } from '../../components/ui/StatusPill';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
@@ -17,55 +21,15 @@ import { useRouter } from 'expo-router';
 
 // --- Styles ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: '#f7f7f7',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  itemContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    elevation: 2,
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '95%',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 12,
-    elevation: 4,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#fff',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-    marginBottom: 10,
-  },
+  screen: { flex: 1, backgroundColor: palette.bg, paddingTop: spacing(10), paddingHorizontal: spacing(5) },
+  title: { ...typography.h1, color: palette.text, marginBottom: spacing(6) },
+  itemContainer: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(5), ...shadow.card },
+  itemTitle: { fontSize: 16, fontWeight: '700', marginBottom: spacing(2), color: palette.text },
+  modalContainer: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: spacing(6) },
+  modalContent: { width: '95%', backgroundColor: palette.surface, padding: spacing(6), borderRadius: radius.lg },
+  input: { height: 44, borderColor: palette.border, borderWidth: 1, marginBottom: spacing(4), paddingHorizontal: spacing(3), borderRadius: radius.md, backgroundColor: palette.surfaceAlt },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'flex-start', marginTop: spacing(4), marginBottom: spacing(2), flexWrap: 'wrap' },
+  actionBtn: { marginRight: spacing(3), marginBottom: spacing(3), flexGrow: 1, minWidth: 120 },
 });
 
 // Animated TouchableOpacity for blinking effect
@@ -498,16 +462,21 @@ const fetchTLUsers = async () => {
   // --- UI Rendering ---
   // Show loading spinner while fetching data
   if (loading) {
-    return <ActivityIndicator />;
+    return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
   }
 
   // canManage: Only certain roles can add/edit/delete tasks
   const canManage = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
 
+  // Subtask status tone helper
+  const subtaskTone = (val: string, hasId: boolean) => {
+    if (val === 'Yes' && hasId) return 'success';
+    if (val === 'Yes' && !hasId) return 'warning';
+    return 'neutral';
+  };
   // Render a single task item in the list
   const renderTask = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
-      {/* Display all task details, including outlet and assigned users */}
       <Text style={styles.itemTitle}>Outlet: {item.outletName}</Text>
       <Text>Province: {item.outletProvince || '-'}</Text>
       <Text>Task Start Date: {item.startDate?.toDate().toLocaleDateString()}</Text>
@@ -516,155 +485,36 @@ const fetchTLUsers = async () => {
       <Text>Assigned by: {item.assignedBy}</Text>
       <Text>Created Time: {item.createdAt?.toDate().toLocaleString()}</Text>
       <Text>Remark: {item.remark}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
-        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Attendance: {item.task_attendance} </Text>
-        {item.taskAttendanceId ? (
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.taskAttendanceId})</Text>
-            <View style={{ flex: 1, alignItems: 'flex-end' }}>
-              <AnimatedTouchable
-                style={{
-                  width: '90%',
-                  minWidth: 100,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  backgroundColor: blinkAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#786a35', '#ffe066'],
-                  }),
-                  borderRadius: 4,
-                  alignItems: 'center',
-                  alignSelf: 'flex-end',
-                }}
-                onPress={() => (navigation as any).navigate('task-attendance', { attendanceId: item.taskAttendanceId })}
-              >
-                <Text style={{ fontSize: 12, color: '#fff' }}>Do Task Attendance</Text>
-              </AnimatedTouchable>
-            </View>
-          </View>
-        ) : null}
-      </View>
-      {/* Task Assessment Button */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
-        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Assessment: {item.task_assesment} </Text>
-        {item.task_assesmentId ? (
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_assesmentId})</Text>
-            <View style={{ flex: 1, alignItems: 'flex-end' }}>
-              <AnimatedTouchable
-                style={{
-                  width: '90%',
-                  minWidth: 100,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  backgroundColor: blinkAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#786a35', '#ffe066'],
-                  }),
-                  borderRadius: 4,
-                  alignItems: 'center',
-                  alignSelf: 'flex-end',
-                }}
-                onPress={() => (navigation as any).navigate('task-early-assessment', { assessmentId: item.task_assesmentId })}
-              >
-                <Text style={{ fontSize: 12, color: '#fff' }}>Do Task Assessment</Text>
-              </AnimatedTouchable>
-            </View>
-          </View>
-        ) : null}
-      </View>
-      {/* Task Quick Quiz Button */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
-        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Quick Quiz: {item.task_quick_quiz} </Text>
-        {item.task_quick_quizId ? (
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_quick_quizId})</Text>
-            <View style={{ flex: 1, alignItems: 'flex-end' }}>
-              <AnimatedTouchable
-                style={{
-                  width: '90%',
-                  minWidth: 100,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  backgroundColor: blinkAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#786a35', '#ffe066'],
-                  }),
-                  borderRadius: 4,
-                  alignItems: 'center',
-                  alignSelf: 'flex-end',
-                }}
-                onPress={() => (navigation as any).navigate('task-quick-quiz', { quizId: item.task_quick_quizId })}
-              >
-                <Text style={{ fontSize: 12, color: '#fff' }}>Do Task Quick Quiz</Text>
-              </AnimatedTouchable>
-            </View>
-          </View>
-        ) : null}
-      </View>
-      {/* Task Quick Sales Report Button */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
-        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Quick Sales Report: {item.task_quick_sales_report} </Text>
-        {item.task_quick_sales_reportId ? (
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_quick_sales_reportId})</Text>
-            <View style={{ flex: 1, alignItems: 'flex-end' }}>
-              <AnimatedTouchable
-                style={{
-                  width: '90%',
-                  minWidth: 100,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  backgroundColor: blinkAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#786a35', '#ffe066'],
-                  }),
-                  borderRadius: 4,
-                  alignItems: 'center',
-                  alignSelf: 'flex-end',
-                }}
-                onPress={() => (navigation as any).navigate('quick-sales-report', { reportId: item.task_quick_sales_reportId })}
-              >
-                <Text style={{ fontSize: 12, color: '#fff' }}>Do Quick Sales Report</Text>
-              </AnimatedTouchable>
-            </View>
-          </View>
-        ) : null}
-      </View>
-      {/* Task Sales Report Detail Button */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
-        <Text style={{ maxWidth: '50%', flexShrink: 1 }}>Task Sales Report Detail: {item.task_sales_report_detail} </Text>
-        {item.task_sales_report_detailId ? (
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ marginLeft: 4, maxWidth: 120, flexShrink: 1 }}>(ID: {item.task_sales_report_detailId})</Text>
-            <View style={{ flex: 1, alignItems: 'flex-end' }}>
-              <AnimatedTouchable
-                style={{
-                  width: '90%',
-                  minWidth: 100,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  backgroundColor: blinkAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#786a35', '#ffe066'],
-                  }),
-                  borderRadius: 4,
-                  alignItems: 'center',
-                  alignSelf: 'flex-end',
-                }}
-                onPress={() => (navigation as any).navigate('sales-report-detail', { detailId: item.task_sales_report_detailId })}
-              >
-                <Text style={{ fontSize: 12, color: '#fff' }}>Do Sales Report Detail</Text>
-              </AnimatedTouchable>
-            </View>
-          </View>
-        ) : null}
-      </View>
-      {/* Show Edit/Delete buttons only for managers */}
+      {[
+        { key: 'task_attendance', id: item.taskAttendanceId, label: 'Attendance', route: 'task-attendance', param: 'attendanceId', button: 'Do Attendance' },
+        { key: 'task_assesment', id: item.task_assesmentId, label: 'Assessment', route: 'task-early-assessment', param: 'assessmentId', button: 'Do Assessment' },
+        { key: 'task_quick_quiz', id: item.task_quick_quizId, label: 'Quick Quiz', route: 'task-quick-quiz', param: 'quizId', button: 'Do Quick Quiz' },
+        { key: 'task_quick_sales_report', id: item.task_quick_sales_reportId, label: 'Quick Sales', route: 'quick-sales-report', param: 'reportId', button: 'Do Quick Sales' },
+        { key: 'task_sales_report_detail', id: item.task_sales_report_detailId, label: 'Sales Detail', route: 'sales-report-detail', param: 'detailId', button: 'Do Sales Detail' },
+      ].map(sub => (
+        <View key={sub.key} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing(1.5) }}>
+          <StatusPill label={`${sub.label}: ${item[sub.key]}`} tone={subtaskTone(item[sub.key], !!sub.id)} style={{ marginRight: spacing(2), maxWidth: '55%' }} />
+          {sub.id && (
+            <AnimatedTouchable
+              style={{
+                flexShrink: 1,
+                paddingHorizontal: spacing(3),
+                paddingVertical: spacing(1.5),
+                backgroundColor: blinkAnim.interpolate({ inputRange: [0, 1], outputRange: ['#786a35', '#ffe066'] }),
+                borderRadius: radius.sm,
+                alignItems: 'center',
+              }}
+              onPress={() => (navigation as any).navigate(sub.route as any, { [sub.param]: sub.id })}
+            >
+              <Text style={{ fontSize: 11, color: '#fff', fontWeight: '600' }}>{sub.button}</Text>
+            </AnimatedTouchable>
+          )}
+        </View>
+      ))}
       {canManage && (
         <View style={styles.buttonContainer}>
-          <Button title="Edit" onPress={() => handleEditTask(item)} />
-          <Button title="Delete" onPress={() => handleDeleteTask(item.id)} />
+          <PrimaryButton title="Edit" onPress={() => handleEditTask(item)} style={styles.actionBtn} />
+          <SecondaryButton title="Delete" onPress={() => handleDeleteTask(item.id)} style={styles.actionBtn} />
         </View>
       )}
     </View>
@@ -799,11 +649,11 @@ const fetchTLUsers = async () => {
 
   // --- Main Render ---
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       {/* Page Title */}
       <Text style={styles.title}>Task Management</Text>
       {/* Add Task Button (only for managers) */}
-      {canManage && <Button title="Add New Task" onPress={() => setIsAddModalVisible(true)} />}
+  {canManage && <PrimaryButton title="Add New Task" onPress={() => setIsAddModalVisible(true)} style={{ marginBottom: spacing(5) }} />}
       {/* List of tasks */}
       <FlatList
         data={tasks}
@@ -837,8 +687,8 @@ const fetchTLUsers = async () => {
               </>
             )}
             <View style={styles.buttonContainer}>
-              <Button title="Update" onPress={handleUpdateAttendance} />
-              <Button title="Cancel" onPress={() => { setIsEditAttendanceModalVisible(false); setAttendanceForm(null); setEditingAttendanceId(null); }} />
+              <PrimaryButton title="Update" onPress={handleUpdateAttendance} style={styles.actionBtn} />
+              <SecondaryButton title="Cancel" onPress={() => { setIsEditAttendanceModalVisible(false); setAttendanceForm(null); setEditingAttendanceId(null); }} style={styles.actionBtn} />
             </View>
           </View>
         </SafeAreaView>
@@ -851,8 +701,8 @@ const fetchTLUsers = async () => {
               <Text style={styles.title}>Add New Task</Text>
               {renderAddTaskFields()}
               <View style={styles.buttonContainer}>
-                <Button title="Next" onPress={handleAddTask} />
-                <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
+                <PrimaryButton title="Next" onPress={handleAddTask} style={styles.actionBtn} />
+                <SecondaryButton title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
               </View>
             </View>
           </ScrollView>
@@ -866,8 +716,8 @@ const fetchTLUsers = async () => {
               <Text style={styles.title}>Add Task Features</Text>
               {renderAddChildFields()}
               <View style={styles.buttonContainer}>
-                <Button title="Save Features" onPress={handleAddChildFeatures} />
-                <Button title="Cancel" onPress={() => { setIsAddChildModalVisible(false); setNewTaskId(null); resetFormData(); }} />
+                <PrimaryButton title="Save Features" onPress={handleAddChildFeatures} style={styles.actionBtn} />
+                <SecondaryButton title="Cancel" onPress={() => { setIsAddChildModalVisible(false); setNewTaskId(null); resetFormData(); }} style={styles.actionBtn} />
               </View>
             </View>
           </ScrollView>
@@ -881,8 +731,8 @@ const fetchTLUsers = async () => {
               <Text style={styles.title}>Edit Task</Text>
               {renderAddTaskFields()}
               <View style={styles.buttonContainer}>
-                <Button title="Update" onPress={handleUpdateTask} />
-                <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+                <PrimaryButton title="Update" onPress={handleUpdateTask} style={styles.actionBtn} />
+                <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
               </View>
             </View>
           </ScrollView>

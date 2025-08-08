@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
+import StatusPill from '../../components/ui/StatusPill';
 
 export default function ProjectsScreen() {
   const router = useRouter();
@@ -145,7 +148,11 @@ export default function ProjectsScreen() {
   };
 
   if (loading) {
-    return <ActivityIndicator />;
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
+        <ActivityIndicator />
+      </View>
+    );
   }
 
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
@@ -153,25 +160,31 @@ export default function ProjectsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Projects</Text>
-      {isAdmin && <Button title="Add New Project" onPress={() => setIsAddModalVisible(true)} />}
+      <Text style={styles.screenTitle}>Projects</Text>
+      {isAdmin && <PrimaryButton title="Add New Project" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />}
       <FlatList
         data={projects}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.projectContainer}>
-            <Text style={styles.itemTitle}>{item.projectName}</Text>
-            <Text>Type: {item.projectType}</Text>
-            <Text>Tier: {item.projectTier}</Text>
-            <Text>Activation: {item.activationName}</Text>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{item.projectName}</Text>
+            </View>
+            <View style={styles.pillsRow}>
+              {!!item.projectType && <StatusPill label={item.projectType} tone="info" style={styles.pill} />}
+              {!!item.projectTier && <StatusPill label={item.projectTier} tone="warning" style={styles.pill} />}
+            </View>
+            {!!item.activationName && <Text style={styles.meta}>Activation: <Text style={styles.metaStrong}>{item.activationName}</Text></Text>}
+            {!!item.createdByName && <Text style={styles.meta}>Creator: <Text style={styles.metaStrong}>{item.createdByName}</Text></Text>}
             {canEdit && (
-              <View style={styles.buttonContainer}>
-                <Button title="Edit" onPress={() => handleEditProject(item)} />
-                {isAdmin && <Button title="Delete" onPress={() => handleDeleteProject(item.id)} />}
+              <View style={styles.actionsRow}>
+                <SecondaryButton title="Edit" onPress={() => handleEditProject(item)} style={styles.flexBtn} />
+                {isAdmin && <SecondaryButton title="Delete" onPress={() => handleDeleteProject(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
               </View>
             )}
           </View>
         )}
+        contentContainerStyle={{ paddingBottom: spacing(30) }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -183,88 +196,61 @@ export default function ProjectsScreen() {
           />
         }
       />
-      <>
-        {/* Add Modal */}
-        <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
-          <ScrollView contentContainerStyle={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.title}>Add Project</Text>
-              <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({...formData, activationName: text})} placeholder="Activation Name" />
-              <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({...formData, projectName: text})} placeholder="Project Name" />
-              <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({...formData, projectType: text})} placeholder="Project Type" />
-              <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({...formData, projectTier: text})} placeholder="Project Tier" />
-              <View style={styles.buttonContainer}>
-                <Button title="Add" onPress={handleAddProject} />
-                <Button title="Cancel" onPress={() => setIsAddModalVisible(false)} />
-              </View>
+
+      {/* Add Modal */}
+      <Modal visible={isAddModalVisible} transparent animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Add Project</Text>
+            <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({ ...formData, activationName: text })} placeholder="Activation Name" />
+            <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({ ...formData, projectName: text })} placeholder="Project Name" />
+            <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({ ...formData, projectType: text })} placeholder="Project Type" />
+            <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({ ...formData, projectTier: text })} placeholder="Project Tier" />
+            <View style={styles.modalActions}>
+              <PrimaryButton title="Add" onPress={handleAddProject} style={styles.flexBtn} />
+              <SecondaryButton title="Cancel" onPress={() => setIsAddModalVisible(false)} style={styles.flexBtn} />
             </View>
-          </ScrollView>
-        </Modal>
-        {/* Edit Modal */}
-        <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
-          <ScrollView contentContainerStyle={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.title}>Edit Project</Text>
-              <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({...formData, activationName: text})} placeholder="Activation Name" />
-              <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({...formData, projectName: text})} placeholder="Project Name" />
-              <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({...formData, projectType: text})} placeholder="Project Type" />
-              <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({...formData, projectTier: text})} placeholder="Project Tier" />
-              <View style={styles.buttonContainer}>
-                <Button title="Update" onPress={handleUpdateProject} />
-                <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); setFormData({ activationName: '', projectName: '', projectType: '', projectTier: '' }); }} />
-              </View>
+          </View>
+        </ScrollView>
+      </Modal>
+      {/* Edit Modal */}
+      <Modal visible={isEditModalVisible} transparent animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Edit Project</Text>
+            <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({ ...formData, activationName: text })} placeholder="Activation Name" />
+            <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({ ...formData, projectName: text })} placeholder="Project Name" />
+            <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({ ...formData, projectType: text })} placeholder="Project Type" />
+            <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({ ...formData, projectTier: text })} placeholder="Project Tier" />
+            <View style={styles.modalActions}>
+              <PrimaryButton title="Update" onPress={handleUpdateProject} style={styles.flexBtn} />
+              <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); setFormData({ activationName: '', projectName: '', projectType: '', projectTier: '' }); }} style={styles.flexBtn} />
             </View>
-          </ScrollView>
-        </Modal>
-      </>
+          </View>
+        </ScrollView>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  projectContainer: {
-    marginBottom: 10,
-    padding: 10,
-    borderColor: 'gray',
-    borderWidth: 1,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '90%',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 8,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  itemTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 4,
-  },
+  container: { flex: 1, backgroundColor: palette.bg, padding: spacing(4) },
+  screenTitle: { ...typography.h1, textAlign: 'center', marginBottom: spacing(4) },
+  addBtn: { marginBottom: spacing(4) },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(4), marginBottom: spacing(3), borderWidth: 1, borderColor: palette.border, ...shadow.card },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(2) },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: palette.text, flexShrink: 1 },
+  pillsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(2), gap: spacing(2) },
+  pill: { marginRight: spacing(2), marginBottom: spacing(1) },
+  meta: { fontSize: 13, color: palette.textMuted, marginBottom: spacing(1.2) },
+  metaStrong: { color: palette.text },
+  actionsRow: { flexDirection: 'row', gap: spacing(3), marginTop: spacing(3) },
+  flexBtn: { flex: 1 },
+  deleteBtn: { backgroundColor: '#fee2e2', borderColor: '#fecaca' },
+  // Modal styles
+  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: spacing(6), backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalSheet: { width: '100%', backgroundColor: palette.surface, borderRadius: radius.xl, padding: spacing(5) },
+  modalTitle: { ...typography.h2, textAlign: 'center', marginBottom: spacing(5), color: palette.text },
+  modalActions: { flexDirection: 'row', gap: spacing(3), marginTop: spacing(2) },
+  input: { borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surfaceAlt, paddingHorizontal: spacing(3), paddingVertical: spacing(3), marginBottom: spacing(3), fontSize: 14 },
 });

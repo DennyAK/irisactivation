@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Alert, RefreshControl } from 'react-native';
-import { TextInput } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl, Modal, TextInput, ScrollView } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, writeBatch, doc, DocumentSnapshot, getDoc } from 'firebase/firestore';
 import { addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { provinces as provinceData } from '../../data/indonesian-regions';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
 
 export default function ProvinceListScreen() {
   // Add Province modal state
@@ -92,35 +94,55 @@ export default function ProvinceListScreen() {
     }
   };
 
-  if (loading) return <ActivityIndicator />;
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Indonesian Provinces</Text>
+      <Text style={styles.screenTitle}>Indonesian Provinces</Text>
       {isAdmin && (
-        <View style={styles.buttonContainer}>
-          {/*
-          <Button title="Populate Provinces" onPress={handlePopulateProvinces} />
-          <Button title="Clear All" onPress={handleClearAllProvinces} />
-          */}
-          <Button title="Add Province" onPress={() => setIsAddModalVisible(true)} />
-        </View>
+        <PrimaryButton title="Add Province" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />
       )}
-      {/* Add Province Modal */}
-      {isAddModalVisible && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, width: '80%' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Add Province</Text>
+      <FlatList
+        data={provinces}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{item.name}</Text>
+          </View>
+        )}
+        contentContainerStyle={{ paddingBottom: spacing(30) }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchProvinces();
+              setRefreshing(false);
+            }}
+          />
+        }
+      />
+
+      <Modal visible={isAddModalVisible} transparent animationType="fade" onRequestClose={() => setIsAddModalVisible(false)}>
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Add Province</Text>
             <TextInput
-              style={{ borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8, height: 40 }}
+              style={styles.input}
               value={newProvinceName}
               onChangeText={setNewProvinceName}
               placeholder="Province Name"
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-              <Button title="Add" onPress={async () => {
+            <View style={styles.modalActions}>
+              <PrimaryButton title="Add" style={styles.flexBtn} onPress={async () => {
                 if (newProvinceName.trim() === '') {
                   Alert.alert('Invalid Name', 'Province name cannot be empty.');
                   return;
@@ -135,41 +157,34 @@ export default function ProvinceListScreen() {
                   Alert.alert('Error', 'Failed to add province.');
                 }
               }} />
-              <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); setNewProvinceName(''); }} />
+              <SecondaryButton title="Cancel" style={styles.flexBtn} onPress={() => { setIsAddModalVisible(false); setNewProvinceName(''); }} />
             </View>
           </View>
-        </View>
-      )}
-      <FlatList
-        data={provinces}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.itemContainer}>
-            <Text>{item.name}</Text>
-          </View>
-        )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={async () => {
-              setRefreshing(true);
-              await fetchProvinces();
-              setRefreshing(false);
-            }}
-          />
-        }
-      />
+        </ScrollView>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  itemContainer: { marginBottom: 10, padding: 15, borderColor: 'gray', borderWidth: 1, borderRadius: 5 },
-  buttonContainer: { marginBottom: 20, flexDirection: 'row', justifyContent: 'space-around' },
-  infoText: {
-    textAlign: 'center',
-    marginBottom: 10
-  }
+  container: { flex: 1, backgroundColor: palette.bg, padding: spacing(4) },
+  screenTitle: { ...typography.h1, textAlign: 'center', marginBottom: spacing(4) },
+  addBtn: { marginBottom: spacing(3) },
+  card: {
+    backgroundColor: palette.surface,
+    borderRadius: radius.lg,
+    padding: spacing(4),
+    marginBottom: spacing(3),
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.card,
+  },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: palette.text },
+  // Modal
+  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: spacing(6), backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalSheet: { width: '100%', backgroundColor: palette.surface, borderRadius: radius.xl, padding: spacing(5) },
+  modalTitle: { ...typography.h2, textAlign: 'center', marginBottom: spacing(5), color: palette.text },
+  modalActions: { flexDirection: 'row', gap: spacing(3), marginTop: spacing(2) },
+  flexBtn: { flex: 1 },
+  input: { borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surfaceAlt, paddingHorizontal: spacing(3), paddingVertical: spacing(3), fontSize: 14 },
 });

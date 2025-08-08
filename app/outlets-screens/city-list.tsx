@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, writeBatch, doc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Picker } from '@react-native-picker/picker';
 import { provinces as provinceData, citiesAndRegencies } from '../../data/indonesian-regions';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
 
 export default function CityListScreen() {
   // Pull-to-refresh state
@@ -125,67 +128,72 @@ export default function CityListScreen() {
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
   if (loadingProvinces) {
-    return <ActivityIndicator />;
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
+        <ActivityIndicator />
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Indonesian Cities & Regencies</Text>
-      <Picker
-        selectedValue={selectedProvince}
-        onValueChange={(itemValue) => handleProvinceChange(itemValue)}
-      >
-        <Picker.Item label="Select a Province" value={null} />
-        {provinces.map(province => (
-          <Picker.Item key={province.id} label={province.name} value={province.id} />
-        ))}
-      </Picker>
+      <Text style={styles.screenTitle}>Indonesian Cities & Regencies</Text>
+      <View style={styles.pickerWrapper}>
+        <Picker
+          selectedValue={selectedProvince}
+          onValueChange={(itemValue) => handleProvinceChange(itemValue)}
+        >
+          <Picker.Item label="Select a Province" value={null} />
+          {provinces.map(province => (
+            <Picker.Item key={province.id} label={province.name} value={province.id} />
+          ))}
+        </Picker>
+      </View>
       {isAdmin && (
-        <View style={styles.buttonContainer}>
-            <Button title="Populate All Cities" onPress={handlePopulateCities} />
-            <Button title="Clear All Cities" onPress={handleClearCities} color="red" />
+        <View style={styles.actionsRow}>
+          <SecondaryButton title="Populate Cities" onPress={handlePopulateCities} style={styles.flexBtn} />
+          <SecondaryButton title="Clear All" onPress={handleClearCities} style={styles.flexBtn} />
         </View>
       )}
-      {loadingCities ? <ActivityIndicator /> : (
-        cities.length > 0 ? (
-      <FlatList
+      {loadingCities ? (
+        <ActivityIndicator style={{ marginTop: spacing(10) }} />
+      ) : cities.length > 0 ? (
+        <FlatList
           data={cities}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-          <View style={styles.itemContainer}>
-              <Text>{item.name}</Text>
-          </View>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{item.name}</Text>
+            </View>
           )}
+          contentContainerStyle={{ paddingBottom: spacing(30) }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={async () => {
                 setRefreshing(true);
-                if(selectedProvince) await fetchCities(selectedProvince);
+                if (selectedProvince) await fetchCities(selectedProvince);
                 setRefreshing(false);
               }}
             />
           }
-      />
-        ) : (
-            <Text style={styles.infoText}>
-                {selectedProvince ? 'No cities found for this province.' : 'Please select a province to view the list of cities.'}
-            </Text>
-        )
+        />
+      ) : (
+        <Text style={styles.infoText}>
+          {selectedProvince ? 'No cities found for this province.' : 'Please select a province to view the list of cities.'}
+        </Text>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  itemContainer: { marginBottom: 10, padding: 15, borderColor: 'gray', borderWidth: 1, borderRadius: 5 },
-  buttonContainer: { marginBottom: 20, flexDirection: 'row', justifyContent: 'space-around' },
-  infoText: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-    color: 'gray',
-  },
+  container: { flex: 1, backgroundColor: palette.bg, padding: spacing(4) },
+  screenTitle: { ...typography.h1, textAlign: 'center', marginBottom: spacing(4) },
+  pickerWrapper: { backgroundColor: palette.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: palette.border, marginBottom: spacing(4) },
+  actionsRow: { flexDirection: 'row', gap: spacing(3), marginBottom: spacing(4) },
+  flexBtn: { flex: 1 },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(4), marginBottom: spacing(3), borderWidth: 1, borderColor: palette.border, ...shadow.card },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: palette.text },
+  infoText: { textAlign: 'center', marginTop: spacing(10), fontSize: 15, color: palette.textMuted, paddingHorizontal: spacing(4) },
 });
