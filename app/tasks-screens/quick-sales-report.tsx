@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
 // Phase 4 UI integration
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
@@ -9,6 +9,8 @@ import { StatusPill } from '../../components/ui/StatusPill';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import QuickSalesReportDetailsModal, { buildQuickSalesReportText } from '@/components/QuickSalesReportDetailsModal';
+import * as Clipboard from 'expo-clipboard';
 
 export default function QuickSalesReportScreen() {
   // Pull-to-refresh state
@@ -20,6 +22,10 @@ export default function QuickSalesReportScreen() {
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAMReviewModalVisible, setIsAMReviewModalVisible] = useState(false);
+  // Expanded rows + details modal (description)
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const [detailsItem, setDetailsItem] = useState<any | null>(null);
 
   const initialFormData = {
     guardDate: '',
@@ -184,6 +190,7 @@ export default function QuickSalesReportScreen() {
   const renderItem = ({ item }: { item: any }) => {
     const status = item.taskSalesReportQuickStatus || '';
     const statusTone = !status ? 'neutral' : status.includes('Review') ? 'warning' : status.includes('Done') ? 'success' : status.includes('AM') ? 'info' : 'primary';
+    const isExpanded = !!expanded[item.id];
     return (
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
@@ -198,7 +205,23 @@ export default function QuickSalesReportScreen() {
         <Text style={styles.metaText}>BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
         <Text style={styles.metaText}>TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
         <Text style={styles.metaText}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        {isExpanded && (
+          <View style={{ marginTop: spacing(3) }}>
+            <Text style={styles.metaText}>KEGS 330ml: <Text style={styles.metaValue}>{item.salesKegs330 || '-'}</Text></Text>
+            <Text style={styles.metaText}>KEGS 500ml: <Text style={styles.metaValue}>{item.salesKegs500 || '-'}</Text></Text>
+            <Text style={styles.metaText}>MD 500ml: <Text style={styles.metaValue}>{item.salesMd500 || '-'}</Text></Text>
+            <Text style={styles.metaText}>GDIC 400ml: <Text style={styles.metaValue}>{item.salesGdic400 || '-'}</Text></Text>
+            <Text style={styles.metaText}>Smooth Pint 330ml: <Text style={styles.metaValue}>{item.salesSmoothPint330 || '-'}</Text></Text>
+            <Text style={styles.metaText}>GFES Can 330ml: <Text style={styles.metaValue}>{item.salesGfesCan330 || '-'}</Text></Text>
+            <Text style={styles.metaText}>Restock: <Text style={styles.metaValue}>{item.productRestock ? 'Yes' : 'No'}</Text></Text>
+            {!!item.productRestockDescription && (
+              <Text style={styles.metaText}>Restock Desc: <Text style={styles.metaValue}>{item.productRestockDescription}</Text></Text>
+            )}
+          </View>
+        )}
         <View style={styles.actionsRow}>
+          <SecondaryButton title={isExpanded ? 'Hide' : 'Expand'} onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))} style={styles.actionBtn} />
+          <SecondaryButton title="Details" onPress={() => { setDetailsItem(item); setDetailsVisible(true); }} style={styles.actionBtn} />
           {userRole === 'Iris - BA' && (!status) && (
             <PrimaryButton title="QR by BA" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
@@ -390,6 +413,12 @@ export default function QuickSalesReportScreen() {
             }}
           />
         }
+      />
+      <QuickSalesReportDetailsModal
+        visible={detailsVisible}
+        item={detailsItem}
+        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildQuickSalesReportText(detailsItem, 'text')); Alert.alert('Copied to clipboard'); } : undefined}
+        onClose={() => setDetailsVisible(false)}
       />
       {renderModal()}
       {renderAMReviewModal()}

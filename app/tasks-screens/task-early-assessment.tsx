@@ -3,7 +3,7 @@ import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'fire
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
@@ -11,8 +11,10 @@ import { StatusPill } from '../../components/ui/StatusPill';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import TaskEarlyAssessmentDetailsModal, { buildTaskEarlyAssessmentText } from '@/components/TaskEarlyAssessmentDetailsModal';
+import * as Clipboard from 'expo-clipboard';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { TouchableOpacity, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
 export default function TaskEarlyAssessmentScreen() {
   // Pull-to-refresh state
@@ -30,6 +32,10 @@ export default function TaskEarlyAssessmentScreen() {
   const [modalType, setModalType] = useState<'add' | 'edit' | 'reviewAM'>('add');
   const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
+  // Expand and description details
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const [detailsItem, setDetailsItem] = useState<any | null>(null);
   const [outletDetails, setOutletDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showExpiryKegsPicker, setShowExpiryKegsPicker] = useState(false);
@@ -388,6 +394,7 @@ export default function TaskEarlyAssessmentScreen() {
   const renderItem = ({ item }: { item: any }) => {
     const status = item.status || '-';
     const tone = status.includes('AM') ? 'success' : status.includes('TL') ? 'info' : status.includes('BA') ? 'warning' : 'neutral';
+    const isExpanded = !!expanded[item.id];
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -398,7 +405,19 @@ export default function TaskEarlyAssessmentScreen() {
         <Text style={styles.meta}>Assigned TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
         <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
         <Text style={styles.meta}>Task ID: <Text style={styles.metaValue}>{item.tasksId || '-'}</Text></Text>
+        {isExpanded && (
+          <View style={{ marginTop: spacing(3) }}>
+            <Text style={styles.meta}>KEGS Avail: <Text style={styles.metaValue}>{item.kegsAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={styles.meta}>GDIC Avail: <Text style={styles.metaValue}>{item.gdicAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={styles.meta}>Smooth Avail: <Text style={styles.metaValue}>{item.smoothAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={styles.meta}>GFES Avail: <Text style={styles.metaValue}>{item.gfesAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={styles.meta}>POSM Avail: <Text style={styles.metaValue}>{item.posmAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={styles.meta}>Merchandise Avail: <Text style={styles.metaValue}>{item.merchandiseAvailable ? 'Yes' : 'No'}</Text></Text>
+          </View>
+        )}
         <View style={styles.actionsRow}>
+          <SecondaryButton title={isExpanded ? 'Hide' : 'Expand'} onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))} style={styles.actionBtn} />
+          <SecondaryButton title="Details" onPress={() => { setDetailsItem(item); setDetailsVisible(true); }} style={styles.actionBtn} />
           {userRole === 'Iris - BA' && (!item.status || item.status === '') && (
             <PrimaryButton title="Assess BA" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
@@ -1120,6 +1139,12 @@ export default function TaskEarlyAssessmentScreen() {
             }}
           />
         }
+      />
+      <TaskEarlyAssessmentDetailsModal
+        visible={detailsVisible}
+        item={detailsItem}
+        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildTaskEarlyAssessmentText(detailsItem, 'text')); Alert.alert('Copied to clipboard'); } : undefined}
+        onClose={() => setDetailsVisible(false)}
       />
       {renderModal()}
       {renderReviewModal()}

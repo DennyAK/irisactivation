@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, ScrollView, View, Text, Button, StyleSheet } from 'react-native';
+import { Modal, ScrollView, View, Text, Button, StyleSheet, Share, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 
 export type DetailsMode = 'review' | 'description';
 
@@ -30,6 +31,20 @@ const SalesReportDetailsModal: React.FC<Props> = ({
   onCopyAll,
   onDoneByAM,
 }) => {
+  const handleCopyMarkdown = async () => {
+    if (!item) return;
+    const md = buildSalesReportText(item, 'markdown');
+    await Clipboard.setStringAsync(md);
+  Alert.alert('Copied to clipboard');
+  };
+
+  const handleShare = async () => {
+    if (!item) return;
+    const text = buildSalesReportText(item, 'text');
+    try {
+      await Share.share({ message: text });
+    } catch {}
+  };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
@@ -75,7 +90,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Sales Gfes Can Big 500ml" value={item.salesGfesCanbig500} />
 
               <SectionTitle>Sampling Data</SectionTitle>
-              <Line label="Sampling available" value={item.samplingAvailable} />
+              <Line label="Sampling available" value={item.samplingDataAvailable ?? item.samplingAvailable} />
               <Line label="Sampling Smooth Bottle" value={item.samplingSmoothBottle} />
               <Line label="Sampling Smooth On Lips" value={item.samplingSmoothOnLips} />
               <Line label="Sampling Smooth Bottle To Buy" value={item.samplingSmoothBottleToBuy} />
@@ -96,6 +111,17 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Calls Offers" value={item.callsOffers} />
               <Line label="Effective Calls" value={item.effectiveCalls} />
               <Line label="Calls vs Effective Percentage" value={item.callsVsEffectivePercentage} />
+
+              <SectionTitle>Selling Data (Aggregates)</SectionTitle>
+              <Line label="Sales Smooth Can" value={item.salesSmoothCan} />
+              <Line label="Sales Smooth Bottle" value={item.salesSmoothBotol} />
+              <Line label="Sales GFES Can" value={item.salesGfesCan} />
+              <Line label="Sales GFES Can Big" value={item.salesGfesCanBig} />
+              <Line label="Sales GFES Bottle" value={item.salesGfesBotol} />
+              <Line label="Sales GFES Quart" value={item.salesGfesQuart} />
+              <Line label="Sales Kegs" value={item.salesKegs} />
+              <Line label="Sales Microdraught" value={item.salesMd} />
+              <Line label="Sales GDIC" value={item.salesGdic} />
 
               <SectionTitle>Guinness Promotional Activities</SectionTitle>
               <Line label="Guinness Smooth Promotion Available" value={item.guinnessSmoothPromotionAvailable ? 'Yes' : 'No'} />
@@ -137,6 +163,10 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Promo Gdic Description - Type 2" value={item.promoGdicDescriptionType2} />
               <Line label="Promo Gdic Sold - Type 2" value={item.promoGdicSoldType2} />
               <Line label="Promo Gdic Repeat Orders - Type 2" value={item.promoGdicRepeatOrdersType2 ?? item.promoGdicRepeatOrderType2} />
+
+              {/* Generic promo rollups */}
+              <Line label="Packages Sold (All)" value={item.packagesSold} />
+              <Line label="Repeat Orders (All)" value={item.repeatOrders} />
 
               <SectionTitle>Visitor and Consumer Data</SectionTitle>
               <Line label="Visitors Overall" value={item.visitorsOverall} />
@@ -325,6 +355,8 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Activity SPG Total" value={item.competitorActivitySpgTotal} />
 
               <SectionTitle>Merchandise Data</SectionTitle>
+              <Line label="Merchandise Available" value={item.merchandiseAvailable ? 'Yes' : 'No'} />
+              <Line label="Merchandise Distributed" value={item.merchandiseDistributed} />
               <Line label="Merchandise Description 1" value={item.merchandiseDescription1} />
               <Line label="Merchandise Sold 1" value={item.merchandiseSold1} />
               <Line label="Merchandise Description 2" value={item.merchandiseDescription2} />
@@ -339,15 +371,64 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <SectionTitle>Weather Data</SectionTitle>
               <Line label="Weather Status" value={item.weatherStatus} />
 
+              <SectionTitle>Programs and Digital Activity</SectionTitle>
+              {/* Stoutie */}
+              <Line label="Stoutie Program Participation" value={(item.stoutieProgramParticipation ?? item.stoutieprogramParticipation) ? 'Yes' : 'No'} />
+              <Line label="Stoutie Program Description" value={item.stoutieProgramDescription} />
+              <Line label="Stoutie Program Call Reach" value={item.stoutieProgramCallReach} />
+              <Line label="Stoutie Program Packet Sold" value={item.stoutieProgramPacketSold} />
+              <Line label="Stoutie Program Engage People" value={item.stoutieProgramEngagePeople} />
+              {/* Loyalty */}
+              <Line label="Loyalty Program Participation" value={item.loyaltyProgramParticipation ? 'Yes' : 'No'} />
+              <Line label="Loyalty Program Description" value={item.loyaltyProgramDescription} />
+              <Line label="Loyalty Program Call Reach" value={item.loyaltyProgramCallReach} />
+              <Line label="Loyalty Program Packet Sold" value={item.loyaltyProgramPacketSold} />
+              <Line label="Loyalty Program Engage People" value={item.loyaltyProgramEngagePeople} />
+              {/* Brightball */}
+              <Line label="Brightball Participation" value={item.brightballParticipation ? 'Yes' : 'No'} />
+              <Line label="Brightball Description" value={item.brightballDescription} />
+              <Line label="Brightball Call Reach" value={item.brightballCallReach} />
+              <Line label="Brightball Packet Sold" value={item.brightballPacketSold} />
+              <Line label="Brightball Engage People" value={item.brightballEngagePeople} />
+              {/* SOV */}
+              <Line label="SOV Program Participation" value={item.sovProgramParticipation ? 'Yes' : 'No'} />
+              <Line label="SOV Program Description" value={item.sovProgramDescription} />
+              <Line label="SOV Program Call Reach" value={item.sovProgramCallReach} />
+              <Line label="SOV Program Packet Sold" value={item.sovProgramPacketSold} />
+              <Line label="SOV Program Engage People" value={item.sovProgramEngagePeople} />
+
+              <SectionTitle>Bali Specific Data</SectionTitle>
+              <Line label="Bali Specific Visitor Data" value={item.baliSpecificVisitorData ? 'Yes' : 'No'} />
+              <Line label="Bali Local Visitors" value={item.baliLocalVisitors} />
+              <Line label="Bali Foreign Visitors" value={item.baliForeignVisitors} />
+              <Line label="Bali Local Guinness Buyers" value={item.baliLocalGuinnessBuyers} />
+              <Line label="Bali Foreign Guinness Buyers" value={item.baliForeignGuinnessBuyers} />
+
+              <SectionTitle>AMS Data</SectionTitle>
+              <Line label="AMS GFES" value={item.amsGfes} />
+              <Line label="AMS Smooth" value={item.amsSmooth} />
+              <Line label="AMS Microdraught" value={item.amsMicrodraught} />
+              <Line label="AMS Kegs" value={item.amsKegs} />
+              <Line label="AMS Total" value={item.amsTotal} />
+
               <SectionTitle>Sales Report Summary Notes and Learning</SectionTitle>
               <Line label="Issues/Notes/Requests" value={item.issuesNotesRequests} />
               <Line label="Learning Points" value={item.learningPoints} />
+              <Line label="Beer Market Size" value={item.beerMarketSize} />
+              <Line label="Total Guinness Sales" value={item.totalGuinnessSales} />
+              <Line label="Achievement Percentage" value={item.achievementPercentage} />
             </>
           )}
 
           <View style={styles.buttonRow}>
             {mode === 'description' && onCopyAll && (
               <Button title="Copy All" onPress={onCopyAll} />
+            )}
+            {mode === 'description' && item && (
+              <Button title="Copy MD" onPress={handleCopyMarkdown} />
+            )}
+            {mode === 'description' && item && (
+              <Button title="Share" onPress={handleShare} />
             )}
             {mode === 'review' && userRole === 'area manager' && onDoneByAM && (
               <Button title="Done by AM" onPress={onDoneByAM} />
@@ -369,3 +450,411 @@ const styles = StyleSheet.create({
 });
 
 export default SalesReportDetailsModal;
+
+// Centralized builder for "Copy All" text. Matches the fields shown above.
+export function buildSalesReportText(
+  item: any,
+  format: 'text' | 'markdown' = 'text'
+): string {
+  if (!item) return '';
+  const isMD = format === 'markdown';
+  const h = (title: string) => (isMD ? `\n## ${title}\n` : `\n${title}\n`);
+  const line = (label: string, value: any) => `${label}: ${formatValue(value)}`;
+  const lines: string[] = [];
+
+  // Personnel Information
+  lines.push(h('Personnel Information'));
+  lines.push(line('Assigned to BA', item.assignedToBA));
+  lines.push(line('Assigned to TL', item.assignedToTL));
+  lines.push(line('BA Count', item.baCount));
+  lines.push(line('Crew Canvasser Count', item.crewCanvasserCount));
+  lines.push(line('Team Leader Name', item.teamLeaderName));
+  lines.push(line('SPG Name', item.spgName));
+  lines.push(line('Sales Report Detail Status', item.salesReportDetailStatus));
+  lines.push(line('Created At', tsToLocale(item.createdAt)));
+  lines.push(line('Created By', item.createdBy));
+  lines.push(line('Task ID', item.tasksId));
+
+  // Outlet Information
+  lines.push(h('Outlet Information'));
+  lines.push(line('Outlet ID', item.outletId));
+  lines.push(line('Outlet Name', item.outletName));
+  lines.push(line('Province', item.outletProvince));
+  lines.push(line('City', item.outletCity));
+  lines.push(line('Activity Name', item.activityName));
+  lines.push(line('Outlet Venue Name', item.outletVenueName));
+  lines.push(line('Capacity', item.outletCapacity));
+  lines.push(line('Outlet No. of Table Available', item.outletNoOfTableAVailable));
+  lines.push(line('Outlet Event PIC', item.outletEventPic));
+
+  // Guinness Selling Data
+  lines.push(h('Guinness Selling Data'));
+  lines.push(line('Sales Kegs 330ml', item.salesKegs330));
+  lines.push(line('Sales Kegs 500ml', item.salesKegs500));
+  lines.push(line('Sales MD 500ml', item.salesMd500));
+  lines.push(line('Sales Gdic 400ml', item.salesGdic400));
+  lines.push(line('Sales Smooth Pint 330ml', item.salesSmoothPint330));
+  lines.push(line('Sales Smooth Can 330ml', item.salesSmoothCan330));
+  lines.push(line('Sales Gfes Pint 330ml', item.salesGfesPint330));
+  lines.push(line('Sales Gfes Can 330ml', item.salesGfesCan330));
+  lines.push(line('Sales Gfes Quart 620ml', item.salesGfesQuart620));
+  lines.push(line('Sales Gfes Can Big 500ml', item.salesGfesCanbig500));
+
+  // Sampling Data
+  lines.push(h('Sampling Data'));
+  lines.push(line('Sampling available', yn(item.samplingDataAvailable ?? item.samplingAvailable)));
+  lines.push(line('Sampling Smooth Bottle', item.samplingSmoothBottle));
+  lines.push(line('Sampling Smooth On Lips', item.samplingSmoothOnLips));
+  lines.push(line('Sampling Smooth Bottle To Buy', item.samplingSmoothBottleToBuy));
+  lines.push(line('Sampling Gfes Bottle', item.samplingGfesBottle));
+  lines.push(line('Sampling Gfes On Lips', item.samplingGfesOnLips));
+  lines.push(line('Sampling Gfes To Buy', item.samplingGfesToBuy));
+  lines.push(line('Sampling Kegs', item.samplingKegs));
+  lines.push(line('Sampling Kegs On Lips', item.samplingKegsOnLips));
+  lines.push(line('Sampling Kegs To Buy', item.samplingKegsToBuy));
+  lines.push(line('Sampling Md', item.samplingMd));
+  lines.push(line('Sampling Md On Lips', item.samplingMdOnLips));
+  lines.push(line('Sampling Md To Buy', item.samplingMdToBuy));
+  lines.push(line('Sampling Gdic', item.samplingGdic));
+  lines.push(line('Sampling Gdic On Lips', item.samplingGdicOnLips));
+  lines.push(line('Sampling Gdic Bottle To Buy', item.samplingGdicBottleToBuy));
+
+  // Call and Customer Data
+  lines.push(h('Call and Customer Data'));
+  lines.push(line('Calls Offers', item.callsOffers));
+  lines.push(line('Effective Calls', item.effectiveCalls));
+  lines.push(line('Calls vs Effective Percentage', item.callsVsEffectivePercentage));
+
+  // Selling Data (Aggregates)
+  lines.push(h('Selling Data (Aggregates)'));
+  lines.push(line('Sales Smooth Can', item.salesSmoothCan));
+  lines.push(line('Sales Smooth Bottle', item.salesSmoothBotol));
+  lines.push(line('Sales GFES Can', item.salesGfesCan));
+  lines.push(line('Sales GFES Can Big', item.salesGfesCanBig));
+  lines.push(line('Sales GFES Bottle', item.salesGfesBotol));
+  lines.push(line('Sales GFES Quart', item.salesGfesQuart));
+  lines.push(line('Sales Kegs', item.salesKegs));
+  lines.push(line('Sales Microdraught', item.salesMd));
+  lines.push(line('Sales GDIC', item.salesGdic));
+
+  // Promotional Activities
+  lines.push(h('Guinness Promotional Activities'));
+  // Smooth
+  lines.push(line('Guinness Smooth Promotion Available', yn(item.guinnessSmoothPromotionAvailable)));
+  lines.push(line('Promo Smooth Description', item.promoSmoothDescription));
+  lines.push(line('Promo Smooth Sold', item.promoSmoothSold));
+  lines.push(line('Promo Smooth Repeat Orders', item.promoSmoothRepeatOrders ?? item.promoSmoothRepeatOrder));
+  lines.push(line('Promo Smooth Description - Type 2', item.promoSmoothDescriptionType2));
+  lines.push(line('Promo Smooth Sold - Type 2', item.promoSmoothSoldType2));
+  lines.push(line('Promo Smooth Repeat Orders - Type 2', item.promoSmoothRepeatOrdersType2 ?? item.promoSmoothRepeatOrderType2));
+  // GFES
+  lines.push(line('Guinness Gfes Promotion Available', yn(item.guinnessGfesPromotionAvailable)));
+  lines.push(line('Promo Gfes Description', item.promoGfesDescription));
+  lines.push(line('Promo Gfes Sold', item.promoGfesSold));
+  lines.push(line('Promo Gfes Repeat Orders', item.promoGfesRepeatOrders ?? item.promoGfesRepeatOrder));
+  lines.push(line('Promo Gfes Description - Type 2', item.promoGfesDescriptionType2));
+  lines.push(line('Promo Gfes Sold - Type 2', item.promoGfesSoldType2));
+  lines.push(line('Promo Gfes Repeat Orders - Type 2', item.promoGfesRepeatOrdersType2 ?? item.promoGfesRepeatOrderType2));
+  // Kegs
+  lines.push(line('Guinness Kegs Promotion Available', yn(item.guinnessKegsPromotionAvailable)));
+  lines.push(line('Promo Kegs Description', item.promoKegsDescription));
+  lines.push(line('Promo Kegs Sold', item.promoKegsSold));
+  lines.push(line('Promo Kegs Repeat Orders', item.promoKegsRepeatOrders ?? item.promoKegsRepeatOrder));
+  lines.push(line('Promo Kegs Description - Type 2', item.promoKegsDescriptionType2));
+  lines.push(line('Promo Kegs Sold - Type 2', item.promoKegsSoldType2));
+  lines.push(line('Promo Kegs Repeat Orders - Type 2', item.promoKegsRepeatOrdersType2 ?? item.promoKegsRepeatOrderType2));
+  // Microdraught
+  lines.push(line('Guinness Microdraught Promotion Available', yn(item.guinnessMicroDraughtPromotionAvailable)));
+  lines.push(line('Promo Microdraught Description', item.promoMicrodraughtDescription));
+  lines.push(line('Promo Microdraught Sold', item.promoMicrodraughtSold));
+  lines.push(line('Promo Microdraught Repeat Orders', item.promoMicrodraughtRepeatOrders ?? item.promoMicrodraughtRepeatOrder));
+  lines.push(line('Promo Microdraught Description - Type 2', item.promoMicrodraughtDescriptionType2));
+  lines.push(line('Promo Microdraught Sold - Type 2', item.promoMicrodraughtSoldType2));
+  lines.push(line('Promo Microdraught Repeat Orders - Type 2', item.promoMicrodraughtRepeatOrdersType2 ?? item.promoMicrodraughtRepeatOrderType2));
+  // GDIC
+  lines.push(line('Guinness Gdic Promotion Available', yn(item.guinnessGdicPromotionAvailable)));
+  lines.push(line('Promo Gdic Description', item.promoGdicDescription));
+  lines.push(line('Promo Gdic Sold', item.promoGdicSold));
+  lines.push(line('Promo Gdic Repeat Orders', item.promoGdicRepeatOrders ?? item.promoGdicRepeatOrder));
+  lines.push(line('Promo Gdic Description - Type 2', item.promoGdicDescriptionType2));
+  lines.push(line('Promo Gdic Sold - Type 2', item.promoGdicSoldType2));
+  lines.push(line('Promo Gdic Repeat Orders - Type 2', item.promoGdicRepeatOrdersType2 ?? item.promoGdicRepeatOrderType2));
+
+  // Generic promo rollups
+  lines.push(line('Packages Sold (All)', item.packagesSold));
+  lines.push(line('Repeat Orders (All)', item.repeatOrders));
+
+  // Visitor and Consumer Data
+  lines.push(h('Visitor and Consumer Data'));
+  lines.push(line('Visitors Overall', item.visitorsOverall));
+  lines.push(line('Visitors Alcohol Drinkers', item.visitorsAlcoholDrinkers));
+  lines.push(line('Visitors All Beer Drinkers', item.visitorsAllBeerDrinkers));
+  lines.push(line('Visitors All Guinness', item.visitorsAllGuinness));
+  lines.push(line('Visitors All Competitor', item.visitorsAllCompetitor));
+  lines.push(line('Visitors All Guinness Mixed Competitor', item.visitorsAllGuinnessMixedCompetitor));
+  lines.push(line('Drinkers Smooth', item.drinkersSmooth));
+  lines.push(line('Drinkers Gfes', item.drinkersGfes));
+  lines.push(line('Drinkers Kegs', item.drinkersKegs));
+  lines.push(line('Drinkers Microdraught', item.drinkersMicrodraught));
+  lines.push(line('Drinkers Gdic', item.drinkersGdic));
+  lines.push(line('Drinkers Mixed', item.drinkersMixed));
+
+  // Tables Data
+  lines.push(h('Tables Data'));
+  lines.push(line('Tables Overall', item.tablesOverall));
+  lines.push(line('Tables Alcohol Drinkers', item.tablesAlcoholDrinkers));
+  lines.push(line('Tables Non Alcohol Drinkers', item.tablesNonAlcoholDrinkers));
+  lines.push(line('Tables All Beer Drinkers', item.tablesAllBeerDrinkers));
+  lines.push(line('Tables All Guinness', item.tablesAllGuinness));
+  lines.push(line('Tables All Competitor', item.tablesAllCompetitor));
+  lines.push(line('Tables All Guinness Mixed Competitor', item.tablesAllGuinnessMixedCompetitor));
+
+  // Competitor Sales (with key variants for Draft Beer)
+  lines.push(h('Competitor Sales'));
+  // Bintang
+  lines.push(line('Competitor Bintang Available', yn(item.competitorBintangAvailable)));
+  lines.push(line('Competitor Bintang Glass', item.competitorBintangGlass));
+  lines.push(line('Competitor Bintang Pint', item.competitorBintangPint));
+  lines.push(line('Competitor Bintang Quart', item.competitorBintangQuart));
+  lines.push(line('Competitor Bintang Can Small', item.competitorBintangCanSmall));
+  lines.push(line('Competitor Bintang Can Big', item.competitorBintangCanBig));
+  lines.push(line('Competitor Bintang Promo Description', item.competitorBintangPromoDescription));
+  lines.push(line('Competitor Bintang Promo Sold', item.competitorBintangPromoSold));
+  // Bintang Crystal
+  lines.push(line('Competitor Bintang Crystal Available', yn(item.competitorBintangCrystalAvailable)));
+  lines.push(line('Competitor Bintang Crystal Glass', item.competitorBintangCrystalGlass));
+  lines.push(line('Competitor Bintang Crystal Pint', item.competitorBintangCrystalPint));
+  lines.push(line('Competitor Bintang Crystal Quart', item.competitorBintangCrystalQuart));
+  lines.push(line('Competitor Bintang Crystal Can Small', item.competitorBintangCrystalCanSmall));
+  lines.push(line('Competitor Bintang Crystal Can Big', item.competitorBintangCrystalCanBig));
+  lines.push(line('Competitor Bintang Crystal Promo Description', item.competitorBintangCrystalPromoDescription));
+  lines.push(line('Competitor Bintang Crystal Promo Sold', item.competitorBintangCrystalPromoSold));
+  // Heineken
+  lines.push(line('Competitor Heineken Available', yn(item.competitorHeinekenAvailable)));
+  lines.push(line('Competitor Heineken Glass', item.competitorHeinekenGlass));
+  lines.push(line('Competitor Heineken Pint', item.competitorHeinekenPint));
+  lines.push(line('Competitor Heineken Quart', item.competitorHeinekenQuart));
+  lines.push(line('Competitor Heineken Can Small', item.competitorHeinekenCanSmall));
+  lines.push(line('Competitor Heineken Can Big', item.competitorHeinekenCanBig));
+  lines.push(line('Competitor Heineken Promo Description', item.competitorHeinekenPromoDescription));
+  lines.push(line('Competitor Heineken Promo Sold', item.competitorHeinekenPromoSold));
+  // Heineken Import
+  lines.push(line('Competitor Heineken Import Available', yn(item.competitorHeinekenImportAvailable)));
+  lines.push(line('Competitor Heineken Import Glass', item.competitorHeinekenImportGlass));
+  lines.push(line('Competitor Heineken Import Pint', item.competitorHeinekenImportPint));
+  lines.push(line('Competitor Heineken Import Quart', item.competitorHeinekenImportQuart));
+  lines.push(line('Competitor Heineken Import Can Small', item.competitorHeinekenImportCanSmall));
+  lines.push(line('Competitor Heineken Import Can Big', item.competitorHeinekenImportCanBig));
+  lines.push(line('Competitor Heineken Import Promo Description', item.competitorHeinekenImportPromoDescription));
+  lines.push(line('Competitor Heineken Import Promo Sold', item.competitorHeinekenImportPromoSold));
+  // Erdinger Import
+  lines.push(line('Competitor Erdinger Import Available', yn(item.competitorErdingerImportAvailable)));
+  lines.push(line('Competitor Erdinger Import Glass', item.competitorErdingerImportGlass));
+  lines.push(line('Competitor Erdinger Import Pint', item.competitorErdingerImportPint));
+  lines.push(line('Competitor Erdinger Import Quart', item.competitorErdingerImportQuart));
+  lines.push(line('Competitor Erdinger Import Can Small', item.competitorErdingerImportCanSmall));
+  lines.push(line('Competitor Erdinger Import Can Big', item.competitorErdingerImportCanBig));
+  lines.push(line('Competitor Erdinger Import Promo Description', item.competitorErdingerImportPromoDescription));
+  lines.push(line('Competitor Erdinger Import Promo Sold', item.competitorErdingerImportPromoSold));
+  // Budweizer Import
+  lines.push(line('Competitor Budweizer Import Available', yn(item.competitorBudweizerImportAvailable)));
+  lines.push(line('Competitor Budweizer Import Glass', item.competitorBudweizerImportGlass));
+  lines.push(line('Competitor Budweizer Import Pint', item.competitorBudweizerImportPint));
+  lines.push(line('Competitor Budweizer Import Quart', item.competitorBudweizerImportQuart));
+  lines.push(line('Competitor Budweizer Import Can Small', item.competitorBudweizerImportCanSmall));
+  lines.push(line('Competitor Budweizer Import Can Big', item.competitorBudweizerImportCanBig));
+  lines.push(line('Competitor Budweizer Import Promo Description', item.competitorBudweizerImportPromoDescription));
+  lines.push(line('Competitor Budweizer Import Promo Sold', item.competitorBudweizerImportPromoSold));
+  // Anker
+  lines.push(line('Competitor Anker Available', yn(item.competitorAnkerAvailable)));
+  lines.push(line('Competitor Anker Glass', item.competitorAnkerGlass));
+  lines.push(line('Competitor Anker Pint', item.competitorAnkerPint));
+  lines.push(line('Competitor Anker Quart', item.competitorAnkerQuart));
+  lines.push(line('Competitor Anker Can Small', item.competitorAnkerCanSmall));
+  lines.push(line('Competitor Anker Can Big', item.competitorAnkerCanBig));
+  lines.push(line('Competitor Anker Promo Description', item.competitorAnkerPromoDescription));
+  lines.push(line('Competitor Anker Promo Sold', item.competitorAnkerPromoSold));
+  // Bali Hai
+  lines.push(line('Competitor Bali Hai Available', yn(item.competitorBalihaiAvailable)));
+  lines.push(line('Competitor Bali Hai Glass', item.competitorBalihaiGlass));
+  lines.push(line('Competitor Bali Hai Pint', item.competitorBalihaiPint));
+  lines.push(line('Competitor Bali Hai Quart', item.competitorBalihaiQuart));
+  lines.push(line('Competitor Bali Hai Can Small', item.competitorBalihaiCanSmall));
+  lines.push(line('Competitor Bali Hai Can Big', item.competitorBalihaiCanBig));
+  lines.push(line('Competitor Bali Hai Promo Description', item.competitorBalihaiPromoDescription));
+  lines.push(line('Competitor Bali Hai Promo Sold', item.competitorBalihaiPromoSold));
+  // Prost
+  lines.push(line('Competitor Prost Available', yn(item.competitorProstAvailable)));
+  lines.push(line('Competitor Prost Glass', item.competitorProstGlass));
+  lines.push(line('Competitor Prost Pint', item.competitorProstPint));
+  lines.push(line('Competitor Prost Quart', item.competitorProstQuart));
+  lines.push(line('Competitor Prost Can Small', item.competitorProstCanSmall));
+  lines.push(line('Competitor Prost Can Big', item.competitorProstCanBig));
+  lines.push(line('Competitor Prost Promo Description', item.competitorProstPromoDescription));
+  lines.push(line('Competitor Prost Promo Sold', item.competitorProstPromoSold));
+  // San Miguel
+  lines.push(line('Competitor San Miguel Available', yn(item.competitorSanMiguelAvailable)));
+  lines.push(line('Competitor San Miguel Glass', item.competitorSanMiguelGlass));
+  lines.push(line('Competitor San Miguel Pint', item.competitorSanMiguelPint));
+  lines.push(line('Competitor San Miguel Quart', item.competitorSanMiguelQuart));
+  lines.push(line('Competitor San Miguel Can Small', item.competitorSanMiguelCanSmall));
+  lines.push(line('Competitor San Miguel Can Big', item.competitorSanMiguelCanBig));
+  lines.push(line('Competitor San Miguel Promo Description', item.competitorSanMiguelPromoDescription));
+  lines.push(line('Competitor San Miguel Promo Sold', item.competitorSanMiguelPromoSold));
+  // Singaraja
+  lines.push(line('Competitor Singaraja Available', yn(item.competitorSingarajaAvailable)));
+  lines.push(line('Competitor Singaraja Glass', item.competitorSingarajaGlass));
+  lines.push(line('Competitor Singaraja Pint', item.competitorSingarajaPint));
+  lines.push(line('Competitor Singaraja Quart', item.competitorSingarajaQuart));
+  lines.push(line('Competitor Singaraja Can Small', item.competitorSingarajaCanSmall));
+  lines.push(line('Competitor Singaraja Can Big', item.competitorSingarajaCanBig));
+  // Carlsberg
+  lines.push(line('Competitor Carlsberg Available', yn(item.competitorCarlsbergAvailable)));
+  lines.push(line('Competitor Carlsberg Glass', item.competitorCarlsbergGlass));
+  lines.push(line('Competitor Carlsberg Pint', item.competitorCarlsbergPint));
+  lines.push(line('Competitor Carlsberg Quart', item.competitorCarlsbergQuart));
+  lines.push(line('Competitor Carlsberg Can Small', item.competitorCarlsbergCanSmall));
+  lines.push(line('Competitor Carlsberg Can Big', item.competitorCarlsbergCanBig));
+  lines.push(line('Competitor Carlsberg Promo Description', item.competitorCarlsbergPromoDescription));
+  lines.push(line('Competitor Carlsberg Promo Sold', item.competitorCarlsbergPromoSold));
+  // Draftbeer (support both key styles)
+  const dbAvail = item.competitorDraftBeerAvailable ?? item.competitorDraftbeerAvailable;
+  const dbGlass = item.competitorDraftBeerGlass ?? item.competitorDraftbeerGlass;
+  const dbPint = item.competitorDraftBeerPint ?? item.competitorDraftbeerPint;
+  const dbQuart = item.competitorDraftBeerQuart ?? item.competitorDraftbeerQuart;
+  const dbCanSmall = item.competitorDraftBeerCanSmall ?? item.competitorDraftbeerCanSmall;
+  const dbCanBig = item.competitorDraftBeerCanBig ?? item.competitorDraftbeerCanBig;
+  const dbDesc = item.competitorDraftBeerPromoDescription ?? item.competitorDraftbeerPromoDescription;
+  const dbSold = item.competitorDraftBeerPromoSold ?? item.competitorDraftbeerPromoSold;
+  lines.push(line('Competitor Draftbeer Available', yn(dbAvail)));
+  lines.push(line('Competitor Draftbeer Glass', dbGlass));
+  lines.push(line('Competitor Draftbeer Pint', dbPint));
+  lines.push(line('Competitor Draftbeer Quart', dbQuart));
+  lines.push(line('Competitor Draftbeer Can Small', dbCanSmall));
+  lines.push(line('Competitor Draftbeer Can Big', dbCanBig));
+  lines.push(line('Competitor Draftbeer Promo Description', dbDesc));
+  lines.push(line('Competitor Draftbeer Promo Sold', dbSold));
+  // Kura Kura
+  lines.push(line('Competitor Kura Kura Available', yn(item.competitorKuraKuraAvailable)));
+  lines.push(line('Competitor Kura Kura Glass', item.competitorKuraKuraGlass));
+  lines.push(line('Competitor Kura Kura Pint', item.competitorKuraKuraPint));
+  lines.push(line('Competitor Kura Kura Quart', item.competitorKuraKuraQuart));
+  lines.push(line('Competitor Kura Kura Can Small', item.competitorKuraKuraCanSmall));
+  lines.push(line('Competitor Kura Kura Can Big', item.competitorKuraKuraCanBig));
+  lines.push(line('Competitor Kura Kura Promo Description', item.competitorKuraKuraPromoDescription));
+  lines.push(line('Competitor Kura Kura Promo Sold', item.competitorKuraKuraPromoSold));
+  // Island Brewing
+  lines.push(line('Competitor Island Brewing Available', yn(item.competitorIslandBrewingAvailable)));
+  lines.push(line('Competitor Island Brewing Glass', item.competitorIslandBrewingGlass));
+  lines.push(line('Competitor Island Brewing Pint', item.competitorIslandBrewingPint));
+  lines.push(line('Competitor Island Brewing Quart', item.competitorIslandBrewingQuart));
+  lines.push(line('Competitor Island Brewing Can Small', item.competitorIslandBrewingCanSmall));
+  lines.push(line('Competitor Island Brewing Can Big', item.competitorIslandBrewingCanBig));
+  lines.push(line('Competitor Island Brewing Promo Description', item.competitorIslandBrewingPromoDescription));
+  lines.push(line('Competitor Island Brewing Promo Sold', item.competitorIslandBrewingPromoSold));
+  // Others
+  lines.push(line('Competitor Others Available', yn(item.competitorOthersAvailable)));
+  lines.push(line('Competitor Others Glass', item.competitorOthersGlass));
+  lines.push(line('Competitor Others Pint', item.competitorOthersPint));
+  lines.push(line('Competitor Others Quart', item.competitorOthersQuart));
+  lines.push(line('Competitor Others Can Small', item.competitorOthersCanSmall));
+  lines.push(line('Competitor Others Can Big', item.competitorOthersCanBig));
+  lines.push(line('Competitor Others Promo Description', item.competitorOthersPromoDescription));
+  lines.push(line('Competitor Others Promo Sold', item.competitorOthersPromoSold));
+  // Competitor activity summary
+  lines.push(line('Competitor Activity Description', item.competitorActivityDescription));
+  lines.push(line('Competitor Activity SPG Total', item.competitorActivitySpgTotal));
+
+  // Merchandise
+  lines.push(h('Merchandise Data'));
+  lines.push(line('Merchandise Available', yn(item.merchandiseAvailable)));
+  lines.push(line('Merchandise Distributed', item.merchandiseDistributed));
+  lines.push(line('Merchandise Description 1', item.merchandiseDescription1));
+  lines.push(line('Merchandise Sold 1', item.merchandiseSold1));
+  lines.push(line('Merchandise Description 2', item.merchandiseDescription2));
+  lines.push(line('Merchandise Sold 2', item.merchandiseSold2));
+  lines.push(line('Merchandise Description 3', item.merchandiseDescription3));
+  lines.push(line('Merchandise Sold 3', item.merchandiseSold3));
+  lines.push(line('Merchandise Description 4', item.merchandiseDescription4));
+  lines.push(line('Merchandise Sold 4', item.merchandiseSold4));
+  lines.push(line('Merchandise Description 5', item.merchandiseDescription5));
+  lines.push(line('Merchandise Sold 5', item.merchandiseSold5));
+
+  // Weather
+  lines.push(h('Weather Data'));
+  lines.push(line('Weather Status', item.weatherStatus));
+
+  // Programs and Digital Activity
+  lines.push(h('Programs and Digital Activity'));
+  // Stoutie
+  lines.push(line('Stoutie Program Participation', yn(item.stoutieProgramParticipation ?? item.stoutieprogramParticipation)));
+  lines.push(line('Stoutie Program Description', item.stoutieProgramDescription));
+  lines.push(line('Stoutie Program Call Reach', item.stoutieProgramCallReach));
+  lines.push(line('Stoutie Program Packet Sold', item.stoutieProgramPacketSold));
+  lines.push(line('Stoutie Program Engage People', item.stoutieProgramEngagePeople));
+  // Loyalty
+  lines.push(line('Loyalty Program Participation', yn(item.loyaltyProgramParticipation)));
+  lines.push(line('Loyalty Program Description', item.loyaltyProgramDescription));
+  lines.push(line('Loyalty Program Call Reach', item.loyaltyProgramCallReach));
+  lines.push(line('Loyalty Program Packet Sold', item.loyaltyProgramPacketSold));
+  lines.push(line('Loyalty Program Engage People', item.loyaltyProgramEngagePeople));
+  // Brightball
+  lines.push(line('Brightball Participation', yn(item.brightballParticipation)));
+  lines.push(line('Brightball Description', item.brightballDescription));
+  lines.push(line('Brightball Call Reach', item.brightballCallReach));
+  lines.push(line('Brightball Packet Sold', item.brightballPacketSold));
+  lines.push(line('Brightball Engage People', item.brightballEngagePeople));
+  // SOV
+  lines.push(line('SOV Program Participation', yn(item.sovProgramParticipation)));
+  lines.push(line('SOV Program Description', item.sovProgramDescription));
+  lines.push(line('SOV Program Call Reach', item.sovProgramCallReach));
+  lines.push(line('SOV Program Packet Sold', item.sovProgramPacketSold));
+  lines.push(line('SOV Program Engage People', item.sovProgramEngagePeople));
+
+  // Bali Specific Data
+  lines.push(h('Bali Specific Data'));
+  lines.push(line('Bali Specific Visitor Data', yn(item.baliSpecificVisitorData)));
+  lines.push(line('Bali Local Visitors', item.baliLocalVisitors));
+  lines.push(line('Bali Foreign Visitors', item.baliForeignVisitors));
+  lines.push(line('Bali Local Guinness Buyers', item.baliLocalGuinnessBuyers));
+  lines.push(line('Bali Foreign Guinness Buyers', item.baliForeignGuinnessBuyers));
+
+  // AMS Data
+  lines.push(h('AMS Data'));
+  lines.push(line('AMS GFES', item.amsGfes));
+  lines.push(line('AMS Smooth', item.amsSmooth));
+  lines.push(line('AMS Microdraught', item.amsMicrodraught));
+  lines.push(line('AMS Kegs', item.amsKegs));
+  lines.push(line('AMS Total', item.amsTotal));
+
+  // Summary
+  lines.push(h('Sales Report Summary Notes and Learning'));
+  lines.push(line('Issues/Notes/Requests', item.issuesNotesRequests));
+  lines.push(line('Learning Points', item.learningPoints));
+  lines.push(line('Beer Market Size', item.beerMarketSize));
+  lines.push(line('Total Guinness Sales', item.totalGuinnessSales));
+  lines.push(line('Achievement Percentage', item.achievementPercentage));
+
+  return lines.join('\n');
+}
+
+function yn(val: any): string {
+  if (val === true) return 'Yes';
+  if (val === false) return 'No';
+  return formatValue(val);
+}
+
+function tsToLocale(value: any): string {
+  try {
+    if (value?.toDate) {
+      return value.toDate().toLocaleString();
+    }
+  } catch {}
+  return formatValue(value);
+}
+
+function formatValue(value: any): string {
+  if (value === null || value === undefined || value === '') return '-';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return String(value);
+}

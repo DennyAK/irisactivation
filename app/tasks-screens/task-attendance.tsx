@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl, TouchableOpacity } from 'react-native';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
@@ -14,6 +14,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import TaskAttendanceDetailsModal, { buildTaskAttendanceText } from '@/components/TaskAttendanceDetailsModal';
+import * as Clipboard from 'expo-clipboard';
 
 export default function TaskAttendanceScreen() {
   // Pull-to-refresh state
@@ -45,6 +47,10 @@ export default function TaskAttendanceScreen() {
   });
   const [selectedAttendance, setSelectedAttendance] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  // Expand and details
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const [detailsItem, setDetailsItem] = useState<any | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -345,6 +351,7 @@ export default function TaskAttendanceScreen() {
     const status = item.taskAttendanceStatus || '-';
     const statusTone = status.includes('approved by AM') ? 'success' : status.includes('approved by TL') ? 'info' : status === 'pending' ? 'warning' : 'neutral';
     const outletName = (() => { const outlet = outlets.find(o => o.id === item.outletId); return outlet?.outletName || item.outletId || '-'; })();
+    const isExpanded = !!expanded[item.id];
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -357,8 +364,18 @@ export default function TaskAttendanceScreen() {
         <Text style={styles.meta}>Check-out: <Text style={styles.metaValue}>{item.checkOut?.toDate ? item.checkOut.toDate().toLocaleString() : '-'}</Text></Text>
         <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
         {item.selfieUrl ? <Image source={{ uri: item.selfieUrl }} style={styles.thumbnail} /> : <Text style={styles.meta}>No Selfie</Text>}
+        {isExpanded && (
+          <View style={{ marginTop: spacing(3) }}>
+            <Text style={styles.meta}>Check-in Lat: <Text style={styles.metaValue}>{item.checkInLatitude || '-'}</Text></Text>
+            <Text style={styles.meta}>Check-in Lng: <Text style={styles.metaValue}>{item.checkInLongitude || '-'}</Text></Text>
+            <Text style={styles.meta}>Check-out Lat: <Text style={styles.metaValue}>{item.checkOutLatitude || '-'}</Text></Text>
+            <Text style={styles.meta}>Check-out Lng: <Text style={styles.metaValue}>{item.checkOutLongitude || '-'}</Text></Text>
+          </View>
+        )}
         {canReadUpdate && (
           <View style={styles.actionsRow}>
+            <SecondaryButton title={isExpanded ? 'Hide' : 'Expand'} onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))} style={styles.actionBtn} />
+            <SecondaryButton title="Details" onPress={() => { setDetailsItem(item); setDetailsVisible(true); }} style={styles.actionBtn} />
             {userRole === 'Iris - BA' && !item.checkIn && (
               <PrimaryButton title="Check In" onPress={async () => {
               let { status } = await Location.requestForegroundPermissionsAsync();
@@ -508,6 +525,12 @@ export default function TaskAttendanceScreen() {
             }}
           />
         }
+      />
+      <TaskAttendanceDetailsModal
+        visible={detailsVisible}
+        item={detailsItem}
+        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildTaskAttendanceText(detailsItem, 'text')); Alert.alert('Copied to clipboard'); } : undefined}
+        onClose={() => setDetailsVisible(false)}
       />
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
