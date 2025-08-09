@@ -268,8 +268,35 @@ const SalesReportModal: React.FC<SalesReportModalProps> = ({
               </View>
               <View style={styles.rowInputs}>
                 <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Promo Smooth Description (Type 2)</Text>
+                  <TextInput style={styles.input} value={formData.promoSmoothDescriptionType2} onChangeText={text => setFormData((p:any)=>({...p, promoSmoothDescriptionType2: text}))} placeholder="Description (Type 2)" />
+                </View>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Promo Smooth Sold (Type 2)</Text>
+                  <TextInput style={styles.input} value={formData.promoSmoothSoldType2} onChangeText={text => setFormData((p:any)=>({...p, promoSmoothSoldType2: text}))} placeholder="Sold (Type 2)" keyboardType="numeric"/>
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Promo Smooth Repeat Order (Type 2)</Text>
+                  <TextInput style={styles.input} value={formData.promoSmoothRepeatOrderType2} onChangeText={text => setFormData((p:any)=>({...p, promoSmoothRepeatOrderType2: text}))} placeholder="Repeat (Type 2)" keyboardType="numeric"/>
+                </View>
+              </View>
+              <View style={styles.rowInputs}>
+                <View style={{flex: 1, marginRight: 4}}>
                   <Text style={styles.inputLabel}>Promo GFES Description (Type 2)</Text>
                   <TextInput style={styles.input} value={formData.promoGfesDescriptionType2} onChangeText={text => setFormData((p:any)=>({...p, promoGfesDescriptionType2: text}))} placeholder="Description (Type 2)" />
+
+          {/* Performance Metrics */}
+          <Text style={styles.sectionTitle}>Performance Metrics</Text>
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>Beer Market Size</Text>
+              <TextInput style={styles.input} value={formData.beerMarketSize} onChangeText={text => setFormData((p:any)=>({...p, beerMarketSize: text}))} placeholder="Beer Market Size" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1}}>
+              <Text style={styles.inputLabel}>Achievement %</Text>
+              <TextInput style={styles.input} value={formData.achievementPercentage} onChangeText={text => setFormData((p:any)=>({...p, achievementPercentage: text}))} placeholder="Achievement %" />
+            </View>
+          </View>
                 </View>
                 <View style={{flex: 1, marginRight: 4}}>
                   <Text style={styles.inputLabel}>Promo GFES Sold (Type 2)</Text>
@@ -461,6 +488,68 @@ const SalesReportModal: React.FC<SalesReportModalProps> = ({
               <TextInput style={styles.input} value={formData.tablesAllGuinnessMixedCompetitor} onChangeText={text => setFormData((p:any)=>({...p, tablesAllGuinnessMixedCompetitor: text}))} placeholder="Mixed Tables" keyboardType="numeric" />
             </View>
           </View>
+
+          {/* Drinkers Breakdown */}
+          <Text style={styles.sectionTitle}>Drinkers Breakdown (By Brand)</Text>
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>Smooth</Text>
+              <TextInput style={styles.input} value={formData.drinkersSmooth} onChangeText={text => setFormData((p:any)=>({...p, drinkersSmooth: text}))} placeholder="Smooth Drinkers" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>GFES</Text>
+              <TextInput style={styles.input} value={formData.drinkersGfes} onChangeText={text => setFormData((p:any)=>({...p, drinkersGfes: text}))} placeholder="GFES Drinkers" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1}}>
+              <Text style={styles.inputLabel}>KEGS</Text>
+              <TextInput style={styles.input} value={formData.drinkersKegs} onChangeText={text => setFormData((p:any)=>({...p, drinkersKegs: text}))} placeholder="KEGS Drinkers" keyboardType="numeric" />
+            </View>
+          </View>
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>Microdraught</Text>
+              <TextInput style={styles.input} value={formData.drinkersMicrodraught} onChangeText={text => setFormData((p:any)=>({...p, drinkersMicrodraught: text}))} placeholder="Microdraught Drinkers" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={styles.inputLabel}>GDIC</Text>
+              <TextInput style={styles.input} value={formData.drinkersGdic} onChangeText={text => setFormData((p:any)=>({...p, drinkersGdic: text}))} placeholder="GDIC Drinkers" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1}}>
+              <Text style={styles.inputLabel}>Mixed</Text>
+              <TextInput style={styles.input} value={formData.drinkersMixed} onChangeText={text => setFormData((p:any)=>({...p, drinkersMixed: text}))} placeholder="Mixed Drinkers" keyboardType="numeric" />
+            </View>
+          </View>
+
+          {/* Bali Specific Data */}
+          <Text style={styles.sectionTitle}>Bali Specific Visitors</Text>
+          <View style={styles.switchContainer}>
+            <Text style={styles.inputLabel}>Track Bali Specific Visitor Data</Text>
+            <Switch value={!!formData.baliSpecificVisitorData} onValueChange={value => setFormData((p:any)=>({...p, baliSpecificVisitorData: value}))} />
+          </View>
+          {formData.baliSpecificVisitorData && (
+            <>
+              <View style={styles.rowInputs}>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Local Visitors</Text>
+                  <TextInput style={styles.input} value={formData.baliLocalVisitors} onChangeText={text => setFormData((p:any)=>({...p, baliLocalVisitors: text}))} placeholder="Local Visitors" keyboardType="numeric" />
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Foreign Visitors</Text>
+                  <TextInput style={styles.input} value={formData.baliForeignVisitors} onChangeText={text => setFormData((p:any)=>({...p, baliForeignVisitors: text}))} placeholder="Foreign Visitors" keyboardType="numeric" />
+                </View>
+              </View>
+              <View style={styles.rowInputs}>
+                <View style={{flex: 1, marginRight: 4}}>
+                  <Text style={styles.inputLabel}>Local Guinness Buyers</Text>
+                  <TextInput style={styles.input} value={formData.baliLocalGuinnessBuyers} onChangeText={text => setFormData((p:any)=>({...p, baliLocalGuinnessBuyers: text}))} placeholder="Local Guinness Buyers" keyboardType="numeric" />
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.inputLabel}>Foreign Guinness Buyers</Text>
+                  <TextInput style={styles.input} value={formData.baliForeignGuinnessBuyers} onChangeText={text => setFormData((p:any)=>({...p, baliForeignGuinnessBuyers: text}))} placeholder="Foreign Guinness Buyers" keyboardType="numeric" />
+                </View>
+              </View>
+            </>
+          )}
 
           {/* Competitor Sales */}
           <Text style={styles.sectionTitle}>Competitor Sales</Text>
@@ -1157,6 +1246,19 @@ const SalesReportModal: React.FC<SalesReportModalProps> = ({
               </View>
             </>
           )}
+
+          {/* Competitor Activity Summary */}
+          <Text style={styles.sectionTitle}>Competitor Activity (Summary)</Text>
+          <View style={styles.rowInputs}>
+            <View style={{flex:1, marginRight:4}}>
+              <Text style={styles.inputLabel}>Activity Description</Text>
+              <TextInput style={styles.input} value={formData.competitorActivityDescription} onChangeText={text => setFormData((p:any)=>({...p, competitorActivityDescription: text}))} placeholder="Describe competitor activities" />
+            </View>
+            <View style={{flex:1}}>
+              <Text style={styles.inputLabel}>Total SPG Involved</Text>
+              <TextInput style={styles.input} value={formData.competitorActivitySpgTotal} onChangeText={text => setFormData((p:any)=>({...p, competitorActivitySpgTotal: text}))} placeholder="# SPG" keyboardType='numeric' />
+            </View>
+          </View>
 
           {/* Merchandise */}
           <Text style={styles.sectionTitle}>Merchandise</Text>
