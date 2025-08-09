@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import SalesReportModal from '../../components/SalesReportModal';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
@@ -65,6 +64,8 @@ export default function SalesReportDetailScreen() {
   // State for description modal
   const [isDescriptionModalVisible, setIsDescriptionModalVisible] = useState(false);
   const [descriptionItem, setDescriptionItem] = useState<any>(null);
+  // Track expanded items in the list (to show full details like old UI)
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const initialFormData = {
     // Activity Information
@@ -165,10 +166,31 @@ export default function SalesReportDetailScreen() {
     setIsModalVisible(true);
   };
 
-  // Submit handler placeholder (adjust with Firestore logic if needed)
+  // Submit handler to add/update Firestore
   const handleFormSubmit = async () => {
-    // TODO: integrate add/update Firestore logic that existed previously.
-    setIsModalVisible(false);
+    try {
+      const now = serverTimestamp();
+      if (modalType === 'edit' && selectedReport?.id) {
+        const ref = doc(db, 'sales_report_detail', selectedReport.id);
+        await updateDoc(ref, {
+          ...formData,
+          updatedAt: now,
+          updatedBy: auth.currentUser?.email || auth.currentUser?.uid || 'unknown',
+        });
+      } else {
+        const ref = collection(db, 'sales_report_detail');
+        await addDoc(ref, {
+          ...formData,
+          createdAt: now,
+          createdBy: auth.currentUser?.email || auth.currentUser?.uid || 'unknown',
+        });
+      }
+      await fetchReports();
+      setIsModalVisible(false);
+    } catch (e) {
+      console.error('handleFormSubmit error', e);
+      Alert.alert('Error', 'Failed to save report');
+    }
   };
 
   useEffect(() => {
@@ -224,6 +246,25 @@ export default function SalesReportDetailScreen() {
 
   const canDelete = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
   const canUpdate = canDelete || userRole === 'Iris - BA' || userRole === 'Iris - TL';
+
+
+  // Helper: map status to badge colors
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Done By BA':
+        return { bg: '#E6F0FF', fg: '#1E66F5' };
+      case 'Review back to BA':
+        return { bg: '#FFF4E5', fg: '#B54708' };
+      case 'Done by TL':
+        return { bg: '#F0E6FF', fg: '#6941C6' };
+      case 'Review back to TL':
+        return { bg: '#FFF4E5', fg: '#B54708' };
+      case 'Done by AM':
+        return { bg: '#E7F5EC', fg: '#2E7D32' };
+      default:
+        return { bg: '#EEEEEE', fg: '#555555' };
+    }
+  };
 
 
 
@@ -336,7 +377,7 @@ export default function SalesReportDetailScreen() {
                 <Text selectable>Promo Gdic Description - Type 2: {selectedReport.promoGdicDescriptionType2 || '-'}</Text>
                 <Text selectable>Promo Gdic Sold - Type 2: {selectedReport.promoGdicSoldType2 || '-'}</Text>
                 <Text selectable>Promo Gdic Repeat Orders - Type 2: {selectedReport.promoGdicRepeatOrdersType2 || '-'}</Text>
-                
+
                 <Text selectable style={styles.sectionTitle}>Visitor and Consumer Data</Text>
                 <Text selectable>Visitors Overall: {selectedReport.visitorsOverall || '-'}</Text>
                 <Text selectable>Visitors Alcohol Drinkers: {selectedReport.visitorsAlcoholDrinkers || '-'}</Text>
@@ -503,13 +544,9 @@ export default function SalesReportDetailScreen() {
                 <Text selectable>Competitor Activity Description: {selectedReport.competitorActivityDescription || '-'}</Text>
                 <Text selectable>Competitor Activity SPG Total: {selectedReport.competitorActivitySpgTotal || '-'}</Text>
                 <Text selectable>Competitor Only Drinkers: {selectedReport.drinkerCompetitorOnly || '-'}</Text>
-                <Text selectable>Created At: {selectedReport.createdAt?.toDate ? selectedReport.createdAt.toDate().toLocaleString() : '-'}</Text>
-                <Text selectable>Created By: {selectedReport.createdBy || '-'}</Text>
-                <Text selectable>Task ID: {selectedReport.tasksId || '-'}</Text>
-                <Text selectable>Sales Report Detail Status: {selectedReport.salesReportDetailStatus || '-'}</Text>
                 
                 <Text selectable style={styles.sectionTitle}>Weather Data</Text>
-                <Text selectable>Weather Status: {selectedReport.weatherStatus || '-'}</Text> 
+                <Text selectable>Weather Status: {selectedReport.weatherStatus || '-'}</Text>
 
                 <Text selectable style={styles.sectionTitle}>Sales Report Summary Notes and Learning</Text>
                 <Text selectable>Issues/Notes/Requests: {selectedReport.issuesNotesRequests || '-'}</Text>
@@ -529,398 +566,100 @@ export default function SalesReportDetailScreen() {
     );
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-      <View style={{ flex: 1 }}>
-        <View style={styles.itemContainer}>
-          <Text>Outlet ID: {item.outletId || '-'}</Text>
-          <Text>Outlet Name: {item.outletName || '-'}</Text>
-          <Text>Province: {item.outletProvince || '-'}</Text>
-          <Text>City: {item.outletCity || '-'}</Text>
-          <Text>Activity Name: {item.activityName || '-'}</Text>
-          <Text>Channel: {item.channel || '-'}</Text>
-          <Text>Tier: {item.tier || '-'}</Text>
+  const renderItem = ({ item }: { item: any }) => {
+    const canEditBA = userRole === 'Iris - BA' && (!item.salesReportDetailStatus || item.salesReportDetailStatus === 'Review back to BA');
+    const canEditTL = userRole === 'Iris - TL' && (item.salesReportDetailStatus === 'Done By BA' || item.salesReportDetailStatus === 'Review back to TL');
+    const canEditAdmin = userRole === 'admin' || userRole === 'superadmin';
+    const canReview = userRole === 'area manager' && item.salesReportDetailStatus === 'Done by TL';
+    const canRemove = userRole === 'superadmin';
 
-          {/* New fields from Tasks */}
-          <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
-          <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
-          <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
-          <Text>Created By: {item.createdBy || '-'}</Text>
-          <Text>Task ID: {item.tasksId || '-'}</Text>
-          <Text>Task Sales Report Detail Status: {item.salesReportDetailStatus || '-'} </Text>
+    const status: string = item.salesReportDetailStatus || '-';
+    const badgeColor = getStatusColor(status);
 
-          {/* Sales Detail by BA button */}
-          {userRole === 'Iris - BA' && (!item.salesReportDetailStatus || item.salesReportDetailStatus === 'Review back to BA') && (
-            <View style={styles.buttonContainer}>
-              <Button title="Sales Detail by BA" onPress={() => handleOpenModal('edit', item)} />
+    const isExpanded = !!expanded[item.id];
+    return (
+      <View style={styles.pill}>
+        <TouchableOpacity style={{ flex: 1 }} onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}>
+          <Text style={styles.pillTitle} numberOfLines={1}>
+            {item.outletName || '-'}
+          </Text>
+          <Text style={styles.pillSubtitle} numberOfLines={1}>
+            {(item.outletCity || '-') + (item.outletProvince ? `, ${item.outletProvince}` : '')} • {item.channel || '-'} • {item.tier || '-'}
+          </Text>
+          <View style={styles.metaRow}>
+            <View style={[styles.statusBadge, { backgroundColor: badgeColor.bg }]}>
+              <Text style={[styles.statusBadgeText, { color: badgeColor.fg }]} numberOfLines={1}>{status}</Text>
             </View>
-          )}
-          {/* Sales Detail by TL button */}
-          {userRole === 'Iris - TL' && (item.salesReportDetailStatus === 'Done By BA' || item.salesReportDetailStatus === 'Review back to TL') && (
-            <View style={styles.buttonContainer}>
-              <Button title="Sales Detail by TL" onPress={() => handleOpenModal('edit', item)} />
-            </View>
-          )}
-          {/* Area Manager Review button */}
-          {userRole === 'area manager' && item.salesReportDetailStatus === 'Done by TL' && (
-            <View style={styles.buttonContainer}>
-              <Button title="Review for Area Manager" onPress={() => {
-                setSelectedReport(item);
-                setIsReviewModalVisible(true);
-              }} />
-            </View>
-          )}
-          {/* Edit button for admin/superadmin only */}
-          {(userRole === 'admin' || userRole === 'superadmin') && (
-            <View style={styles.buttonContainer}>
-              <Button title="Edit" onPress={() => handleOpenModal('edit', item)} />
-            </View>
-          )}
-          {/* Delete button for superadmin only */}
-          {userRole === 'superadmin' && (
-            <View style={styles.buttonContainer}>
-              <Button title="Delete" onPress={() => handleDelete(item.id)} />
-            </View>
-          )}
-          {/* Detail icon button inside the item container */}
-          <View style={{ position: 'absolute', right: 24, top: 24, zIndex: 100 }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: 28,
-                padding: 8,
-                elevation: 4,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 2,
-              }}
-              onPress={() => {
-                setDescriptionItem(item);
-                setIsDescriptionModalVisible(true);
-              }}
-              accessibilityLabel="Detail"
-            >
-              <Ionicons name="newspaper-outline" size={32} color="#007AFF" />
-            </TouchableOpacity>
+            <Text style={styles.metaText}>
+              {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : '-'}
+            </Text>
           </View>
+          {isExpanded && (
+            <View style={styles.detailsContainer}>
+              <Text>Outlet ID: {item.outletId || '-'}</Text>
+              <Text>Outlet Name: {item.outletName || '-'}</Text>
+              <Text>Province: {item.outletProvince || '-'}</Text>
+              <Text>City: {item.outletCity || '-'}</Text>
+              <Text>Activity Name: {item.activityName || '-'}</Text>
+              <Text>Channel: {item.channel || '-'}</Text>
+              <Text>Tier: {item.tier || '-'}</Text>
+              <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
+              <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
+              <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
+              <Text>Created By: {item.createdBy || '-'}</Text>
+              <Text>Task ID: {item.tasksId || '-'}</Text>
+              <Text>Task Sales Report Detail Status: {item.salesReportDetailStatus || '-'}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <View style={styles.iconActions}>
+          <TouchableOpacity
+            onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+            style={styles.iconButton}
+            accessibilityLabel="Expand"
+          >
+            <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { setDescriptionItem(item); setIsDescriptionModalVisible(true); }}
+            style={styles.iconButton}
+            accessibilityLabel="Detail"
+          >
+            <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
+          </TouchableOpacity>
+          {(canEditBA || canEditTL || canEditAdmin) && (
+            <TouchableOpacity
+              onPress={() => handleOpenModal('edit', item)}
+              style={styles.iconButton}
+              accessibilityLabel="Edit"
+            >
+              <Ionicons name="create-outline" size={20} color="#333" />
+            </TouchableOpacity>
+          )}
+          {canReview && (
+            <TouchableOpacity
+              onPress={() => { setSelectedReport(item); setIsReviewModalVisible(true); }}
+              style={styles.iconButton}
+              accessibilityLabel="Review"
+            >
+              <Ionicons name="checkbox-outline" size={20} color="#28a745" />
+            </TouchableOpacity>
+          )}
+          {canRemove && (
+            <TouchableOpacity
+              onPress={() => handleDelete(item.id)}
+              style={styles.iconButton}
+              accessibilityLabel="Delete"
+            >
+              <Ionicons name="trash-outline" size={20} color="#dc3545" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   // (Inlined legacy modal content removed; now handled via SalesReportModal component)
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor Erdinger Import Available</Text>
-            <Switch value={formData.competitorErdingerImportAvailable} onValueChange={value => setFormData({...formData, competitorErdingerImportAvailable: value})} />
-          </View>
-          {formData.competitorErdingerImportAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor Erdinger Import</Text>
-                  <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-                      <View style={{ flex: 1 }}>
-                        <TextInput style={styles.input} value={formData.competitorErdingerImportGlass} onChangeText={text => setFormData({...formData, competitorErdingerImportGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <TextInput style={styles.input} value={formData.competitorErdingerImportPint} onChangeText={text => setFormData({...formData, competitorErdingerImportPint: text})} placeholder="Pint" keyboardType='numeric'/>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <TextInput style={styles.input} value={formData.competitorErdingerImportQuart} onChangeText={text => setFormData({...formData, competitorErdingerImportQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <TextInput style={styles.input} value={formData.competitorErdingerImportCanSmall} onChangeText={text => setFormData({...formData, competitorErdingerImportCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <TextInput style={styles.input} value={formData.competitorErdingerImportCanBig} onChangeText={text => setFormData({...formData, competitorErdingerImportCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-                      </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-                    <View style={{ flex: 2 }}>
-                      <TextInput style={styles.input} value={formData.competitorErdingerImportPromoDescription} onChangeText={text => setFormData({...formData, competitorErdingerImportPromoDescription: text})} placeholder="Promo Description"/>
-                    </View>
-                    <View style={{ flex: 1 }}>    
-                      <TextInput style={styles.input} value={formData.competitorErdingerImportPromoSold} onChangeText={text => setFormData({...formData, competitorErdingerImportPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-                    </View>
-                  </View>
-          </View>
-          )}
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor Budweizer Available</Text>
-          <Switch value={formData.competitorBudweizerImportAvailable} onValueChange={value => setFormData({...formData, competitorBudweizerImportAvailable: value})} />
-          </View>
-          {formData.competitorBudweizerImportAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor Budweizer Import</Text>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBudweizerImportGlass} onChangeText={text => setFormData({...formData, competitorBudweizerImportGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-            <TextInput style={styles.input} value={formData.competitorBudweizerImportPint} onChangeText={text => setFormData({...formData, competitorBudweizerImportPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBudweizerImportQuart} onChangeText={text => setFormData({...formData, competitorBudweizerImportQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBudweizerImportCanSmall} onChangeText={text => setFormData({...formData, competitorBudweizerImportCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBudweizerImportCanBig} onChangeText={text => setFormData({...formData, competitorBudweizerImportCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 2 }}>
-              <TextInput style={styles.input} value={formData.competitorBudweizerImportPromoDescription} onChangeText={text => setFormData({...formData, competitorBudweizerImportPromoDescription: text})} placeholder="Promo Description"/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBudweizerImportPromoSold} onChangeText={text => setFormData({...formData, competitorBudweizerImportPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-            </View>
-          </View>
-          </View>
-          )}
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor Anker Available</Text>
-            <Switch value={formData.competitorAnkerAvailable} onValueChange={value => setFormData({...formData, competitorAnkerAvailable: value})} />
-          </View>
-          {formData.competitorAnkerAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor Brand anker</Text>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorAnkerGlass} onChangeText={text => setFormData({...formData, competitorAnkerGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorAnkerPint} onChangeText={text => setFormData({...formData, competitorAnkerPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorAnkerQuart} onChangeText={text => setFormData({...formData, competitorAnkerQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorAnkerCanSmall} onChangeText={text => setFormData({...formData, competitorAnkerCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorAnkerCanBig} onChangeText={text => setFormData({...formData, competitorAnkerCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 2 }}>
-              <TextInput style={styles.input} value={formData.competitorAnkerPromoDescription} onChangeText={text => setFormData({...formData, competitorAnkerPromoDescription: text})} placeholder="Promo Description"/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorAnkerPromoSold} onChangeText={text => setFormData({...formData, competitorAnkerPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-            </View>
-          </View>
-          </View>
-          )}
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor balihai Available</Text>
-            <Switch value={formData.competitorBalihaiAvailable} onValueChange={value => setFormData({...formData, competitorBalihaiAvailable: value})} />
-          </View>
-          {formData.competitorBalihaiAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor balihai</Text>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBalihaiGlass} onChangeText={text => setFormData({...formData, competitorBalihaiGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBalihaiPint} onChangeText={text => setFormData({...formData, competitorBalihaiPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBalihaiQuart} onChangeText={text => setFormData({...formData, competitorBalihaiQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBalihaiCanSmall} onChangeText={text => setFormData({...formData, competitorBalihaiCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBalihaiCanBig} onChangeText={text => setFormData({...formData, competitorBalihaiCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 2 }}>
-              <TextInput style={styles.input} value={formData.competitorBalihaiPromoDescription} onChangeText={text => setFormData({...formData, competitorBalihaiPromoDescription: text})} placeholder="Promo Description"/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorBalihaiPromoSold} onChangeText={text => setFormData({...formData, competitorBalihaiPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-            </View>
-          </View>
-          </View>
-          )}
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor prost Available</Text>
-            <Switch value={formData.competitorProstAvailable} onValueChange={value => setFormData({...formData, competitorProstAvailable: value})} />
-          </View>
-          {formData.competitorProstAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor prost</Text>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorProstGlass} onChangeText={text => setFormData({...formData, competitorProstGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorProstPint} onChangeText={text => setFormData({...formData, competitorProstPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorProstQuart} onChangeText={text => setFormData({...formData, competitorProstQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorProstCanSmall} onChangeText={text => setFormData({...formData, competitorProstCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorProstCanBig} onChangeText={text => setFormData({...formData, competitorProstCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 2 }}>
-              <TextInput style={styles.input} value={formData.competitorProstPromoDescription} onChangeText={text => setFormData({...formData, competitorProstPromoDescription: text})} placeholder="Promo Description"/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorProstPromoSold} onChangeText={text => setFormData({...formData, competitorProstPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-            </View>
-          </View>
-          </View>
-          )}
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor sanmiguel Available</Text>
-            <Switch value={formData.competitorSanMiguelAvailable} onValueChange={value => setFormData({...formData, competitorSanMiguelAvailable: value})} />
-          </View>
-
-          {formData.competitorSanMiguelAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor sanmiguel</Text>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSanMiguelGlass} onChangeText={text => setFormData({...formData, competitorSanMiguelGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSanMiguelPint} onChangeText={text => setFormData({...formData, competitorSanMiguelPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSanMiguelQuart} onChangeText={text => setFormData({...formData, competitorSanMiguelQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSanMiguelCanSmall} onChangeText={text => setFormData({...formData, competitorSanMiguelCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSanMiguelCanBig} onChangeText={text => setFormData({...formData, competitorSanMiguelCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 2 }}>
-              <TextInput style={styles.input} value={formData.competitorSanMiguelPromoDescription} onChangeText={text => setFormData({...formData, competitorSanMiguelPromoDescription: text})} placeholder="Promo Description"/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSanMiguelPromoSold} onChangeText={text => setFormData({...formData, competitorSanMiguelPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-            </View>
-          </View>
-          </View>
-          )}
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor singaraja Available</Text>
-            <Switch value={formData.competitorSingarajaAvailable} onValueChange={value => setFormData({...formData, competitorSingarajaAvailable: value})} />
-          </View>
-
-          {formData.competitorSingarajaAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor singaraja</Text>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaGlass} onChangeText={text => setFormData({...formData, competitorSingarajaGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaPint} onChangeText={text => setFormData({...formData, competitorSingarajaPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaQuart} onChangeText={text => setFormData({...formData, competitorSingarajaQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaCanSmall} onChangeText={text => setFormData({...formData, competitorSingarajaCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaCanBig} onChangeText={text => setFormData({...formData, competitorSingarajaCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 2 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaPromoDescription} onChangeText={text => setFormData({...formData, competitorSingarajaPromoDescription: text})} placeholder="Promo Description"/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorSingarajaPromoSold} onChangeText={text => setFormData({...formData, competitorSingarajaPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-            </View>
-          </View>
-          </View>
-          )}
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor carlsberg Available</Text>
-            <Switch value={formData.competitorCarlsbergAvailable} onValueChange={value => setFormData({...formData, competitorCarlsbergAvailable: value})} />
-          </View>
-
-          {formData.competitorCarlsbergAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor carlsberg</Text>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorCarlsbergGlass} onChangeText={text => setFormData({...formData, competitorCarlsbergGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorCarlsbergPint} onChangeText={text => setFormData({...formData, competitorCarlsbergPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorCarlsbergQuart} onChangeText={text => setFormData({...formData, competitorCarlsbergQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorCarlsbergCanSmall} onChangeText={text => setFormData({...formData, competitorCarlsbergCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorCarlsbergCanBig} onChangeText={text => setFormData({...formData, competitorCarlsbergCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 2 }}>
-              <TextInput style={styles.input} value={formData.competitorCarlsbergPromoDescription} onChangeText={text => setFormData({...formData, competitorCarlsbergPromoDescription: text})} placeholder="Promo Description"/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorCarlsbergPromoSold} onChangeText={text => setFormData({...formData, competitorCarlsbergPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-            </View>
-          </View>
-          </View>
-          )}
-          <View style={styles.switchContainer}>
-            <Text style={styles.inputLabel}>Competitor draftbeer Available</Text>
-            <Switch value={formData.competitorDraftBeerAvailable} onValueChange={value => setFormData({...formData, competitorDraftBeerAvailable: value})} />
-          </View>
-
-          {formData.competitorDraftBeerAvailable && (
-          <View style={{ flexDirection: 'column', width: '100%', marginTop: 8 }}>
-          <Text style={styles.inputLabel}>Competitor draftbeer</Text>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorDraftBeerGlass} onChangeText={text => setFormData({...formData, competitorDraftBeerGlass: text})} placeholder="Glass" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorDraftBeerPint} onChangeText={text => setFormData({...formData, competitorDraftBeerPint: text})} placeholder="Pint" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorDraftBeerQuart} onChangeText={text => setFormData({...formData, competitorDraftBeerQuart: text})} placeholder="Quart" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorDraftBeerCanSmall} onChangeText={text => setFormData({...formData, competitorDraftBeerCanSmall: text})} placeholder="Can Small" keyboardType='numeric'/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorDraftBeerCanBig} onChangeText={text => setFormData({...formData, competitorDraftBeerCanBig: text})} placeholder="Can Big" keyboardType='numeric'/>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
-            <View style={{ flex: 2 }}>
-              <TextInput style={styles.input} value={formData.competitorDraftBeerPromoDescription} onChangeText={text => setFormData({...formData, competitorDraftBeerPromoDescription: text})} placeholder="Promo Description"/>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextInput style={styles.input} value={formData.competitorDraftBeerPromoSold} onChangeText={text => setFormData({...formData, competitorDraftBeerPromoSold: text})} placeholder="Promo Sold" keyboardType='numeric'/>
-            </View>
-          </View>
-          </View>
-          )}
-// Removed trailing inline modal fragments (now handled by SalesReportModal)
 const getDescriptionText = (item: any) => {
   if (!item) return '';
   return `
@@ -994,7 +733,7 @@ Guinness Gfes Promo Description: ${item.guinessGfesPromoDescription || '-'}
 Guinness Gfes Promo Sold: ${item.guinessGfesPromoSold || '-'}
 Guinness Gfes Promo Repeat Order: ${item.guinessGfesPromoRepeatOrder || '-'}
 Guinness Gfes Promo Description - Type 2: ${item.guinessGfesPromoDescriptionType2 || '-'}
-Guinness Gfes Promo Sold - Type 2: ${item.guinessGfesPromoSoldType2 || '-'}
+Guinness Gfes Promo Sold - Type 2: ${item.guinessGfesSoldType2 || '-'}
 Guinness Gfes Promo Repeat Order - Type 2: ${item.guinessGfesPromoRepeatOrderType2 || '-'}
 Guinness Kegs Promo Available: ${item.guinessKegsPromoAvailable ? 'Yes' : 'No'}
 Guinness Kegs Promo Description: ${item.guinessKegsPromoDescription || '-'}
@@ -1105,8 +844,6 @@ Competitor Singaraja Pint: ${item.competitorSingarajaPint || '-'}
 Competitor Singaraja Quart: ${item.competitorSingarajaQuart || '-'}
 Competitor Singaraja Can Small: ${item.competitorSingarajaCanSmall || '-'}
 Competitor Singaraja Can Big: ${item.competitorSingarajaCanBig || '-'}
-Competitor Singaraja Promo Description: ${item.competitorSingarajaPromoDescription || '-'}
-Competitor Singaraja Promo Sold: ${item.competitorSingarajaPromoSold || '-'}
 Competitor Carlsberg Available: ${item.competitorCarlsbergAvailable ? 'Yes' : 'No'}
 Competitor Carlsberg Glass: ${item.competitorCarlsbergGlass || '-'}
 Competitor Carlsberg Pint: ${item.competitorCarlsbergPint || '-'}
@@ -1120,7 +857,7 @@ Competitor Draftbeer Glass: ${item.competitorDraftbeerGlass || '-'}
 Competitor Draftbeer Pint: ${item.competitorDraftbeerPint || '-'}
 Competitor Draftbeer Quart: ${item.competitorDraftbeerQuart || '-'}
 Competitor Draftbeer Can Small: ${item.competitorDraftbeerCanSmall || '-'}
-Competitor Draftbeer Can Big: ${item.competitorDraftbeerCanBig || '-'} 
+Competitor Draftbeer Can Big: ${item.competitorDraftbeerCanBig || '-'}
 Competitor Draftbeer Promo Description: ${item.competitorDraftbeerPromoDescription || '-'}
 Competitor Draftbeer Promo Sold: ${item.competitorDraftbeerPromoSold || '-'}
 Competitor Kura Kura Available: ${item.competitorKuraKuraAvailable ? 'Yes' : 'No'}
@@ -1178,7 +915,7 @@ Learning Points: ${item.learningPoints || '-'}
         <View style={styles.modalContent}>
           <Text style={styles.title}>Description</Text>
           {descriptionItem ? (
-            <>
+            <View>
               <Text selectable style={styles.sectionTitle}>Personnel Information</Text>
                 <Text selectable>Assigned to BA: {descriptionItem.assignedToBA || '-'}</Text>
                 <Text selectable>Assigned to TL: {descriptionItem.assignedToTL || '-'}</Text>
@@ -1288,7 +1025,7 @@ Learning Points: ${item.learningPoints || '-'}
                 <Text selectable>Drinkers Microdraught: {descriptionItem.drinkersMicrodraught || '-'}</Text>
                 <Text selectable>Drinkers Gdic: {descriptionItem.drinkersGdic || '-'}</Text>
                 <Text selectable>Drinkers Mixed: {descriptionItem.drinkersMixed || '-'}</Text>
-
+                
                 <Text selectable style={styles.sectionTitle}>Tables Data</Text>
                 <Text selectable>Tables Overall: {descriptionItem.tablesOverall || '-'}</Text>
                 <Text selectable>Tables Alcohol Drinkers: {descriptionItem.tablesAlcoholDrinkers || '-'}</Text>
@@ -1393,7 +1130,7 @@ Learning Points: ${item.learningPoints || '-'}
                 <Text selectable>Competitor Carlsberg Can Big: {descriptionItem.competitorCarlsbergCanBig || '-'}</Text>
                 <Text selectable>Competitor Carlsberg Promo Description: {descriptionItem.competitorCarlsbergPromoDescription || '-'}</Text>
                 <Text selectable>Competitor Carlsberg Promo Sold: {descriptionItem.competitorCarlsbergPromoSold || '-'}</Text>
-                <Text selectable>Competitor Draftbeer available: {descriptionItem.competitorDraftbeerAvailable ? 'Yes' : 'No'}</Text>
+                <Text selectable>Competitor Draftbeer Available: {descriptionItem.competitorDraftbeerAvailable ? 'Yes' : 'No'}</Text>
                 <Text selectable>Competitor Draftbeer Glass: {descriptionItem.competitorDraftbeerGlass || '-'}</Text>
                 <Text selectable>Competitor Draftbeer Pint: {descriptionItem.competitorDraftbeerPint || '-'}</Text>
                 <Text selectable>Competitor Draftbeer Quart: {descriptionItem.competitorDraftbeerQuart || '-'}</Text>
@@ -1425,25 +1162,8 @@ Learning Points: ${item.learningPoints || '-'}
                 <Text selectable>Competitor Others Can Big: {descriptionItem.competitorOthersCanBig || '-'}</Text>
                 <Text selectable>Competitor Others Promo Description: {descriptionItem.competitorOthersPromoDescription || '-'}</Text>
                 <Text selectable>Competitor Others Promo Sold: {descriptionItem.competitorOthersPromoSold || '-'}</Text>
-
-                <Text selectable style={styles.sectionTitle}>Merchandise Data</Text>
-                <Text selectable>Merchandise Description 1: {descriptionItem.merchandiseDescription1 || '-'}</Text>
-                <Text selectable>Merchandise Sold 1: {descriptionItem.merchandiseSold1 || '-'}</Text>
-                <Text selectable>Merchandise Description 2: {descriptionItem.merchandiseDescription2 || '-'}</Text>
-                <Text selectable>Merchandise Sold 2: {descriptionItem.merchandiseSold2 || '-'}</Text>
-                <Text selectable>Merchandise Description 3: {descriptionItem.merchandiseDescription3 || '-'}</Text>
-                <Text selectable>Merchandise Sold 3: {descriptionItem.merchandiseSold3 || '-'}</Text>
-                <Text selectable>Merchandise Description 4: {descriptionItem.merchandiseDescription4 || '-'}</Text>
-                <Text selectable>Merchandise Sold 4: {descriptionItem.merchandiseSold4 || '-'}</Text>
-                <Text selectable>Merchandise Description 5: {descriptionItem.merchandiseDescription5 || '-'}</Text>
-                <Text selectable>Merchandise Sold 5: {descriptionItem.merchandiseSold5 || '-'}</Text>
-
-                <Text selectable>Competitor Activity Description: {descriptionItem.competitorActivityDescription || '-'}</Text>
-                <Text selectable>Competitor Activity SPG Total: {descriptionItem.competitorActivitySpgTotal || '-'}</Text>
-                <Text selectable>Competitor Only Drinkers: {descriptionItem.drinkerCompetitorOnly || '-'}</Text>
-                
                 <Text selectable style={styles.sectionTitle}>Weather Data</Text>
-                <Text selectable>Weather Status: {descriptionItem.weatherStatus || '-'}</Text>
+                <Text selectable>Weather Status: {descriptionItem.weatherStatus || '-'}</Text> 
 
                 <Text selectable style={styles.sectionTitle}>Sales Report Summary Notes and Learning</Text>
                 <Text selectable>Issues/Notes/Requests: {descriptionItem.issuesNotesRequests || '-'}</Text>
@@ -1451,8 +1171,8 @@ Learning Points: ${item.learningPoints || '-'}
 
 
                 
-                {/* Add more fields as needed */}
-            </>
+        {/* Add more fields as needed */}
+      </View>
           ) : (
             <Text>No data available.</Text>
           )}
@@ -1520,5 +1240,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     marginVertical: 4,
     marginLeft: 8,
+  },
+  // New pill list styles
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  pillTitle: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  pillSubtitle: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 },
+  statusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusBadgeText: { fontSize: 11, fontWeight: '600' },
+  metaText: { fontSize: 11, color: '#6B7280', marginLeft: 8 },
+  iconActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 12 },
+  detailsContainer: {
+    marginTop: 8,
   },
 });
