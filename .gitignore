@@ -39,3 +39,7 @@ yarn-error.*
 #firebase
 .firebase/
 firebaseConfig.ts
+firestore.rules
+storage.rules
+secret/
+firebase-sa.json

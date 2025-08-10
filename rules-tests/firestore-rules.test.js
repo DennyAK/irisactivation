@@ -1,0 +1,93 @@
+const fs = require('fs');
+const path = require('path');
+const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
+const { doc, setDoc, updateDoc } = require('firebase/firestore');
+
+jest.setTimeout(60000);
+
+let testEnv;
+
+beforeAll(async () => {
+  const rules = fs.readFileSync(path.join(__dirname, '..', 'firestore.uid-only.rules'), 'utf8');
+  const hostEnv = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+  const [host, portStr] = hostEnv.split(':');
+  const port = Number(portStr);
+  testEnv = await initializeTestEnvironment({
+    projectId: 'demo-test',
+    firestore: { rules, host, port },
+  });
+});
+
+afterAll(async () => {
+  await testEnv.cleanup();
+});
+
+describe('Firestore UID-only rules', () => {
+  test('BA assigned can set Attendance to pending, TL approves, AM approves', async () => {
+    const ba = testEnv.authenticatedContext('ba-uid', { role: 'Iris - BA' });
+    const tl = testEnv.authenticatedContext('tl-uid', { role: 'Iris - TL' });
+    const am = testEnv.authenticatedContext('am-uid', { role: 'area manager' });
+
+    const baDb = ba.firestore();
+    const tlDb = tl.firestore();
+    const amDb = am.firestore();
+
+  const ref = doc(baDb, 'task_attendance/att-1');
+    // Seed as admin via withSecurityRulesDisabled
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const adminDb = ctx.firestore();
+      // seed users
+      await setDoc(doc(adminDb, 'users/ba-uid'), { role: 'Iris - BA' });
+      await setDoc(doc(adminDb, 'users/tl-uid'), { role: 'Iris - TL' });
+      await setDoc(doc(adminDb, 'users/am-uid'), { role: 'area manager' });
+      await setDoc(doc(adminDb, 'task_attendance/att-1'), {
+        taskAttendanceStatus: '',
+        assignedToBA: 'ba-uid',
+        assignedToTL: 'tl-uid',
+      });
+    });
+
+    await assertSucceeds(updateDoc(ref, { taskAttendanceStatus: 'pending' }));
+    await assertSucceeds(updateDoc(doc(tlDb, 'task_attendance/att-1'), { taskAttendanceStatus: 'approved by TL' }));
+    await assertSucceeds(updateDoc(doc(amDb, 'task_attendance/att-1'), { taskAttendanceStatus: 'approved by AM' }));
+  });
+
+  test('Unassigned BA cannot update Attendance', async () => {
+    const ba = testEnv.authenticatedContext('ba2', { role: 'Iris - BA' });
+    const baDb = ba.firestore();
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const adminDb = ctx.firestore();
+      await setDoc(doc(adminDb, 'users/ba2'), { role: 'Iris - BA' });
+      await setDoc(doc(adminDb, 'users/ba-uid'), { role: 'Iris - BA' });
+      await setDoc(doc(adminDb, 'users/tl-uid'), { role: 'Iris - TL' });
+      await setDoc(doc(adminDb, 'task_attendance/att-2'), {
+        taskAttendanceStatus: '',
+        assignedToBA: 'ba-uid',
+        assignedToTL: 'tl-uid',
+      });
+    });
+    await assertFails(updateDoc(doc(baDb, 'task_attendance/att-2'), { taskAttendanceStatus: 'pending' }));
+  });
+
+  test('SRD: BA -> TL -> AM happy path', async () => {
+    const ba = testEnv.authenticatedContext('ba-uid', { role: 'Iris - BA' });
+    const tl = testEnv.authenticatedContext('tl-uid', { role: 'Iris - TL' });
+    const am = testEnv.authenticatedContext('am-uid', { role: 'area manager' });
+
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const adminDb = ctx.firestore();
+      await setDoc(doc(adminDb, 'users/ba-uid'), { role: 'Iris - BA' });
+      await setDoc(doc(adminDb, 'users/tl-uid'), { role: 'Iris - TL' });
+      await setDoc(doc(adminDb, 'users/am-uid'), { role: 'area manager' });
+      await setDoc(doc(adminDb, 'sales_report_detail/srd-1'), {
+        salesReportDetailStatus: '',
+        assignedToBA: 'ba-uid',
+        assignedToTL: 'tl-uid',
+      });
+    });
+
+    await assertSucceeds(updateDoc(doc(ba.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done By BA' }));
+    await assertSucceeds(updateDoc(doc(tl.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done by TL' }));
+    await assertSucceeds(updateDoc(doc(am.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done by AM' }));
+  });
+});

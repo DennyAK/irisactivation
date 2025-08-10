@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 // Phase 4 UI integration
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
@@ -11,6 +13,12 @@ import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc
 import { onAuthStateChanged } from 'firebase/auth';
 import QuickSalesReportDetailsModal, { buildQuickSalesReportText } from '@/components/QuickSalesReportDetailsModal';
 import * as Clipboard from 'expo-clipboard';
+import { Roles, isAdminRole } from '../../constants/roles';
+import { QRStatus, getToneForQRStatus, nextStatusOnSubmitQR, QR_STATUS_OPTIONS } from '../../constants/status';
+import stateMachine from '../../constants/stateMachine';
+import FilterHeader from '../../components/ui/FilterHeader';
+import useDebouncedValue from '../../components/hooks/useDebouncedValue';
+import EmptyState from '../../components/ui/EmptyState';
 
 export default function QuickSalesReportScreen() {
   // Pull-to-refresh state
@@ -26,6 +34,18 @@ export default function QuickSalesReportScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [detailsItem, setDetailsItem] = useState<any | null>(null);
+  // Filters
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const filteredReports = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return reports.filter(r => {
+      const matchesSearch = !q || (String(r.outletName || '').toLowerCase().includes(q)) || (String(r.outletId || '').toLowerCase().includes(q));
+      const matchesStatus = !statusFilter || (String(r.taskSalesReportQuickStatus || '') === statusFilter);
+      return matchesSearch && matchesStatus;
+    });
+  }, [reports, debouncedSearch, statusFilter]);
 
   const initialFormData = {
     guardDate: '',
@@ -92,11 +112,11 @@ export default function QuickSalesReportScreen() {
         ...doc.data()
       }));
       // Filter for BA role: only show records assigned to current user
-      if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
+  if (userRole === Roles.IrisBA && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
       }
       // Filter for TL role: only show records assigned to current TL
-      if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
+  if (userRole === Roles.IrisTL && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
 
@@ -150,16 +170,17 @@ export default function QuickSalesReportScreen() {
         guardDate: formData.guardDate ? new Date(formData.guardDate) : null,
         entryTimestamp: serverTimestamp(),
     };
-    // QR by BA
-    if (userRole === 'Iris - BA' && selectedReport && (!selectedReport.taskSalesReportQuickStatus || selectedReport.taskSalesReportQuickStatus === '')) {
-      dataToSubmit.taskSalesReportQuickStatus = 'QR Done by BA';
-    }
-    // QR by TL
-    if (userRole === 'Iris - TL' && selectedReport && selectedReport.taskSalesReportQuickStatus === 'QR Done by BA') {
-      dataToSubmit.taskSalesReportQuickStatus = 'QR Done by TL';
+    // Compute next status via centralized helper, allow admin picker override
+    if (selectedReport) {
+      const prev = (selectedReport.taskSalesReportQuickStatus || '') as any;
+      const adminChosen = formData.taskSalesReportQuickStatus as any;
+      const computed = nextStatusOnSubmitQR((userRole as any) || '', prev);
+      dataToSubmit.taskSalesReportQuickStatus = adminChosen || computed;
+      dataToSubmit.updatedAt = serverTimestamp();
+      dataToSubmit.updatedBy = auth.currentUser?.uid || auth.currentUser?.email || 'unknown';
     }
     if (modalType === 'add') {
-      addDoc(collection(db, "sales_report_quick"), dataToSubmit)
+      addDoc(collection(db, "sales_report_quick"), { ...dataToSubmit, createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' })
         .then(() => {
           fetchReports();
           setIsModalVisible(false);
@@ -184,12 +205,12 @@ export default function QuickSalesReportScreen() {
 
   if (loading) return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
 
-  const canManage = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
-  const canUpdate = canManage || userRole === 'Iris - BA' || userRole === 'Iris - TL';
+  const canManage = userRole === Roles.Admin || userRole === Roles.Superadmin || userRole === Roles.AreaManager;
+  const canUpdate = canManage || userRole === Roles.IrisBA || userRole === Roles.IrisTL;
 
   const renderItem = ({ item }: { item: any }) => {
-    const status = item.taskSalesReportQuickStatus || '';
-    const statusTone = !status ? 'neutral' : status.includes('Review') ? 'warning' : status.includes('Done') ? 'success' : status.includes('AM') ? 'info' : 'primary';
+  const status = item.taskSalesReportQuickStatus || '';
+  const statusTone = getToneForQRStatus(status) as any;
     const isExpanded = !!expanded[item.id];
     return (
       <View style={styles.card}>
@@ -220,23 +241,38 @@ export default function QuickSalesReportScreen() {
           </View>
         )}
         <View style={styles.actionsRow}>
-          <SecondaryButton title={isExpanded ? 'Hide' : 'Expand'} onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))} style={styles.actionBtn} />
-          <SecondaryButton title="Details" onPress={() => { setDetailsItem(item); setDetailsVisible(true); }} style={styles.actionBtn} />
-          {userRole === 'Iris - BA' && (!status) && (
+          {userRole === Roles.IrisBA && stateMachine.canTransition('QR', Roles.IrisBA, status || QRStatus.Empty, QRStatus.DoneByBA) && (
             <PrimaryButton title="QR by BA" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
-          {userRole === 'Iris - TL' && (status === 'QR Done by BA' || status === 'Review back to TL') && (
+          {userRole === Roles.IrisTL && stateMachine.canTransition('QR', Roles.IrisTL, status || QRStatus.Empty, QRStatus.DoneByTL) && (
             <PrimaryButton title="QR by TL" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
-            {userRole === 'area manager' && status === 'QR Done by TL' && (
+            {userRole === Roles.AreaManager && stateMachine.canTransition('QR', Roles.AreaManager, status || QRStatus.Empty, QRStatus.ReviewByAM) && (
             <PrimaryButton title="QR by AM" onPress={() => { setSelectedReport(item); setIsAMReviewModalVisible(true); }} style={styles.actionBtn} />
           )}
-          {(userRole === 'admin' || userRole === 'superadmin') && (
+          {(userRole === Roles.Admin || userRole === Roles.Superadmin) && (
             <SecondaryButton title="Edit" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
-          {userRole === 'superadmin' && (
+          {userRole === Roles.Superadmin && (
             <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={styles.actionBtnDanger} />
           )}
+          <View style={styles.iconActions}
+          >
+            <TouchableOpacity
+              onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+              style={styles.iconButton}
+              accessibilityLabel="Expand"
+            >
+              <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
+              style={styles.iconButton}
+              accessibilityLabel="Detail"
+            >
+              <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -314,6 +350,30 @@ export default function QuickSalesReportScreen() {
               <TextInput style={styles.input} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
             </View>
           </View>
+          {/* Admin-only: Quick Sales Report Status */}
+          {(userRole === 'admin' || userRole === 'superadmin') && modalType === 'edit' && (
+            <>
+              <Text style={styles.sectionTitle}>Status (Admin)</Text>
+              <Text style={styles.inputLabel}>Task Quick Sales Report Status</Text>
+              <View style={[styles.input, { padding: 0 }]}> 
+                <Picker
+                  selectedValue={formData.taskSalesReportQuickStatus}
+                  onValueChange={(value) => setFormData({ ...formData, taskSalesReportQuickStatus: value as string })}
+                  style={{ height: 40 }}
+                >
+                  {(() => {
+                    const current = String(formData.taskSalesReportQuickStatus || '');
+                    const role = String(userRole || '');
+                    const opts = stateMachine.nextOptionsForRole('QR', role as any, current as any);
+                    const all = [QRStatus.Empty, ...opts];
+                    return all.map(value => (
+                      <Picker.Item key={value} label={value} value={value} />
+                    ));
+                  })()}
+                </Picker>
+              </View>
+            </>
+          )}
           <Text style={styles.sectionTitle}>Restock Information</Text>
           <View style={styles.switchContainer}><Text>Product Restock?</Text><Switch value={formData.productRestock} onValueChange={val => setFormData({...formData, productRestock: val})} /></View>
           {formData.productRestock && (
@@ -325,8 +385,8 @@ export default function QuickSalesReportScreen() {
             />
           )}
           <View style={styles.buttonContainer}>
-            <Button title={modalType === 'add' ? 'Add' : 'Update'} onPress={handleFormSubmit} />
-            <Button title="Cancel" onPress={() => setIsModalVisible(false)} />
+            <PrimaryButton title={modalType === 'add' ? 'Add' : 'Update'} onPress={handleFormSubmit} />
+            <SecondaryButton title="Cancel" onPress={() => setIsModalVisible(false)} />
           </View>
         </View>
       </ScrollView>
@@ -363,9 +423,9 @@ export default function QuickSalesReportScreen() {
           <Text>Restock Description: {selectedReport?.productRestockDescription || '-'}</Text>
           <View style={{ marginTop: 20 }}>
             <View style={{ marginBottom: 12 }}>
-              <Button title="Confirm QR Review by AM" onPress={async () => {
+        <PrimaryButton title="Confirm QR Review by AM" onPress={async () => {
                 try {
-                  await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: 'QR Review by AM' });
+          await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: QRStatus.ReviewByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
                   fetchReports();
                   setIsAMReviewModalVisible(false);
                   Alert.alert('Success', 'Status updated to QR Review by AM.');
@@ -375,9 +435,9 @@ export default function QuickSalesReportScreen() {
               }} />
             </View>
             <View style={{ marginBottom: 12 }}>
-              <Button title="Review back to TL" onPress={async () => {
+        <SecondaryButton title="Review back to TL" onPress={async () => {
                 try {
-                  await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: 'Review back to TL' });
+          await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: QRStatus.ReviewBackToTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
                   fetchReports();
                   setIsAMReviewModalVisible(false);
                   Alert.alert('Success', 'Status updated to Review back to TL.');
@@ -387,7 +447,7 @@ export default function QuickSalesReportScreen() {
               }} />
             </View>
             <View>
-              <Button title="Cancel" onPress={() => setIsAMReviewModalVisible(false)} />
+              <SecondaryButton title="Cancel" onPress={() => setIsAMReviewModalVisible(false)} />
             </View>
           </View>
         </View>
@@ -397,10 +457,21 @@ export default function QuickSalesReportScreen() {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.screenTitle}>Quick Sales Report</Text>
-      {/* Removed Add New Report button as requested */}
+      <FilterHeader
+        title="Quick Sales Report"
+        search={search}
+        status={statusFilter}
+        statusOptions={QR_STATUS_OPTIONS}
+        placeholder="Search outlet or ID"
+        storageKey="filters:qr"
+        onApply={({ search: s, status }) => { setSearch(s); setStatusFilter(status); }}
+        onClear={() => { setSearch(''); setStatusFilter(''); }}
+      />
+      {filteredReports.length === 0 ? (
+        <EmptyState onReset={() => { setSearch(''); setStatusFilter(''); }} />
+      ) : (
       <FlatList
-        data={reports}
+        data={filteredReports}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshControl={
@@ -413,7 +484,7 @@ export default function QuickSalesReportScreen() {
             }}
           />
         }
-      />
+      />)}
       <QuickSalesReportDetailsModal
         visible={detailsVisible}
         item={detailsItem}
@@ -448,4 +519,6 @@ const styles = StyleSheet.create({
   buttonContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing(3), marginTop: spacing(5) },
   inputLabel: { fontSize: 11, color: palette.textMuted, marginBottom: 2, marginLeft: 2, fontWeight: '500' },
   switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(4), paddingHorizontal: spacing(2) },
+  iconActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  iconButton: { padding: 8, borderRadius: 20, backgroundColor: '#F0F0F0', marginLeft: 8 },
 });

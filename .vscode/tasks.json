@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "typecheck",
+			"type": "shell",
+			"command": "node -e \"try{require('typescript/bin/tsc');}catch(e){console.log('tsc not found in path');}\"",
+			"group": "build"
+		}
+	]
+}

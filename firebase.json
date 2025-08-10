@@ -1,6 +1,9 @@
 {
   "projects": {
-    "default": "your-project-id"
+    "default": "activation-d6f75"
+  },
+  "firestore": {
+  "rules": "firestore.uid-only.rules"
   },
   "storage": {
     "rules": "storage.rules"

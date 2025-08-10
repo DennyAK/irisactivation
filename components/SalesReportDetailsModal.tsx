@@ -12,6 +12,7 @@ type Props = {
   userRole: string | null;
   onCopyAll?: () => void;
   onDoneByAM?: () => void;
+  onReviewBackToTL?: () => void;
 };
 
 const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (
@@ -30,6 +31,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
   userRole,
   onCopyAll,
   onDoneByAM,
+  onReviewBackToTL,
 }) => {
   const handleCopyMarkdown = async () => {
     if (!item) return;
@@ -430,8 +432,11 @@ const SalesReportDetailsModal: React.FC<Props> = ({
             {mode === 'description' && item && (
               <Button title="Share" onPress={handleShare} />
             )}
-            {mode === 'review' && userRole === 'area manager' && onDoneByAM && (
-              <Button title="Done by AM" onPress={onDoneByAM} />
+            {mode === 'review' && userRole === 'area manager' && (
+              <>
+                {onDoneByAM && <Button title="Done by AM" onPress={onDoneByAM} />}
+                {onReviewBackToTL && <Button title="Review back to TL" onPress={onReviewBackToTL} />}
+              </>
             )}
             <Button title="Close" onPress={onClose} />
           </View>

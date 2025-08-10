@@ -5,6 +5,9 @@ import { useIsFocused } from '@react-navigation/native';
 import { Animated } from 'react-native';
 // Ionicons removed (unused)
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Platform, TouchableOpacity, RefreshControl, Switch } from 'react-native';
+import FilterHeader from '../../components/ui/FilterHeader';
+import useDebouncedValue from '../../components/hooks/useDebouncedValue';
+import EmptyState from '../../components/ui/EmptyState';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
@@ -151,6 +154,9 @@ export default function TasksScreen() {
   // currentUserId: Current user's ID
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const isFocused = useIsFocused();
+  // Search-only filter for tasks list
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   // --- useEffect: Initial Data Fetch & Auth ---
   // Runs once on mount: sets up auth listener, fetches all needed data
@@ -240,6 +246,11 @@ export default function TasksScreen() {
       setLoading(false);
     }
   };
+  const filteredTasks = ((): TaskItem[] => {
+    const q = debouncedSearch.trim().toLowerCase();
+    if (!q) return tasks;
+    return tasks.filter(t => String(t.outletName || '').toLowerCase().includes(q) || String(t.id || '').toLowerCase().includes(q));
+  })();
 
   // Fetch all outlets for dropdown
   const fetchOutlets = async () => {
@@ -650,13 +661,24 @@ const fetchTLUsers = async () => {
   // --- Main Render ---
   return (
     <View style={styles.screen}>
-      {/* Page Title */}
-      <Text style={styles.title}>Task Management</Text>
+      <FilterHeader
+        title="Task Management"
+        search={search}
+        status={''}
+        statusOptions={[{ label: 'All', value: '' }]}
+        placeholder="Search by outlet or task ID"
+        storageKey="filters:tasks"
+        onApply={({ search: s }) => setSearch(s)}
+        onClear={() => setSearch('')}
+      />
       {/* Add Task Button (only for managers) */}
   {canManage && <PrimaryButton title="Add New Task" onPress={() => setIsAddModalVisible(true)} style={{ marginBottom: spacing(5) }} />}
       {/* List of tasks */}
+      {filteredTasks.length === 0 ? (
+        <EmptyState onReset={() => setSearch('')} />
+      ) : (
       <FlatList
-        data={tasks}
+        data={filteredTasks}
         keyExtractor={(item) => item.id}
         renderItem={renderTask}
         refreshControl={
@@ -669,7 +691,7 @@ const fetchTLUsers = async () => {
             }}
           />
         }
-      />
+      />)}
       {/* Edit Attendance Modal */}
       <Modal visible={isEditAttendanceModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditAttendanceModalVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>

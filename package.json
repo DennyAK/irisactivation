@@ -7,14 +7,23 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "jest --watchAll"
+    "test": "jest --watchAll",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "migrate:assignments": "node scripts/migrate-assignments.js",
+    "migrate:assignments:apply": "node scripts/migrate-assignments.js --apply",
+    "deploy:rules": "npx firebase deploy --only firestore:rules",
+    "test:rules": "jest --config jest-rules.config.cjs --runInBand",
+    "test:rules:emu": "npx firebase emulators:exec --only firestore \"node ./node_modules/jest/bin/jest.js --config jest-rules.config.cjs --runInBand\""
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "<rootDir>/rules-tests/"
+    ]
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-picker/picker": "2.11.1",
     "@react-navigation/drawer": "^7.5.3",
@@ -32,7 +41,7 @@
     "expo-status-bar": "~2.2.3",
     "expo-system-ui": "~5.0.10",
     "expo-web-browser": "~14.2.0",
-    "firebase": "^11.10.0",
+    "firebase": "^12.1.0",
     "firebase-admin": "^13.4.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
@@ -46,6 +55,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.0.10",
     "jest": "^29.2.1",
     "jest-expo": "~53.0.9",

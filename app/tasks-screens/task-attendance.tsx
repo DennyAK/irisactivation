@@ -1,9 +1,11 @@
 // === SAVE POINT: 2024-06-13 ===
 // You can undo to this version if any crash happens today.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl, TouchableOpacity } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
@@ -16,6 +18,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import TaskAttendanceDetailsModal, { buildTaskAttendanceText } from '@/components/TaskAttendanceDetailsModal';
 import * as Clipboard from 'expo-clipboard';
+import { Roles } from '../../constants/roles';
+import { AttendanceStatus, getToneForAttendanceStatus, ATTENDANCE_STATUS_OPTIONS } from '../../constants/status';
+import stateMachine from '../../constants/stateMachine';
+import FilterHeader from '../../components/ui/FilterHeader';
+import useDebouncedValue from '../../components/hooks/useDebouncedValue';
+import EmptyState from '../../components/ui/EmptyState';
 
 export default function TaskAttendanceScreen() {
   // Pull-to-refresh state
@@ -51,6 +59,22 @@ export default function TaskAttendanceScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [detailsItem, setDetailsItem] = useState<any | null>(null);
+  // Admin-only status override selection (constrained by state machine)
+  const [adminNextStatus, setAdminNextStatus] = useState<string>('');
+  // Filters
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const filteredAttendances = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return attendances.filter(r => {
+      const outlet = outlets.find(o => o.id === r.outletId);
+      const outletName = String(outlet?.outletName || '').toLowerCase();
+      const matchesSearch = !q || outletName.includes(q) || String(r.outletId || '').toLowerCase().includes(q);
+      const matchesStatus = !statusFilter || (String(r.taskAttendanceStatus || '') === statusFilter);
+      return matchesSearch && matchesStatus;
+    });
+  }, [attendances, outlets, debouncedSearch, statusFilter]);
 
   useEffect(() => {
     (async () => {
@@ -106,11 +130,11 @@ export default function TaskAttendanceScreen() {
         return { id: doc.id, assignedToBA: data.assignedToBA, createdAt: data.createdAt, ...data } as AttendanceItem;
       });
       // Filter for BA role: only show records assigned to current user
-      if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
+  if (userRole === Roles.IrisBA && auth.currentUser?.uid) {
         attendanceList = attendanceList.filter(a => a?.assignedToBA === auth.currentUser?.uid);
       }
       // Filter for TL role: only show records assigned to current TL
-      if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
+  if (userRole === Roles.IrisTL && auth.currentUser?.uid) {
         attendanceList = attendanceList.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
       // Sort by createdAt descending (newest first)
@@ -157,7 +181,8 @@ export default function TaskAttendanceScreen() {
       checkInLongitude: parseFloat(formData.checkInLongitude) || 0,
       checkOutLatitude: parseFloat(formData.checkOutLatitude) || 0,
       checkOutLongitude: parseFloat(formData.checkOutLongitude) || 0,
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
     }).then(() => {
       setIsAddModalVisible(false);
       resetFormData();
@@ -183,19 +208,31 @@ export default function TaskAttendanceScreen() {
       taskAttendanceStatus: attendance.taskAttendanceStatus || '',
     });
     setIsEditModalVisible(true);
+  setAdminNextStatus('');
   };
 
   const handleUpdateAttendance = async () => {
     if (!selectedAttendance) return;
     try {
       // The formData.selfieUrl should now hold the final Firebase URL if a new image was uploaded
+      const currentStatus = selectedAttendance?.taskAttendanceStatus || '';
+      let nextStatus = currentStatus;
+      if (userRole === Roles.IrisBA) {
+        nextStatus = AttendanceStatus.Pending;
+      } else if ((userRole === Roles.Admin || userRole === Roles.Superadmin) && adminNextStatus) {
+        if (stateMachine.canTransition('Attendance', userRole as any, currentStatus, adminNextStatus as any)) {
+          nextStatus = adminNextStatus as any;
+        }
+      }
       const dataToUpdate = {
         ...formData,
         checkInLatitude: parseFloat(formData.checkInLatitude) || 0,
         checkInLongitude: parseFloat(formData.checkInLongitude) || 0,
         checkOutLatitude: parseFloat(formData.checkOutLatitude) || 0,
         checkOutLongitude: parseFloat(formData.checkOutLongitude) || 0,
-        taskAttendanceStatus: 'pending', // Set to pending after edit
+        taskAttendanceStatus: nextStatus,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
       };
 
       const attendanceDoc = doc(db, "task_attendance", selectedAttendance.id);
@@ -320,15 +357,15 @@ export default function TaskAttendanceScreen() {
 
   // Only these roles can CRUD
   const canManage = [
-    'admin', 'superadmin', 'area manager'
-  ].includes(userRole || '');
+    Roles.Admin, Roles.Superadmin, Roles.AreaManager
+  ].includes((userRole || '') as any);
   // These roles can Read and Update
-  const canReadUpdate = canManage || ['Iris - BA', 'Iris - TL'].includes(userRole || '');
+  const canReadUpdate = canManage || [Roles.IrisBA, Roles.IrisTL].includes((userRole || '') as any);
 
   const handleApproveByTL = async (attendanceId: string) => {
     try {
       const attendanceDoc = doc(db, "task_attendance", attendanceId);
-      await updateDoc(attendanceDoc, { taskAttendanceStatus: 'approved by TL' });
+  await updateDoc(attendanceDoc, { taskAttendanceStatus: AttendanceStatus.ApprovedByTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
       fetchAttendances();
       Alert.alert('Success', 'Attendance approved by TL.');
     } catch (error: any) {
@@ -339,7 +376,7 @@ export default function TaskAttendanceScreen() {
   const handleApproveByAM = async (attendanceId: string) => {
     try {
       const attendanceDoc = doc(db, "task_attendance", attendanceId);
-      await updateDoc(attendanceDoc, { taskAttendanceStatus: 'approved by AM' });
+  await updateDoc(attendanceDoc, { taskAttendanceStatus: AttendanceStatus.ApprovedByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
       fetchAttendances();
       Alert.alert('Success', 'Attendance approved by Area Manager.');
     } catch (error: any) {
@@ -348,15 +385,17 @@ export default function TaskAttendanceScreen() {
   };
 
   const renderAttendance = ({ item }: { item: any }) => {
-    const status = item.taskAttendanceStatus || '-';
-    const statusTone = status.includes('approved by AM') ? 'success' : status.includes('approved by TL') ? 'info' : status === 'pending' ? 'warning' : 'neutral';
+  const status = item.taskAttendanceStatus || '';
+  const statusTone = getToneForAttendanceStatus(status) as any;
     const outletName = (() => { const outlet = outlets.find(o => o.id === item.outletId); return outlet?.outletName || item.outletId || '-'; })();
     const isExpanded = !!expanded[item.id];
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{outletName}</Text>
-          <StatusPill label={status} tone={statusTone as any} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <StatusPill label={status} tone={statusTone as any} />
+          </View>
         </View>
         <Text style={styles.meta}>BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
         <Text style={styles.meta}>TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
@@ -374,9 +413,7 @@ export default function TaskAttendanceScreen() {
         )}
         {canReadUpdate && (
           <View style={styles.actionsRow}>
-            <SecondaryButton title={isExpanded ? 'Hide' : 'Expand'} onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))} style={styles.actionBtn} />
-            <SecondaryButton title="Details" onPress={() => { setDetailsItem(item); setDetailsVisible(true); }} style={styles.actionBtn} />
-            {userRole === 'Iris - BA' && !item.checkIn && (
+            {userRole === Roles.IrisBA && !item.checkIn && (
               <PrimaryButton title="Check In" onPress={async () => {
               let { status } = await Location.requestForegroundPermissionsAsync();
               if (status !== 'granted') {
@@ -402,7 +439,7 @@ export default function TaskAttendanceScreen() {
               ]);
               }} style={styles.actionBtn} />
             )}
-            {userRole === 'Iris - BA' && item.checkIn && !item.checkOut && (
+            {userRole === Roles.IrisBA && item.checkIn && !item.checkOut && (
               <PrimaryButton title="Check Out" onPress={async () => {
               let { status } = await Location.requestForegroundPermissionsAsync();
               if (status !== 'granted') {
@@ -428,7 +465,7 @@ export default function TaskAttendanceScreen() {
               ]);
               }} style={styles.actionBtn} />
             )}
-            {userRole === 'Iris - BA' && (!item.selfieUrl || item.selfieUrl === '') && (
+            {userRole === Roles.IrisBA && (!item.selfieUrl || item.selfieUrl === '') && (
               <SecondaryButton title="Selfie" onPress={async () => {
               try {
                 let result = await ImagePicker.launchImageLibraryAsync({
@@ -460,12 +497,28 @@ export default function TaskAttendanceScreen() {
               }
               }} style={styles.actionBtn} />
             )}
-            {userRole === 'Iris - TL' && item.taskAttendanceStatus !== 'approved by TL' && item.taskAttendanceStatus !== 'approved by AM' && (
+            {userRole === Roles.IrisTL && stateMachine.canTransition('Attendance', Roles.IrisTL, status || AttendanceStatus.Pending, AttendanceStatus.ApprovedByTL) && (
               <PrimaryButton title="Approve TL" onPress={() => handleApproveByTL(item.id)} style={styles.actionBtn} />
             )}
-            {userRole === 'area manager' && item.taskAttendanceStatus === 'approved by TL' && (
+            {userRole === Roles.AreaManager && stateMachine.canTransition('Attendance', Roles.AreaManager, status || AttendanceStatus.Empty, AttendanceStatus.ApprovedByAM) && (
               <PrimaryButton title="Approve AM" onPress={() => handleApproveByAM(item.id)} style={styles.actionBtn} />
             )}
+            <View style={styles.iconActions}>
+              <TouchableOpacity
+                onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                style={styles.iconButton}
+                accessibilityLabel="Expand"
+              >
+                <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
+                style={styles.iconButton}
+                accessibilityLabel="Detail"
+              >
+                <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
@@ -510,9 +563,21 @@ export default function TaskAttendanceScreen() {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.screenTitle}>Task Attendance</Text>
+      <FilterHeader
+        title="Task Attendance"
+        search={search}
+        status={statusFilter}
+        statusOptions={ATTENDANCE_STATUS_OPTIONS}
+        placeholder="Search outlet or ID"
+        storageKey="filters:attendance"
+        onApply={({ search: s, status }) => { setSearch(s); setStatusFilter(status); }}
+        onClear={() => { setSearch(''); setStatusFilter(''); }}
+      />
+      {filteredAttendances.length === 0 ? (
+        <EmptyState onReset={() => { setSearch(''); setStatusFilter(''); }} />
+      ) : (
       <FlatList
-        data={attendances}
+        data={filteredAttendances}
         keyExtractor={(item) => item.id}
         renderItem={renderAttendance}
         refreshControl={
@@ -525,7 +590,7 @@ export default function TaskAttendanceScreen() {
             }}
           />
         }
-      />
+      />)}
       <TaskAttendanceDetailsModal
         visible={detailsVisible}
         item={detailsItem}
@@ -538,8 +603,8 @@ export default function TaskAttendanceScreen() {
             <Text style={styles.title}>Add Attendance</Text>
             {renderModalFields()}
             <View style={styles.buttonContainer}>
-              <Button title="Add" onPress={handleAddAttendance} />
-              <Button title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
+              <PrimaryButton title="Add" onPress={handleAddAttendance} />
+              <SecondaryButton title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
             </View>
           </View>
         </ScrollView>
@@ -549,9 +614,27 @@ export default function TaskAttendanceScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.title}>Edit Attendance</Text>
             {renderModalFields()}
+            {(userRole === Roles.Admin || userRole === Roles.Superadmin) && selectedAttendance && (
+              <View style={{ marginBottom: spacing(4) }}>
+                <Text style={styles.input}>Admin: Next Status</Text>
+                <View style={{ borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surfaceAlt }}>
+                  <Picker
+                    selectedValue={adminNextStatus}
+                    onValueChange={(v) => setAdminNextStatus(String(v))}
+                  >
+                    <Picker.Item label="(no change)" value="" />
+                    {stateMachine
+                      .nextOptionsForRole('Attendance', (userRole as any) || '', (selectedAttendance?.taskAttendanceStatus || '') as any)
+                      .map(opt => (
+                        <Picker.Item key={opt} label={opt} value={opt} />
+                      ))}
+                  </Picker>
+                </View>
+              </View>
+            )}
             <View style={styles.buttonContainer}>
-              <Button title="Update" onPress={handleUpdateAttendance} />
-              <Button title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+              <PrimaryButton title="Update" onPress={handleUpdateAttendance} />
+              <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
             </View>
           </View>
         </ScrollView>
@@ -570,6 +653,8 @@ const styles = StyleSheet.create({
   metaValue: { color: palette.text, fontWeight: '600' },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing(4) },
   actionBtn: { flexGrow: 1, marginRight: spacing(3), marginBottom: spacing(3) },
+  iconActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  iconButton: { padding: 8, borderRadius: 20, backgroundColor: '#F0F0F0', marginLeft: 8 },
   modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { width: '90%', backgroundColor: palette.surface, padding: spacing(6), borderRadius: radius.lg },
   input: { height: 40, borderColor: palette.border, borderWidth: 1, marginBottom: spacing(4), padding: spacing(3), borderRadius: radius.md, backgroundColor: palette.surfaceAlt },

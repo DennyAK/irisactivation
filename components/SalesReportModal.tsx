@@ -1,5 +1,7 @@
 import React from 'react';
 import { Modal, ScrollView, View, Text, TextInput, Switch, Button, StyleSheet } from 'react-native';
+import stateMachine from '../constants/stateMachine';
+import { SRDStatus } from '../constants/status';
 import { Picker } from '@react-native-picker/picker';
 
 type SalesReportModalProps = {
@@ -1425,7 +1427,7 @@ const SalesReportModal: React.FC<SalesReportModalProps> = ({
           />
 
           {/* Status for admin */}
-          {userRole === 'admin' && modalType === 'edit' && (
+          {(userRole === 'admin' || userRole === 'superadmin') && modalType === 'edit' && (
             <>
               <Text style={styles.inputLabel}>Task Sales Report Detail Status</Text>
               <View style={[styles.input, { padding: 0 }]}> 
@@ -1434,9 +1436,15 @@ const SalesReportModal: React.FC<SalesReportModalProps> = ({
                   onValueChange={value => setFormData((p:any)=>({ ...p, salesReportDetailStatus: value }))}
                   style={{ height: 40 }}
                 >
-                  {[{ label: '', value: '' },{ label: 'Done By BA', value: 'Done By BA' },{ label: 'Review back to BA', value: 'Review back to BA' },{ label: 'Done by TL', value: 'Done by TL' },{ label: 'Review back to TL', value: 'Review back to TL' },{ label: 'Done by AM', value: 'Done by AM' }].map(option => (
-                    <Picker.Item key={option.value} label={option.label} value={option.value} />
-                  ))}
+                  {(() => {
+                    const current = String(formData.salesReportDetailStatus || '');
+                    const role = String(userRole || '');
+                    const opts = stateMachine.nextOptionsForRole('SRD', role as any, current as any);
+                    const all = [SRDStatus.Empty, ...opts];
+                    return all.map(value => (
+                      <Picker.Item key={value} label={value} value={value} />
+                    ));
+                  })()}
                 </Picker>
               </View>
             </>

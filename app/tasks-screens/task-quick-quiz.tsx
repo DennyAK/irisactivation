@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
+import FilterHeader from '../../components/ui/FilterHeader';
+import useDebouncedValue from '../../components/hooks/useDebouncedValue';
+import EmptyState from '../../components/ui/EmptyState';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
@@ -50,6 +53,18 @@ export default function TaskQuickQuizScreen() {
   const [quizLoading, setQuizLoading] = useState(false);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [activeQuizDocId, setActiveQuizDocId] = useState<string | null>(null);
+  // Filters (search-only)
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const filteredQuizzes = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    if (!q) return quizzes;
+    return quizzes.filter(item => {
+      const outlet = String(item.outletName || '').toLowerCase();
+      const id = String(item.id || '').toLowerCase();
+      return outlet.includes(q) || id.includes(q);
+    });
+  }, [quizzes, debouncedSearch]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -181,10 +196,11 @@ export default function TaskQuickQuizScreen() {
     addDoc(collection(db, "task_quick_quiz"), {
       ...formData,
       quizDate: new Date(formData.quizDate),
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
     }).then((docRef) => {
       // Update the just-created document to set takeQuickQuizId to its own id
-      updateDoc(docRef, { takeQuickQuizId: docRef.id }).then(() => {
+      updateDoc(docRef, { takeQuickQuizId: docRef.id, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' }).then(() => {
         setIsAddModalVisible(false);
         resetFormData();
         fetchQuizzes();
@@ -221,6 +237,8 @@ export default function TaskQuickQuizScreen() {
       updateDoc(quizDoc, {
         ...formData,
         quizDate: new Date(formData.quizDate),
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
       }).then(() => {
         setIsEditModalVisible(false);
         resetFormData();
@@ -270,7 +288,7 @@ export default function TaskQuickQuizScreen() {
     } else {
       const score = quizQuestions.reduce((acc, q, idx) => acc + (userAnswers[idx] === q.answer ? 1 : 0), 0);
       setQuizScore(score);
-      const userId = auth.currentUser?.uid || 'anonymous';
+  const userId = auth.currentUser?.uid || 'anonymous';
       // Determine status
       let status = 'Pending';
       if (score >= 8) {
@@ -285,6 +303,8 @@ export default function TaskQuickQuizScreen() {
           quizDate: new Date(),
           quickQuizResult: `${score}/10`,
           taskQuickQuizStatus: status,
+          updatedAt: serverTimestamp(),
+          updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
         }).then(() => {
           fetchQuizzes();
         });
@@ -296,7 +316,8 @@ export default function TaskQuickQuizScreen() {
           quizDate: new Date(),
           quickQuizResult: `${score}/10`,
           taskQuickQuizStatus: status,
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
         });
       }
     }
@@ -359,6 +380,16 @@ export default function TaskQuickQuizScreen() {
 
   return (
   <View style={styles.screen}>
+      <FilterHeader
+        title="Task Quick Quiz"
+        search={search}
+        status={''}
+        statusOptions={[{ label: 'All', value: '' }]} // placeholder, status not used
+        placeholder="Search by outlet or record ID"
+        storageKey="filters:quiz"
+        onApply={({ search: s }) => { setSearch(s); }}
+        onClear={() => { setSearch(''); }}
+      />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 60 }}
         refreshControl={
@@ -372,7 +403,7 @@ export default function TaskQuickQuizScreen() {
           />
         }
       >
-  <Text style={styles.screenTitle}>Task Quick Quiz</Text>
+  {/* Legacy title removed in favor of FilterHeader */}
 
 
         {/* Quiz Questions List for Superadmin/Admin */}
@@ -405,10 +436,10 @@ export default function TaskQuickQuizScreen() {
         {/* Quiz Results List - always visible below questions */}
         <View style={styles.block}>
           <Text style={styles.blockTitle}>Quiz Results</Text>
-          {quizzes.length === 0 ? (
-            <Text>No quiz records found.</Text>
+          {filteredQuizzes.length === 0 ? (
+            <EmptyState onReset={() => setSearch('')} />
           ) : (
-            quizzes.map(item => (
+            filteredQuizzes.map(item => (
               <View key={item.id}>
                 {renderQuiz({ item })}
               </View>

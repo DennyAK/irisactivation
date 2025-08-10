@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl, TouchableOpacity, TextInput } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import SalesReportModal from '../../components/SalesReportModal';
 import SalesReportDetailsModal, { buildSalesReportText } from '../../components/SalesReportDetailsModal';
 import { db, auth } from '../../firebaseConfig';
@@ -8,6 +9,15 @@ import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc
 import { onAuthStateChanged } from 'firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
+import { StatusPill } from '../../components/ui/StatusPill';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
+import { SRDStatus, getToneForSRDStatus, nextStatusOnSubmitSRD, SRD_STATUS_OPTIONS } from '../../constants/status';
+import stateMachine from '../../constants/stateMachine';
+import FilterHeader from '../../components/ui/FilterHeader';
+import useDebouncedValue from '../../components/hooks/useDebouncedValue';
+import EmptyState from '../../components/ui/EmptyState';
+import { Roles, isAdminRole } from '../../constants/roles';
 
 
 export default function SalesReportDetailScreen() {
@@ -66,6 +76,18 @@ export default function SalesReportDetailScreen() {
   const [detailsMode, setDetailsMode] = useState<'review' | 'description'>('description');
   // Track expanded items in the list (to show full details like old UI)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Filters
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const filteredReports = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return reports.filter(r => {
+      const matchesSearch = !q || (String(r.outletName || '').toLowerCase().includes(q)) || (String(r.outletId || '').toLowerCase().includes(q));
+      const matchesStatus = !statusFilter || (String(r.salesReportDetailStatus || '') === statusFilter);
+      return matchesSearch && matchesStatus;
+    });
+  }, [reports, debouncedSearch, statusFilter]);
 
   const initialFormData = {
     // Activity Information
@@ -171,9 +193,16 @@ export default function SalesReportDetailScreen() {
     try {
       const now = serverTimestamp();
       if (modalType === 'edit' && selectedReport?.id) {
+        // Advance status based on role and previous status (centralized)
+        const prevStatus = (selectedReport.salesReportDetailStatus || '') as any;
+        const adminChosen = formData.salesReportDetailStatus as any; // admins/superadmins can set directly via picker
+        const computed = nextStatusOnSubmitSRD((userRole as any) || '', prevStatus);
+        const nextStatus = adminChosen || computed;
+
         const ref = doc(db, 'sales_report_detail', selectedReport.id);
         await updateDoc(ref, {
           ...formData,
+          salesReportDetailStatus: nextStatus,
           updatedAt: now,
           updatedBy: auth.currentUser?.email || auth.currentUser?.uid || 'unknown',
         });
@@ -242,7 +271,23 @@ export default function SalesReportDetailScreen() {
       } else {
         snapshot = await getDocs(reportsRef);
       }
-      const items: ReportItem[] = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      let items: ReportItem[] = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      // Enrich with outlets like in Quick Sales Report
+      try {
+        const outletsSnapshot = await getDocs(collection(db, 'outlets'));
+        const outletMap: Record<string, any> = {};
+        outletsSnapshot.forEach(doc => { outletMap[doc.id] = doc.data(); });
+        items = items.map(report => {
+          const outlet = outletMap[report.outletId || ''] || {};
+          return {
+            ...report,
+            outletName: outlet.outletName || report.outletName || '-',
+            outletProvince: outlet.outletProvince || outlet.province || report.outletProvince || '-',
+            outletCity: outlet.outletCity || outlet.city || report.outletCity || '-',
+            outletTier: outlet.outletTier || outlet.tier || report.outletTier || '-',
+          } as ReportItem;
+        });
+      } catch {}
       setReports(items);
     } catch (err) {
       console.error('fetchReports error', err);
@@ -263,58 +308,41 @@ export default function SalesReportDetailScreen() {
 
   if (loading) return <ActivityIndicator />;
 
-  const canDelete = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
-  const canUpdate = canDelete || userRole === 'Iris - BA' || userRole === 'Iris - TL';
+  const canDelete = userRole === Roles.Admin || userRole === Roles.Superadmin || userRole === Roles.AreaManager;
+  const canUpdate = canDelete || userRole === Roles.IrisBA || userRole === Roles.IrisTL;
 
 
-  // Helper: map status to badge colors
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Done By BA':
-        return { bg: '#E6F0FF', fg: '#1E66F5' };
-      case 'Review back to BA':
-        return { bg: '#FFF4E5', fg: '#B54708' };
-      case 'Done by TL':
-        return { bg: '#F0E6FF', fg: '#6941C6' };
-      case 'Review back to TL':
-        return { bg: '#FFF4E5', fg: '#B54708' };
-      case 'Done by AM':
-        return { bg: '#E7F5EC', fg: '#2E7D32' };
-      default:
-        return { bg: '#EEEEEE', fg: '#555555' };
-    }
-  };
+  // Helper: map status to StatusPill tone via centralized helper
+  const getStatusTone = (status: string) => getToneForSRDStatus(status);
 
   
 
   const renderItem = ({ item }: { item: any }) => {
-    const canEditBA = userRole === 'Iris - BA' && (!item.salesReportDetailStatus || item.salesReportDetailStatus === 'Review back to BA');
-    const canEditTL = userRole === 'Iris - TL' && (item.salesReportDetailStatus === 'Done By BA' || item.salesReportDetailStatus === 'Review back to TL');
-    const canEditAdmin = userRole === 'admin' || userRole === 'superadmin';
-    const canReview = userRole === 'area manager' && item.salesReportDetailStatus === 'Done by TL';
-    const canRemove = userRole === 'superadmin';
+  const canEditBA = userRole === Roles.IrisBA && stateMachine.canTransition('SRD', Roles.IrisBA, item.salesReportDetailStatus || SRDStatus.Empty, SRDStatus.DoneByBA);
+  const canEditTL = userRole === Roles.IrisTL && stateMachine.canTransition('SRD', Roles.IrisTL, item.salesReportDetailStatus || SRDStatus.Empty, SRDStatus.DoneByTL);
+  const canEditAdmin = isAdminRole(userRole as any);
+  const canReview = userRole === Roles.AreaManager && item.salesReportDetailStatus === SRDStatus.DoneByTL;
+  const canRemove = userRole === Roles.Superadmin;
 
-    const status: string = item.salesReportDetailStatus || '-';
-    const badgeColor = getStatusColor(status);
+    const status: string = item.salesReportDetailStatus || '';
+    const statusTone = getStatusTone(status);
 
     const isExpanded = !!expanded[item.id];
     return (
-      <View style={styles.pill}>
-        <TouchableOpacity style={{ flex: 1 }} onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}>
-          <Text style={styles.pillTitle} numberOfLines={1}>
-            {item.outletName || '-'}
-          </Text>
-          <Text style={styles.pillSubtitle} numberOfLines={1}>
+      <View style={styles.card}>
+        <TouchableOpacity onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {item.outletName || '-'}
+            </Text>
+            <StatusPill label={status || '—'} tone={statusTone as any} />
+          </View>
+          <Text style={styles.cardSubtitle} numberOfLines={1}>
             {(item.outletCity || '-') + (item.outletProvince ? `, ${item.outletProvince}` : '')} • {item.channel || '-'} • {item.tier || '-'}
           </Text>
-          <View style={styles.metaRow}>
-            <View style={[styles.statusBadge, { backgroundColor: badgeColor.bg }]}>
-              <Text style={[styles.statusBadgeText, { color: badgeColor.fg }]} numberOfLines={1}>{status}</Text>
-            </View>
-            <Text style={styles.metaText}>
-              {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : '-'}
-            </Text>
-          </View>
+          <Text style={styles.metaText}>
+            {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : '-'}
+          </Text>
           {isExpanded && (
             <View style={styles.detailsContainer}>
               <Text>Outlet ID: {item.outletId || '-'}</Text>
@@ -333,48 +361,51 @@ export default function SalesReportDetailScreen() {
             </View>
           )}
         </TouchableOpacity>
-        <View style={styles.iconActions}>
-          <TouchableOpacity
-            onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-            style={styles.iconButton}
-            accessibilityLabel="Expand"
-          >
-            <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => { setDescriptionItem(item); setDetailsMode('description'); setDetailsVisible(true); }}
-            style={styles.iconButton}
-            accessibilityLabel="Detail"
-          >
-            <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
-          </TouchableOpacity>
-          {(canEditBA || canEditTL || canEditAdmin) && (
+        <View style={styles.actionsRow}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', flex: 1 }}>
+            {canEditBA && (
+              <PrimaryButton title="SRD by BA" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+            )}
+            {canEditTL && (
+              <PrimaryButton title="SRD by TL" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+            )}
+            {userRole === Roles.IrisTL && stateMachine.canTransition('SRD', Roles.IrisTL, item.salesReportDetailStatus || SRDStatus.Empty, SRDStatus.ReviewBackToBA) && (
+              <SecondaryButton title="Review back to BA" onPress={async () => {
+                try {
+                  const ref = doc(db, 'sales_report_detail', item.id);
+      await updateDoc(ref, { salesReportDetailStatus: SRDStatus.ReviewBackToBA, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+                  await fetchReports();
+                } catch (e) {
+                  Alert.alert('Error', 'Failed to update status');
+                }
+              }} style={styles.actionBtn} />
+            )}
+            {canReview && stateMachine.canTransition('SRD', Roles.AreaManager, item.salesReportDetailStatus || SRDStatus.Empty, SRDStatus.DoneByAM) && (
+              <PrimaryButton title="SRD by AM" onPress={() => { setSelectedReport(item); setDetailsMode('review'); setDetailsVisible(true); }} style={styles.actionBtn} />
+            )}
+            {canEditAdmin && (
+              <SecondaryButton title="Edit" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+            )}
+            {canRemove && (
+              <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={styles.actionBtnDanger} />
+            )}
+          </View>
+          <View style={styles.iconActions}>
             <TouchableOpacity
-              onPress={() => handleOpenModal('edit', item)}
+              onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
               style={styles.iconButton}
-              accessibilityLabel="Edit"
+              accessibilityLabel="Expand"
             >
-              <Ionicons name="create-outline" size={20} color="#333" />
+              <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
             </TouchableOpacity>
-          )}
-          {canReview && (
             <TouchableOpacity
-              onPress={() => { setSelectedReport(item); setDetailsMode('review'); setDetailsVisible(true); }}
+              onPress={() => { setDescriptionItem(item); setDetailsMode('description'); setDetailsVisible(true); }}
               style={styles.iconButton}
-              accessibilityLabel="Review"
+              accessibilityLabel="Detail"
             >
-              <Ionicons name="checkbox-outline" size={20} color="#28a745" />
+              <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
             </TouchableOpacity>
-          )}
-          {canRemove && (
-            <TouchableOpacity
-              onPress={() => handleDelete(item.id)}
-              style={styles.iconButton}
-              accessibilityLabel="Delete"
-            >
-              <Ionicons name="trash-outline" size={20} color="#dc3545" />
-            </TouchableOpacity>
-          )}
+          </View>
         </View>
       </View>
     );
@@ -387,9 +418,21 @@ export default function SalesReportDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sales Report Detail</Text>
+      <FilterHeader
+        title="Sales Report Detail"
+        search={search}
+        status={statusFilter}
+        statusOptions={SRD_STATUS_OPTIONS}
+        placeholder="Search outlet or ID"
+        storageKey="filters:srd"
+        onApply={({ search: s, status }) => { setSearch(s); setStatusFilter(status); }}
+        onClear={() => { setSearch(''); setStatusFilter(''); }}
+      />
+      {filteredReports.length === 0 ? (
+        <EmptyState onReset={() => { setSearch(''); setStatusFilter(''); }} />
+      ) : (
       <FlatList
-        data={reports}
+        data={filteredReports}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshControl={
@@ -402,7 +445,7 @@ export default function SalesReportDetailScreen() {
             }}
           />
         }
-      />
+      />)}
       <SalesReportModal
         visible={isModalVisible}
         modalType={modalType}
@@ -420,14 +463,25 @@ export default function SalesReportDetailScreen() {
         item={detailsMode === 'review' ? selectedReport : descriptionItem}
         userRole={userRole}
         onCopyAll={detailsMode === 'description' && descriptionItem ? async () => { await Clipboard.setStringAsync(getDescriptionText(descriptionItem)); Alert.alert('Copied to clipboard'); } : undefined}
-        onDoneByAM={detailsMode === 'review' && userRole === 'area manager' && selectedReport?.id ? async () => {
+    onDoneByAM={detailsMode === 'review' && userRole === 'area manager' && selectedReport?.id ? async () => {
           try {
             const ref = doc(db, 'sales_report_detail', selectedReport.id);
-            await updateDoc(ref, { salesReportDetailStatus: 'Done by AM', updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+      await updateDoc(ref, { salesReportDetailStatus: SRDStatus.DoneByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
             await fetchReports();
             setDetailsVisible(false);
           } catch (e) {
             console.error('Done by AM failed', e);
+            Alert.alert('Error', 'Failed to update status');
+          }
+        } : undefined}
+    onReviewBackToTL={detailsMode === 'review' && userRole === 'area manager' && selectedReport?.id ? async () => {
+          try {
+            const ref = doc(db, 'sales_report_detail', selectedReport.id);
+      await updateDoc(ref, { salesReportDetailStatus: SRDStatus.ReviewBackToTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+            await fetchReports();
+            setDetailsVisible(false);
+          } catch (e) {
+            console.error('Review back to TL failed', e);
             Alert.alert('Error', 'Failed to update status');
           }
         } : undefined}
@@ -450,24 +504,14 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 10, color: '#888', marginBottom: 2, marginLeft: 2 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
   switchContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  iconButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#F0F0F0',
-    marginVertical: 4,
-    marginLeft: 8,
-  },
-  // New pill list styles
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+  // Card styles to match other task screens
+  card: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -475,18 +519,14 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  pillTitle: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  pillSubtitle: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 },
-  statusBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statusBadgeText: { fontSize: 11, fontWeight: '600' },
-  metaText: { fontSize: 11, color: '#6B7280', marginLeft: 8 },
-  iconActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 12 },
-  detailsContainer: {
-    marginTop: 8,
-  },
+  cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: '#111827', flex: 1, marginRight: 8 },
+  cardSubtitle: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  metaText: { fontSize: 11, color: '#6B7280', marginTop: 6 },
+  actionsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  actionBtn: { marginRight: 8, marginBottom: 8 },
+  actionBtnDanger: { marginRight: 8, marginBottom: 8, opacity: 0.9 },
+  iconActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  iconButton: { padding: 8, borderRadius: 20, backgroundColor: '#F0F0F0', marginLeft: 8 },
+  detailsContainer: { marginTop: 8 },
 });

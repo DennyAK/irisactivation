@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity, Button } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
@@ -15,6 +17,12 @@ import TaskEarlyAssessmentDetailsModal, { buildTaskEarlyAssessmentText } from '@
 import * as Clipboard from 'expo-clipboard';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Platform } from 'react-native';
+import { Roles } from '../../constants/roles';
+import { EAStatus, getToneForEAStatus, nextStatusOnSubmitEA, EA_STATUS_OPTIONS } from '../../constants/status';
+import stateMachine from '../../constants/stateMachine';
+import FilterHeader from '../../components/ui/FilterHeader';
+import useDebouncedValue from '../../components/hooks/useDebouncedValue';
+import EmptyState from '../../components/ui/EmptyState';
 
 export default function TaskEarlyAssessmentScreen() {
   // Pull-to-refresh state
@@ -38,6 +46,20 @@ export default function TaskEarlyAssessmentScreen() {
   const [detailsItem, setDetailsItem] = useState<any | null>(null);
   const [outletDetails, setOutletDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  // Filters
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  // Admin-only status override selection (constrained)
+  const [adminNextStatus, setAdminNextStatus] = useState<string>('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const filteredAssessments = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return assessments.filter(r => {
+      const matchesSearch = !q || (String(r.outletName || '').toLowerCase().includes(q)) || (String(r.outletId || '').toLowerCase().includes(q));
+      const matchesStatus = !statusFilter || (String(r.status || '') === statusFilter);
+      return matchesSearch && matchesStatus;
+    });
+  }, [assessments, debouncedSearch, statusFilter]);
   const [showExpiryKegsPicker, setShowExpiryKegsPicker] = useState(false);
   const [showExpiryGdicPicker, setShowExpiryGdicPicker] = useState(false);
   const [showExpirySmoothPicker, setShowExpirySmoothPicker] = useState(false);
@@ -248,11 +270,11 @@ export default function TaskEarlyAssessmentScreen() {
       const snapshot = await getDocs(collectionRef);
       let list = snapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
       // Filter for BA role: only show records assigned to current user
-      if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
+  if (userRole === Roles.IrisBA && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
       }
       // Filter for TL role: only show records assigned to current TL
-      if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
+  if (userRole === Roles.IrisTL && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
       setAssessments(list);
@@ -316,6 +338,7 @@ export default function TaskEarlyAssessmentScreen() {
       setSelectedAssessment(null);
       setFormData(initialFormData);
     }
+  setAdminNextStatus('');
     setIsModalVisible(true);
   };
 
@@ -352,23 +375,27 @@ export default function TaskEarlyAssessmentScreen() {
         }
     }
 
-    // If BA is updating, set status to 'ASSESS BY BA'
-    if (userRole === 'Iris - BA' && modalType === 'edit') {
-      dataToSubmit.status = 'ASSESS BY BA';
-    }
-    // If TL is updating, set status to 'ASSESS BY TL'
-    if (userRole === 'Iris - TL' && modalType === 'edit') {
-      dataToSubmit.status = 'ASSESS BY TL';
+    // Compute next status centrally on edit
+    if (modalType === 'edit') {
+      const prev = (selectedAssessment?.status || '') as any;
+      let next = nextStatusOnSubmitEA((userRole as any) || '', prev);
+      // Admin/superadmin picker can override within allowed transitions
+      if ((userRole === Roles.Admin || userRole === Roles.Superadmin) && adminNextStatus) {
+        if (stateMachine.canTransition('EA', userRole as any, prev, adminNextStatus as any)) {
+          next = adminNextStatus as any;
+        }
+      }
+      dataToSubmit.status = next;
     }
 
     if (modalType === 'add') {
-      addDoc(collection(db, "task_early_assessment"), { ...dataToSubmit, createdAt: serverTimestamp() })
+      addDoc(collection(db, "task_early_assessment"), { ...dataToSubmit, createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' })
         .then(() => {
           fetchAssessments();
           setIsModalVisible(false);
         }).catch(error => Alert.alert("Add Failed", error.message));
     } else if (selectedAssessment) {
-      updateDoc(doc(db, "task_early_assessment", selectedAssessment.id), dataToSubmit)
+      updateDoc(doc(db, "task_early_assessment", selectedAssessment.id), { ...dataToSubmit, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' })
         .then(() => {
           fetchAssessments();
           setIsModalVisible(false);
@@ -387,19 +414,21 @@ export default function TaskEarlyAssessmentScreen() {
 
   if (loading) return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
 
-  const canManage = ['admin', 'superadmin'].includes(userRole || '');
-  const isAreaManager = userRole === 'area manager';
-  const canUpdate = canManage || isAreaManager || userRole === 'Iris - BA' || userRole === 'Iris - TL';
+  const canManage = [Roles.Admin, Roles.Superadmin].includes((userRole || '') as any);
+  const isAreaManager = userRole === Roles.AreaManager;
+  const canUpdate = canManage || isAreaManager || userRole === Roles.IrisBA || userRole === Roles.IrisTL;
 
   const renderItem = ({ item }: { item: any }) => {
-    const status = item.status || '-';
-    const tone = status.includes('AM') ? 'success' : status.includes('TL') ? 'info' : status.includes('BA') ? 'warning' : 'neutral';
+  const status = item.status || '';
+  const tone = getToneForEAStatus(status) as any;
     const isExpanded = !!expanded[item.id];
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{item.outletName || 'Outlet'}</Text>
-          <StatusPill label={status} tone={tone as any} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <StatusPill label={status} tone={tone as any} />
+          </View>
         </View>
         <Text style={styles.meta}>Assigned BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
         <Text style={styles.meta}>Assigned TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
@@ -415,13 +444,11 @@ export default function TaskEarlyAssessmentScreen() {
             <Text style={styles.meta}>Merchandise Avail: <Text style={styles.metaValue}>{item.merchandiseAvailable ? 'Yes' : 'No'}</Text></Text>
           </View>
         )}
-        <View style={styles.actionsRow}>
-          <SecondaryButton title={isExpanded ? 'Hide' : 'Expand'} onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))} style={styles.actionBtn} />
-          <SecondaryButton title="Details" onPress={() => { setDetailsItem(item); setDetailsVisible(true); }} style={styles.actionBtn} />
-          {userRole === 'Iris - BA' && (!item.status || item.status === '') && (
+  <View style={styles.actionsRow}>
+          {userRole === Roles.IrisBA && stateMachine.canTransition('EA', Roles.IrisBA, status || EAStatus.Empty, EAStatus.AssessByBA) && (
             <PrimaryButton title="Assess BA" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
-          {userRole === 'Iris - TL' && (item.status === 'ASSESS BY BA' || item.status === 'RE ASSESS BY TL') && (
+          {userRole === Roles.IrisTL && stateMachine.canTransition('EA', Roles.IrisTL, status || EAStatus.Empty, EAStatus.AssessByTL) && (
             <PrimaryButton title="Assess TL" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
           {canManage && (
@@ -430,9 +457,25 @@ export default function TaskEarlyAssessmentScreen() {
           {userRole === 'superadmin' && (
             <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={styles.actionBtn} />
           )}
-          {isAreaManager && item.status === 'ASSESS BY TL' && (
+          {isAreaManager && stateMachine.canTransition('EA', Roles.AreaManager, status || EAStatus.Empty, EAStatus.AssessByAM) && (
             <PrimaryButton title="Assess AM" onPress={() => { setSelectedAssessment(item); setIsReviewModalVisible(true); }} style={styles.actionBtn} />
           )}
+          <View style={styles.iconActions}>
+            <TouchableOpacity
+              onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+              style={styles.iconButton}
+              accessibilityLabel="Expand"
+            >
+              <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
+              style={styles.iconButton}
+              accessibilityLabel="Detail"
+            >
+              <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -549,12 +592,12 @@ export default function TaskEarlyAssessmentScreen() {
             <Text>{item.issuesNotes}</Text>
             <View style={styles.buttonContainer}>
               <View style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
-                <Button title="Done Assess by AM" onPress={() => {
+    <PrimaryButton title="Done Assess by AM" onPress={() => {
                   Alert.alert('Confirm Assess', 'Are you sure assessed?', [
                     { text: 'Cancel', style: 'cancel' },
                     { text: 'OK', onPress: async () => {
                       try {
-                        await updateDoc(doc(db, 'task_early_assessment', item.id), { status: 'ASSESS BY AM' });
+      await updateDoc(doc(db, 'task_early_assessment', item.id), { status: EAStatus.AssessByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
                         fetchAssessments();
                         setIsReviewModalVisible(false);
                         Alert.alert('Success', 'Status updated to ASSESS BY AM.');
@@ -565,12 +608,12 @@ export default function TaskEarlyAssessmentScreen() {
                   ]);
                 }} />
                 <View style={{ height: 12 }} />
-                <Button title="REASSESS by TL" onPress={() => {
+    <SecondaryButton title="REASSESS by TL" onPress={() => {
                   Alert.alert('Confirm Reassess', 'Reassign to TL? Status will be set to RE ASSESS BY TL.', [
                     { text: 'No', style: 'cancel' },
                     { text: 'Yes', onPress: async () => {
                       try {
-                        await updateDoc(doc(db, 'task_early_assessment', item.id), { status: 'RE ASSESS BY TL' });
+      await updateDoc(doc(db, 'task_early_assessment', item.id), { status: EAStatus.ReassessByTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
                         fetchAssessments();
                         setIsReviewModalVisible(false);
                         Alert.alert('Success', 'Status updated to RE ASSESS BY TL.');
@@ -581,7 +624,7 @@ export default function TaskEarlyAssessmentScreen() {
                   ]);
                 }} />
                 <View style={{ height: 12 }} />
-                <Button title="Cancel" onPress={() => setIsReviewModalVisible(false)} />
+                <SecondaryButton title="Cancel" onPress={() => setIsReviewModalVisible(false)} />
               </View>
             </View>
           </View>
@@ -595,6 +638,24 @@ export default function TaskEarlyAssessmentScreen() {
       <ScrollView contentContainerStyle={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>{modalType === 'add' ? 'Add' : 'Edit'} Assessment</Text>
+          {(userRole === Roles.Admin || userRole === Roles.Superadmin) && selectedAssessment && (
+            <View style={{ marginBottom: spacing(4) }}>
+              <Text style={styles.sectionTitle}>Admin: Next Status</Text>
+              <View style={{ borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surfaceAlt }}>
+                <Picker
+                  selectedValue={adminNextStatus}
+                  onValueChange={(v) => setAdminNextStatus(String(v))}
+                >
+                  <Picker.Item label="(no change)" value="" />
+                  {stateMachine
+                    .nextOptionsForRole('EA', (userRole as any) || '', (selectedAssessment?.status || '') as any)
+                    .map(opt => (
+                      <Picker.Item key={opt} label={opt} value={opt} />
+                    ))}
+                </Picker>
+              </View>
+            </View>
+          )}
 
           <Text style={styles.sectionTitle}>Personnel Information</Text>
           <Text>Assigned to BA ID: {formData.assignedToBA}</Text>
@@ -1111,8 +1172,8 @@ export default function TaskEarlyAssessmentScreen() {
           <TextInput style={styles.input} value={formData.issuesNotes} onChangeText={text => setFormData({...formData, issuesNotes: text})} placeholder="Issues, Notes, etc." />
 
           <View style={styles.buttonContainer}>
-            <Button title={modalType === 'add' ? 'Add' : 'Update'} onPress={handleFormSubmit} />
-            <Button title="Cancel" onPress={() => setIsModalVisible(false)} />
+            <PrimaryButton title={modalType === 'add' ? 'Add' : 'Update'} onPress={handleFormSubmit} />
+            <SecondaryButton title="Cancel" onPress={() => setIsModalVisible(false)} />
           </View>
         </View>
       </ScrollView>
@@ -1121,12 +1182,25 @@ export default function TaskEarlyAssessmentScreen() {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.screenTitle}>Task Early Assessment</Text>
+      <FilterHeader
+        title="Task Early Assessment"
+        search={search}
+        status={statusFilter}
+        statusOptions={EA_STATUS_OPTIONS}
+        placeholder="Search outlet or ID"
+        storageKey="filters:ea"
+        onApply={({ search: s, status }) => { setSearch(s); setStatusFilter(status); }}
+        onClear={() => { setSearch(''); setStatusFilter(''); }}
+      />
       {userRole === 'superadmin' && (
         <PrimaryButton title="Add Assessment" onPress={() => handleOpenModal('add')} style={{ marginBottom: spacing(5) }} />
       )}
+      
+      {filteredAssessments.length === 0 ? (
+        <EmptyState onReset={() => { setSearch(''); setStatusFilter(''); }} />
+      ) : (
       <FlatList
-        data={assessments}
+        data={filteredAssessments}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshControl={
@@ -1139,7 +1213,7 @@ export default function TaskEarlyAssessmentScreen() {
             }}
           />
         }
-      />
+      />)}
       <TaskEarlyAssessmentDetailsModal
         visible={detailsVisible}
         item={detailsItem}
@@ -1173,4 +1247,6 @@ const styles = StyleSheet.create({
   metaValue: { color: palette.text, fontWeight: '600' },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing(4) },
   actionBtn: { flexGrow: 1, marginRight: spacing(3), marginBottom: spacing(3) },
+  iconActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  iconButton: { padding: 8, borderRadius: 20, backgroundColor: '#F0F0F0', marginLeft: 8 },
 });
