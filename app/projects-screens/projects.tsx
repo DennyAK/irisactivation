@@ -208,6 +208,13 @@ export default function ProjectsScreen() {
             {!!item.createdByName && <Text style={styles.meta}>Creator: <Text style={styles.metaStrong}>{item.createdByName}</Text></Text>}
             {canEdit && (
               <View style={styles.actionsRow}>
+                {isAdmin && (
+                  <SecondaryButton
+                    title="View Audit"
+                    onPress={() => router.push({ pathname: '/(tabs)/audit-logs', params: { collection: 'projects', docId: item.id } })}
+                    style={styles.flexBtn}
+                  />
+                )}
                 <SecondaryButton title="Edit" onPress={() => handleEditProject(item)} style={styles.flexBtn} />
                 {isSuperadmin && <SecondaryButton title="Delete" onPress={() => handleDeleteProject(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
               </View>

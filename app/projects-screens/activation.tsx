@@ -8,8 +8,10 @@ import { compareCreatedAt } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import FilterHeader from '../../components/ui/FilterHeader';
+import { useRouter } from 'expo-router';
 
 export default function ActivationScreen() {
+  const router = useRouter();
   const [activations, setActivations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -58,6 +60,7 @@ export default function ActivationScreen() {
       // Enrich with creator's name like Projects screen
       const withNames = await Promise.all(activationList.map(async (a: any) => {
         let createdByName = 'Unknown User';
+        let updatedByName = undefined as string | undefined;
         try {
           if (a.createdBy) {
             const userRef = doc(db, 'users', a.createdBy);
@@ -67,8 +70,16 @@ export default function ActivationScreen() {
               createdByName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || createdByName;
             }
           }
+          if (a.updatedBy) {
+            const userRef2 = doc(db, 'users', a.updatedBy);
+            const uSnap2 = await getDoc(userRef2);
+            if (uSnap2.exists()) {
+              const u2 = uSnap2.data() as any;
+              updatedByName = `${u2.firstName || ''} ${u2.lastName || ''}`.trim() || u2.email || 'Unknown User';
+            }
+          }
         } catch {}
-        return { ...a, createdByName };
+        return { ...a, createdByName, updatedByName };
       }));
       setActivations(withNames as any[]);
     } catch (error) {
@@ -96,7 +107,7 @@ export default function ActivationScreen() {
     }
     try {
       if (selectedActivation) {
-        await updateDoc(doc(db, 'activations', selectedActivation.id), { ...formData, updatedAt: serverTimestamp() });
+        await updateDoc(doc(db, 'activations', selectedActivation.id), { ...formData, updatedAt: serverTimestamp(), updatedBy: currentUserId || null });
       } else {
   await addDoc(collection(db, 'activations'), { ...formData, createdAt: serverTimestamp(), createdBy: currentUserId || null });
       }
@@ -159,8 +170,16 @@ export default function ActivationScreen() {
             </View>
             <Text style={styles.meta}>ID: <Text style={styles.metaStrong}>{item.activationId}</Text></Text>
             {!!item.activationDetail && <Text style={styles.meta}>Detail: <Text style={styles.metaStrong}>{item.activationDetail}</Text></Text>}
+            {!!item.updatedBy && <Text style={styles.meta}>Last updated by: <Text style={styles.metaStrong}>{item.updatedByName || 'Unknown User'}</Text></Text>}
             {!!item.createdByName && <Text style={styles.meta}>Creator: <Text style={styles.metaStrong}>{item.createdByName}</Text></Text>}
             <View style={styles.actionsRow}>
+              {isAdmin && (
+                <SecondaryButton
+                  title="View Audit"
+                  onPress={() => router.push({ pathname: '/(tabs)/audit-logs', params: { collection: 'activations', docId: item.id } })}
+                  style={styles.flexBtn}
+                />
+              )}
               {canEdit && <SecondaryButton title="Edit" onPress={() => handleEdit(item)} style={styles.flexBtn} />}
               {isSuperadmin && <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
             </View>

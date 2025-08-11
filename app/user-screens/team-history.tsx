@@ -4,7 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useLocalSearchParams } from 'expo-router';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { palette, radius, shadow, spacing, typography } from '../../constants/Design';
+import { palette, radius, shadow, spacing } from '../../constants/Design';
 import FilterHeader from '../../components/ui/FilterHeader';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import GiftedBarChart from '@/components/ui/GiftedBarChart';
@@ -38,10 +38,10 @@ function groupMonthly(docs: Doc[], monthsBack = 6) {
   return last.map(([label, value]) => ({ label, value }));
 }
 
-export default function OutletHistoryScreen() {
-  const params = useLocalSearchParams<{ outletId?: string; outletName?: string }>();
-  const outletId = params.outletId || '';
-  const outletName = params.outletName || '';
+export default function TeamHistoryScreen() {
+  const params = useLocalSearchParams<{ userId?: string; userName?: string }>();
+  const userId = params.userId || '';
+  const userName = params.userName || '';
 
   const [search, setSearch] = useState('');
   const [sortAsc] = useState(false);
@@ -53,7 +53,6 @@ export default function OutletHistoryScreen() {
   const [active, setActive] = useState<'QR' | 'SRD' | 'EA' | 'ATT'>('QR');
   const [monthsBack, setMonthsBack] = useState(6);
   const [qrVar, setQrVar] = useState('salesSmoothPint330');
-  // SRD group + metric selection
   const [srdGroup, setSrdGroup] = useState<'selling' | 'calls' | 'promos' | 'visitors' | 'tables' | 'competitor' | 'programs'>('visitors');
   const [srdVarIndex, setSrdVarIndex] = useState(0);
   const [eaVar, setEaVar] = useState('stockKegs');
@@ -61,28 +60,28 @@ export default function OutletHistoryScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!outletId) {
+      if (!userId) {
         setLoading(false);
         return;
       }
       setLoading(true);
       try {
-        const fetchFor = async (col: string) => {
+        const fetchBy = async (col: string, field: 'createdBy' | 'userId') => {
           try {
-            const qRef = query(collection(db, col), where('outletId', '==', outletId as string), orderBy('createdAt', 'asc'));
+            const qRef = query(collection(db, col), where(field, '==', userId as string), orderBy('createdAt', 'asc'));
             const snap = await getDocs(qRef);
-            return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Doc[];
+            return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Doc[];
           } catch {
-            const qRef = query(collection(db, col), where('outletId', '==', outletId as string));
+            const qRef = query(collection(db, col), where(field, '==', userId as string));
             const snap = await getDocs(qRef);
-            return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Doc[];
+            return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Doc[];
           }
         };
         const [qrDocs, srdDocs, eaDocs, attDocs] = await Promise.all([
-          fetchFor('sales_report_quick'),
-          fetchFor('sales_report_detail'),
-          fetchFor('task_early_assessment'),
-          fetchFor('task_attendance'),
+          fetchBy('sales_report_quick', 'createdBy'),
+          fetchBy('sales_report_detail', 'createdBy'),
+          fetchBy('task_early_assessment', 'createdBy'),
+          fetchBy('task_attendance', 'userId'),
         ]);
         if (cancelled) return;
         setQr(qrDocs);
@@ -93,150 +92,10 @@ export default function OutletHistoryScreen() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
-  }, [outletId]);
-
-  const qrMonthly = useMemo(() => groupMonthly(qr, monthsBack), [qr, monthsBack]);
-  const srdMonthly = useMemo(() => groupMonthly(srd, monthsBack), [srd, monthsBack]);
-  const eaMonthly = useMemo(() => groupMonthly(ea, monthsBack), [ea, monthsBack]);
-  const attMonthly = useMemo(() => groupMonthly(att, monthsBack), [att, monthsBack]);
-
-  const QR_VAR_OPTIONS = [
-    { label: 'Kegs 330', key: 'salesKegs330' },
-    { label: 'Kegs 500', key: 'salesKegs500' },
-    { label: 'Microdraught 500', key: 'salesMd500' },
-    { label: 'GDIC 400', key: 'salesGdic400' },
-    { label: 'Smooth Pint 330', key: 'salesSmoothPint330' },
-    { label: 'Smooth Can 330', key: 'salesSmoothCan330' },
-    { label: 'GFES Pint 330', key: 'salesGfesPint330' },
-    { label: 'GFES Can 330', key: 'salesGfesCan330' },
-    { label: 'GFES Quart 620', key: 'salesGfesQuart620' },
-    { label: 'GFES Can Big 500', key: 'salesGfesCanbig500' },
-  ];
-  const SRD_VAR_OPTIONS = [
-    { label: 'Visitors Overall', key: 'visitorsOverall' },
-    { label: 'Visitors Alcohol Drinkers', key: 'visitorsAlcoholDrinkers' },
-    { label: 'Visitors All Beer Drinkers', key: 'visitorsAllBeerDrinkers' },
-    { label: 'Visitors All Guinness', key: 'visitorsAllGuinness' },
-    { label: 'Visitors All Competitor', key: 'visitorsAllCompetitor' },
-    { label: 'Guinness Total Sales', key: 'totalGuinnessSales' },
-    { label: 'Drinkers Smooth', key: 'drinkersSmooth' },
-    { label: 'Drinkers GFES', key: 'drinkersGfes' },
-    { label: 'Drinkers Kegs', key: 'drinkersKegs' },
-    { label: 'Drinkers Microdraught', key: 'drinkersMicrodraught' },
-  ];
-  // Grouped SRD options
-  const SRD_GROUPS = [
-    { label: 'Guinness Selling', key: 'selling' as const },
-    { label: 'Call & Customers', key: 'calls' as const },
-    { label: 'Promotions', key: 'promos' as const },
-    { label: 'Visitors & Consumers', key: 'visitors' as const },
-    { label: 'Tables', key: 'tables' as const },
-    { label: 'Competitor Sales', key: 'competitor' as const },
-    { label: 'Programs & Digital', key: 'programs' as const },
-  ];
-  const SRD_SELLING_OPTIONS = [
-    { label: 'Kegs 330', key: 'salesKegs330' },
-    { label: 'Kegs 500', key: 'salesKegs500' },
-    { label: 'Microdraught 500', key: 'salesMd500' },
-    { label: 'GDIC 400', key: 'salesGdic400' },
-    { label: 'Smooth Pint 330', key: 'salesSmoothPint330' },
-    { label: 'Smooth Can 330', key: 'salesSmoothCan330' },
-    { label: 'GFES Pint 330', key: 'salesGfesPint330' },
-    { label: 'GFES Can 330', key: 'salesGfesCan330' },
-    { label: 'GFES Quart 620', key: 'salesGfesQuart620' },
-    { label: 'GFES Can Big 500', key: 'salesGfesCanbig500' },
-    { label: 'Total Guinness Sales', key: 'totalGuinnessSales' },
-  ];
-  const SRD_CALLS_OPTIONS = [
-    { label: 'Calls/Offers', key: 'callsOffers' },
-    { label: 'Effective Calls/Buyers/Shops', key: 'effectiveCalls' },
-  ];
-  const SRD_VISITORS_OPTIONS = SRD_VAR_OPTIONS;
-  const SRD_TABLES_OPTIONS = [
-    { label: 'Tables Overall', key: 'tablesOverall' },
-    { label: 'Tables Alcohol Drinkers', key: 'tablesAlcoholDrinkers' },
-    { label: 'Tables Non Alcohol Drinkers', key: 'tablesNonAlcoholDrinkers' },
-    { label: 'Tables All Beer Drinkers', key: 'tablesAllBeerDrinkers' },
-    { label: 'Tables All Guinness', key: 'tablesAllGuinness' },
-    { label: 'Tables All Competitor', key: 'tablesAllCompetitor' },
-    { label: 'Tables Mixed', key: 'tablesAllGuinnessMixedCompetitor' },
-  ];
-  const SRD_COMPETITOR_OPTIONS = [
-    { label: 'Bintang Promo Sold', key: 'competitorBintangPromoSold' },
-    { label: 'Bintang Crystal Promo Sold', key: 'competitorBintangCrystalPromoSold' },
-    { label: 'Heineken Promo Sold', key: 'competitorHeinekenPromoSold' },
-    { label: 'Heineken Import Promo Sold', key: 'competitorHeinekenImportPromoSold' },
-    { label: 'Erdinger Import Promo Sold', key: 'competitorErdingerImportPromoSold' },
-    { label: 'Budweizer Import Promo Sold', key: 'competitorBudweizerImportPromoSold' },
-    { label: 'Anker Promo Sold', key: 'competitorAnkerPromoSold' },
-    { label: 'Bali Hai Promo Sold', key: 'competitorBalihaiPromoSold' },
-    { label: 'Prost Promo Sold', key: 'competitorProstPromoSold' },
-    { label: 'San Miguel Promo Sold', key: 'competitorSanMiguelPromoSold' },
-    { label: 'Singaraja Promo Sold', key: 'competitorSingarajaPromoSold' },
-    { label: 'Kura Kura Promo Sold', key: 'competitorKuraKuraPromoSold' },
-    { label: 'Island Brewing Promo Sold', key: 'competitorIslandBrewingPromoSold' },
-    { label: 'Others Promo Sold', key: 'competitorOthersPromoSold' },
-    { label: 'Competitor Activity SPG Total', key: 'competitorActivitySpgTotal' },
-  ];
-  const SRD_PROMO_OPTIONS = [
-    { label: 'Packages Sold (All)', key: 'packagesSold' },
-    { label: 'Repeat Orders (All)', key: 'repeatOrders' },
-    // Smooth
-    { label: 'Promo Smooth Sold', key: 'promoSmoothSold' },
-    { label: 'Promo Smooth Repeat Orders', keys: ['promoSmoothRepeatOrders', 'promoSmoothRepeatOrder'] },
-    { label: 'Promo Smooth Sold (Type 2)', key: 'promoSmoothSoldType2' },
-    { label: 'Promo Smooth Repeat Orders (Type 2)', keys: ['promoSmoothRepeatOrdersType2', 'promoSmoothRepeatOrderType2'] },
-    // GFES
-    { label: 'Promo GFES Sold', key: 'promoGfesSold' },
-    { label: 'Promo GFES Repeat Orders', keys: ['promoGfesRepeatOrders', 'promoGfesRepeatOrder'] },
-    { label: 'Promo GFES Sold (Type 2)', key: 'promoGfesSoldType2' },
-    { label: 'Promo GFES Repeat Orders (Type 2)', keys: ['promoGfesRepeatOrdersType2', 'promoGfesRepeatOrderType2'] },
-    // KEGS
-    { label: 'Promo KEGS Sold', key: 'promoKegsSold' },
-    { label: 'Promo KEGS Repeat Orders', keys: ['promoKegsRepeatOrders', 'promoKegsRepeatOrder'] },
-    { label: 'Promo KEGS Sold (Type 2)', key: 'promoKegsSoldType2' },
-    { label: 'Promo KEGS Repeat Orders (Type 2)', keys: ['promoKegsRepeatOrdersType2', 'promoKegsRepeatOrderType2'] },
-    // Microdraught
-    { label: 'Promo Microdraught Sold', key: 'promoMicrodraughtSold' },
-    { label: 'Promo Microdraught Repeat Orders', keys: ['promoMicrodraughtRepeatOrders', 'promoMicrodraughtRepeatOrder'] },
-    { label: 'Promo Microdraught Sold (Type 2)', key: 'promoMicrodraughtSoldType2' },
-    { label: 'Promo Microdraught Repeat Orders (Type 2)', keys: ['promoMicrodraughtRepeatOrdersType2', 'promoMicrodraughtRepeatOrderType2'] },
-    // GDIC
-    { label: 'Promo GDIC Sold', key: 'promoGdicSold' },
-    { label: 'Promo GDIC Repeat Orders', keys: ['promoGdicRepeatOrders', 'promoGdicRepeatOrder'] },
-    { label: 'Promo GDIC Sold (Type 2)', key: 'promoGdicSoldType2' },
-    { label: 'Promo GDIC Repeat Orders (Type 2)', keys: ['promoGdicRepeatOrdersType2', 'promoGdicRepeatOrderType2'] },
-  ];
-  const SRD_PROGRAM_OPTIONS = [
-    // Stoutie Program
-    { label: 'Stoutie Call Reach', key: 'stoutieProgramCallReach' },
-    { label: 'Stoutie Packet Sold', key: 'stoutieProgramPacketSold' },
-    { label: 'Stoutie Engage - People', key: 'stoutieProgramEngagePeople' },
-    // Loyalty Program
-    { label: 'Loyalty Call Reach', key: 'loyaltyProgramCallReach' },
-    { label: 'Loyalty Packet Sold', key: 'loyaltyProgramPacketSold' },
-    { label: 'Loyalty Engage - People', key: 'loyaltyProgramEngagePeople' },
-    // Brightball Program
-    { label: 'Brightball Call Reach', key: 'brightballCallReach' },
-    { label: 'Brightball Packet Sold', key: 'brightballPacketSold' },
-    { label: 'Brightball Engage - People', key: 'brightballEngagePeople' },
-    // SOV Program
-    { label: 'SOV Call Reach', key: 'sovProgramCallReach' },
-    { label: 'SOV Packet Sold', key: 'sovProgramPacketSold' },
-    { label: 'SOV Engage - People', key: 'sovProgramEngagePeople' },
-  ];
-  const EA_VAR_OPTIONS = [
-    { label: 'Stock Kegs', key: 'stockKegs' },
-    { label: 'Stock Microdraught', key: 'stockMicrodraught' },
-    { label: 'Stock GDIC', key: 'stockGdic' },
-    { label: 'Stock Smooth Pint 330', key: 'stockSmoothPint330' },
-    { label: 'Stock Smooth Can 330', key: 'stockSmoothCan330' },
-    { label: 'Stock GFES Pint 330', key: 'stockGfesPint330' },
-    { label: 'Stock GFES Can 330', key: 'stockGfesCan330' },
-    { label: 'Stock GFES 620', key: 'stockGfes620' },
-    { label: 'Stock GFES Can Big 500', key: 'stockGfesCanBig500' },
-  ];
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   function parseNum(val: any): number {
     if (typeof val === 'number') return val;
@@ -301,6 +160,126 @@ export default function OutletHistoryScreen() {
     return { total, avg, count: values.length };
   }
 
+  const QR_VAR_OPTIONS = [
+    { label: 'Kegs 330', key: 'salesKegs330' },
+    { label: 'Kegs 500', key: 'salesKegs500' },
+    { label: 'Microdraught 500', key: 'salesMd500' },
+    { label: 'GDIC 400', key: 'salesGdic400' },
+    { label: 'Smooth Pint 330', key: 'salesSmoothPint330' },
+    { label: 'Smooth Can 330', key: 'salesSmoothCan330' },
+    { label: 'GFES Pint 330', key: 'salesGfesPint330' },
+    { label: 'GFES Can 330', key: 'salesGfesCan330' },
+    { label: 'GFES Quart 620', key: 'salesGfesQuart620' },
+    { label: 'GFES Can Big 500', key: 'salesGfesCanbig500' },
+  ];
+
+  const SRD_GROUPS = [
+    { label: 'Guinness Selling', key: 'selling' as const },
+    { label: 'Call & Customers', key: 'calls' as const },
+    { label: 'Promotions', key: 'promos' as const },
+    { label: 'Visitors & Consumers', key: 'visitors' as const },
+    { label: 'Tables', key: 'tables' as const },
+    { label: 'Competitor Sales', key: 'competitor' as const },
+    { label: 'Programs & Digital', key: 'programs' as const },
+  ];
+
+  const SRD_SELLING_OPTIONS = [
+    { label: 'Kegs 330', key: 'salesKegs330' },
+    { label: 'Kegs 500', key: 'salesKegs500' },
+    { label: 'Microdraught 500', key: 'salesMd500' },
+    { label: 'GDIC 400', key: 'salesGdic400' },
+    { label: 'Smooth Pint 330', key: 'salesSmoothPint330' },
+    { label: 'Smooth Can 330', key: 'salesSmoothCan330' },
+    { label: 'GFES Pint 330', key: 'salesGfesPint330' },
+    { label: 'GFES Can 330', key: 'salesGfesCan330' },
+    { label: 'GFES Quart 620', key: 'salesGfesQuart620' },
+    { label: 'GFES Can Big 500', key: 'salesGfesCanbig500' },
+    { label: 'Total Guinness Sales', key: 'totalGuinnessSales' },
+  ];
+
+  const SRD_CALLS_OPTIONS = [
+    { label: 'Calls/Offers', key: 'callsOffers' },
+    { label: 'Effective Calls/Buyers/Shops', key: 'effectiveCalls' },
+  ];
+
+  const SRD_VISITORS_OPTIONS = [
+    { label: 'Visitors Overall', key: 'visitorsOverall' },
+    { label: 'Visitors Alcohol Drinkers', key: 'visitorsAlcoholDrinkers' },
+    { label: 'Visitors All Beer Drinkers', key: 'visitorsAllBeerDrinkers' },
+    { label: 'Visitors All Guinness', key: 'visitorsAllGuinness' },
+    { label: 'Visitors All Competitor', key: 'visitorsAllCompetitor' },
+    { label: 'Guinness Total Sales', key: 'totalGuinnessSales' },
+    { label: 'Drinkers Smooth', key: 'drinkersSmooth' },
+    { label: 'Drinkers GFES', key: 'drinkersGfes' },
+    { label: 'Drinkers Kegs', key: 'drinkersKegs' },
+    { label: 'Drinkers Microdraught', key: 'drinkersMicrodraught' },
+  ];
+
+  const SRD_TABLES_OPTIONS = [
+    { label: 'Tables Overall', key: 'tablesOverall' },
+    { label: 'Tables Alcohol Drinkers', key: 'tablesAlcoholDrinkers' },
+    { label: 'Tables Non Alcohol Drinkers', key: 'tablesNonAlcoholDrinkers' },
+    { label: 'Tables All Beer Drinkers', key: 'tablesAllBeerDrinkers' },
+    { label: 'Tables All Guinness', key: 'tablesAllGuinness' },
+    { label: 'Tables All Competitor', key: 'tablesAllCompetitor' },
+    { label: 'Tables Mixed', key: 'tablesAllGuinnessMixedCompetitor' },
+  ];
+
+  const SRD_COMPETITOR_OPTIONS = [
+    { label: 'Bintang Promo Sold', key: 'competitorBintangPromoSold' },
+    { label: 'Bintang Crystal Promo Sold', key: 'competitorBintangCrystalPromoSold' },
+    { label: 'Heineken Promo Sold', key: 'competitorHeinekenPromoSold' },
+    { label: 'Heineken Import Promo Sold', key: 'competitorHeinekenImportPromoSold' },
+    { label: 'Erdinger Import Promo Sold', key: 'competitorErdingerImportPromoSold' },
+    { label: 'Budweizer Import Promo Sold', key: 'competitorBudweizerImportPromoSold' },
+    { label: 'Anker Promo Sold', key: 'competitorAnkerPromoSold' },
+    { label: 'Bali Hai Promo Sold', key: 'competitorBalihaiPromoSold' },
+    { label: 'Prost Promo Sold', key: 'competitorProstPromoSold' },
+    { label: 'San Miguel Promo Sold', key: 'competitorSanMiguelPromoSold' },
+    { label: 'Singaraja Promo Sold', key: 'competitorSingarajaPromoSold' },
+    { label: 'Kura Kura Promo Sold', key: 'competitorKuraKuraPromoSold' },
+    { label: 'Island Brewing Promo Sold', key: 'competitorIslandBrewingPromoSold' },
+    { label: 'Others Promo Sold', key: 'competitorOthersPromoSold' },
+    { label: 'Competitor Activity SPG Total', key: 'competitorActivitySpgTotal' },
+  ];
+
+  const SRD_PROMO_OPTIONS = [
+    { label: 'Packages Sold (All)', key: 'packagesSold' },
+    { label: 'Repeat Orders (All)', key: 'repeatOrders' },
+    { label: 'Promo Smooth Sold', key: 'promoSmoothSold' },
+    { label: 'Promo Smooth Repeat Orders', keys: ['promoSmoothRepeatOrders', 'promoSmoothRepeatOrder'] },
+    { label: 'Promo Smooth Sold (Type 2)', key: 'promoSmoothSoldType2' },
+    { label: 'Promo Smooth Repeat Orders (Type 2)', keys: ['promoSmoothRepeatOrdersType2', 'promoSmoothRepeatOrderType2'] },
+    { label: 'Promo GFES Sold', key: 'promoGfesSold' },
+    { label: 'Promo GFES Repeat Orders', keys: ['promoGfesRepeatOrders', 'promoGfesRepeatOrder'] },
+    { label: 'Promo GFES Sold (Type 2)', key: 'promoGfesSoldType2' },
+    { label: 'Promo GFES Repeat Orders (Type 2)', keys: ['promoGfesRepeatOrdersType2', 'promoGfesRepeatOrderType2'] },
+    { label: 'Promo KEGS Sold', key: 'promoKegsSold' },
+    { label: 'Promo KEGS Repeat Orders', keys: ['promoKegsRepeatOrders', 'promoKegsRepeatOrder'] },
+    { label: 'Promo KEGS Sold (Type 2)', key: 'promoKegsSoldType2' },
+    { label: 'Promo KEGS Repeat Orders (Type 2)', keys: ['promoKegsRepeatOrdersType2', 'promoKegsRepeatOrderType2'] },
+    { label: 'Promo Microdraught Sold', key: 'promoMicrodraughtSold' },
+    { label: 'Promo Microdraught Repeat Orders', keys: ['promoMicrodraughtRepeatOrders', 'promoMicrodraughtRepeatOrder'] },
+    { label: 'Promo Microdraught Sold (Type 2)', key: 'promoMicrodraughtSoldType2' },
+    { label: 'Promo Microdraught Repeat Orders (Type 2)', keys: ['promoMicrodraughtRepeatOrdersType2', 'promoMicrodraughtRepeatOrderType2'] },
+    { label: 'Promo GDIC Sold', key: 'promoGdicSold' },
+    { label: 'Promo GDIC Repeat Orders', keys: ['promoGdicRepeatOrders', 'promoGdicRepeatOrder'] },
+    { label: 'Promo GDIC Sold (Type 2)', key: 'promoGdicSoldType2' },
+    { label: 'Promo GDIC Repeat Orders (Type 2)', keys: ['promoGdicRepeatOrdersType2', 'promoGdicRepeatOrderType2'] },
+  ];
+
+  const EA_VAR_OPTIONS = [
+    { label: 'Stock Kegs', key: 'stockKegs' },
+    { label: 'Stock Microdraught', key: 'stockMicrodraught' },
+    { label: 'Stock GDIC', key: 'stockGdic' },
+    { label: 'Stock Smooth Pint 330', key: 'stockSmoothPint330' },
+    { label: 'Stock Smooth Can 330', key: 'stockSmoothCan330' },
+    { label: 'Stock GFES Pint 330', key: 'stockGfesPint330' },
+    { label: 'Stock GFES Can 330', key: 'stockGfesCan330' },
+    { label: 'Stock GFES 620', key: 'stockGfes620' },
+    { label: 'Stock GFES Can Big 500', key: 'stockGfesCanBig500' },
+  ];
+
   const currentSrdOptions = useMemo(() => {
     switch (srdGroup) {
       case 'selling':
@@ -314,7 +293,7 @@ export default function OutletHistoryScreen() {
       case 'competitor':
         return SRD_COMPETITOR_OPTIONS;
       case 'programs':
-        return SRD_PROGRAM_OPTIONS;
+        return SRD_PROMO_OPTIONS as any[];
       case 'visitors':
       default:
         return SRD_VISITORS_OPTIONS;
@@ -322,9 +301,14 @@ export default function OutletHistoryScreen() {
   }, [srdGroup]);
 
   useEffect(() => {
-    // Reset metric when group changes
     setSrdVarIndex(0);
   }, [srdGroup]);
+
+  // Precompute monthly counts per collection for selected timeframe
+  const qrMonthly = useMemo(() => groupMonthly(qr, monthsBack), [qr, monthsBack]);
+  const srdMonthly = useMemo(() => groupMonthly(srd, monthsBack), [srd, monthsBack]);
+  const eaMonthly = useMemo(() => groupMonthly(ea, monthsBack), [ea, monthsBack]);
+  const attMonthly = useMemo(() => groupMonthly(att, monthsBack), [att, monthsBack]);
 
   if (loading) {
     return (
@@ -334,7 +318,7 @@ export default function OutletHistoryScreen() {
     );
   }
 
-  const title = outletName ? `History • ${String(outletName)}` : 'Outlet History';
+  const title = userName ? `History • ${String(userName)}` : 'Team History';
 
   return (
     <View style={styles.screen}>
@@ -343,11 +327,17 @@ export default function OutletHistoryScreen() {
         search={search}
         status={''}
         statusOptions={[]}
-        storageKey={`filters:outlet-history:${outletId}`}
+        storageKey={`filters:team-history:${userId}`}
         sortAsc={sortAsc}
         onApply={({ search: s }) => setSearch(s)}
         onClear={() => setSearch('')}
       />
+      <View style={styles.segmentRow}>
+        <SecondaryButton title="QR" onPress={() => setActive('QR')} style={[styles.segmentBtn, active === 'QR' ? styles.segmentActive : undefined].filter(Boolean) as any} />
+        <SecondaryButton title="SRD" onPress={() => setActive('SRD')} style={[styles.segmentBtn, active === 'SRD' ? styles.segmentActive : undefined].filter(Boolean) as any} />
+        <SecondaryButton title="Assessment" onPress={() => setActive('EA')} style={[styles.segmentBtn, active === 'EA' ? styles.segmentActive : undefined].filter(Boolean) as any} />
+        <SecondaryButton title="Attendance" onPress={() => setActive('ATT')} style={[styles.segmentBtn, active === 'ATT' ? styles.segmentActive : undefined].filter(Boolean) as any} />
+      </View>
       <View style={styles.filtersRow}>
         <Text style={styles.filtersLabel}>Timeframe</Text>
         <View style={styles.pickerWrapper}>
@@ -358,18 +348,13 @@ export default function OutletHistoryScreen() {
           </Picker>
         </View>
       </View>
-      <View style={styles.segmentRow}>
-        <SecondaryButton title="QR" onPress={() => setActive('QR')} style={[styles.segmentBtn, active === 'QR' ? styles.segmentActive : undefined].filter(Boolean) as any} />
-        <SecondaryButton title="SRD" onPress={() => setActive('SRD')} style={[styles.segmentBtn, active === 'SRD' ? styles.segmentActive : undefined].filter(Boolean) as any} />
-        <SecondaryButton title="Assessment" onPress={() => setActive('EA')} style={[styles.segmentBtn, active === 'EA' ? styles.segmentActive : undefined].filter(Boolean) as any} />
-        <SecondaryButton title="Attendance" onPress={() => setActive('ATT')} style={[styles.segmentBtn, active === 'ATT' ? styles.segmentActive : undefined].filter(Boolean) as any} />
-      </View>
+
       <ScrollView contentContainerStyle={{ paddingBottom: spacing(12) }}>
-        {active === 'QR' && (
+    {active === 'QR' && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Quick Sales Report (Monthly)</Text>
-            <GiftedBarChart data={qrMonthly} color={palette.primary} />
-            <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{qrMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
+      <GiftedBarChart data={qrMonthly} color={palette.primary} />
+      <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{qrMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
             <View style={styles.divider} />
             <Text style={styles.cardTitle}>Guinness Selling</Text>
             <View style={styles.pickerWrapper}>
@@ -380,22 +365,22 @@ export default function OutletHistoryScreen() {
               </Picker>
             </View>
             {(() => {
-              const m = monthlySumByKey(qr, qrVar, monthsBack);
-              const s = summaryByKey(qr, qrVar, monthsBack);
+        const m = monthlySumByKey(qr, qrVar, monthsBack);
+        const total = m.reduce((sum, x) => sum + x.value, 0);
               return (
                 <>
                   <GiftedBarChart data={m} color={palette.primary} />
-                  <Text style={styles.meta}>Total {qrVar}: <Text style={styles.metaStrong}>{Math.round(s.total)}</Text> • Avg per report: <Text style={styles.metaStrong}>{s.avg.toFixed(2)}</Text></Text>
+                  <Text style={styles.meta}>Total {qrVar}: <Text style={styles.metaStrong}>{Math.round(total)}</Text></Text>
                 </>
               );
             })()}
           </View>
         )}
-        {active === 'SRD' && (
+    {active === 'SRD' && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Sales Report Detail (Monthly)</Text>
-            <GiftedBarChart data={srdMonthly} color={palette.info} />
-            <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{srdMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
+      <GiftedBarChart data={srdMonthly} color={palette.info} />
+      <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{srdMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
             <View style={styles.divider} />
             <Text style={styles.cardTitle}>SRD Group</Text>
             <View style={styles.pickerWrapper}>
@@ -409,30 +394,32 @@ export default function OutletHistoryScreen() {
             <View style={styles.pickerWrapper}>
               <Picker selectedValue={srdVarIndex} onValueChange={(v) => setSrdVarIndex(Number(v))}>
                 {currentSrdOptions.map((opt, idx) => (
-                  <Picker.Item key={(opt.key || (opt.keys || []).join('+')) + ':' + idx} label={opt.label} value={idx} />
+                  <Picker.Item key={(opt as any).key || ((opt as any).keys || []).join('+') + ':' + idx} label={(opt as any).label} value={idx} />
                 ))}
               </Picker>
             </View>
             {(() => {
-              const opt = currentSrdOptions[srdVarIndex] || currentSrdOptions[0];
+              const opt: any = currentSrdOptions[srdVarIndex] || currentSrdOptions[0];
               const color = palette.info;
               if (!opt) return null;
               if (opt.keys && Array.isArray(opt.keys)) {
-                const m = monthlySumByKeys(srd, opt.keys, monthsBack);
-                const s = summaryByKeys(srd, opt.keys, monthsBack);
+                const keys = opt.keys as string[];
+        const m = monthlySumByKeys(srd, keys, monthsBack);
+        const total = m.reduce((sum, x) => sum + x.value, 0);
                 return (
                   <>
                     <GiftedBarChart data={m} color={color} />
-                    <Text style={styles.meta}>Total {opt.label}: <Text style={styles.metaStrong}>{Math.round(s.total)}</Text> • Avg per report: <Text style={styles.metaStrong}>{s.avg.toFixed(2)}</Text></Text>
+                    <Text style={styles.meta}>Total {opt.label}: <Text style={styles.metaStrong}>{Math.round(total)}</Text></Text>
                   </>
                 );
               } else if (opt.key) {
-                const m = monthlySumByKey(srd, opt.key, monthsBack);
-                const s = summaryByKey(srd, opt.key, monthsBack);
+                const k = opt.key as string;
+        const m = monthlySumByKey(srd, k, monthsBack);
+        const total = m.reduce((sum, x) => sum + x.value, 0);
                 return (
                   <>
                     <GiftedBarChart data={m} color={color} />
-                    <Text style={styles.meta}>Total {opt.label}: <Text style={styles.metaStrong}>{Math.round(s.total)}</Text> • Avg per report: <Text style={styles.metaStrong}>{s.avg.toFixed(2)}</Text></Text>
+                    <Text style={styles.meta}>Total {opt.label}: <Text style={styles.metaStrong}>{Math.round(total)}</Text></Text>
                   </>
                 );
               }
@@ -440,11 +427,11 @@ export default function OutletHistoryScreen() {
             })()}
           </View>
         )}
-        {active === 'EA' && (
+    {active === 'EA' && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Early Assessment (Monthly)</Text>
-            <GiftedBarChart data={eaMonthly} color={palette.warning} />
-            <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{eaMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
+      <GiftedBarChart data={eaMonthly} color={palette.warning} />
+      <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{eaMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
             <View style={styles.divider} />
             <Text style={styles.cardTitle}>Stocks</Text>
             <View style={styles.pickerWrapper}>
@@ -455,22 +442,22 @@ export default function OutletHistoryScreen() {
               </Picker>
             </View>
             {(() => {
-              const m = monthlySumByKey(ea, eaVar, monthsBack);
-              const s = summaryByKey(ea, eaVar, monthsBack);
+        const m = monthlySumByKey(ea, eaVar, monthsBack);
+        const total = m.reduce((sum, x) => sum + x.value, 0);
               return (
                 <>
                   <GiftedBarChart data={m} color={palette.warning} />
-                  <Text style={styles.meta}>Total {eaVar}: <Text style={styles.metaStrong}>{Math.round(s.total)}</Text> • Avg per report: <Text style={styles.metaStrong}>{s.avg.toFixed(2)}</Text></Text>
+                  <Text style={styles.meta}>Total {eaVar}: <Text style={styles.metaStrong}>{Math.round(total)}</Text></Text>
                 </>
               );
             })()}
           </View>
         )}
-        {active === 'ATT' && (
+    {active === 'ATT' && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Attendance (Monthly)</Text>
-            <GiftedBarChart data={attMonthly} color={palette.success} />
-            <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{attMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
+      <GiftedBarChart data={attMonthly} color={palette.success} />
+      <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{attMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
           </View>
         )}
       </ScrollView>

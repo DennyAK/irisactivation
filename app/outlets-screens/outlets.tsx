@@ -284,6 +284,12 @@ export default function OutletsScreen() {
       <Text style={styles.coords}>Coords: {item.latitude}, {item.longitude}</Text>
       <View style={styles.actionsRow}>
         <SecondaryButton title="History" onPress={() => router.push({ pathname: '/outlets-screens/outlet-history', params: { outletId: item.id, outletName: item.outletName } })} />
+        {isAdmin && (
+          <SecondaryButton
+            title="View Audit"
+            onPress={() => router.push({ pathname: '/(tabs)/audit-logs', params: { collection: 'outlets', docId: item.id } })}
+          />
+        )}
         {canCreateOrEdit && (
           <SecondaryButton title="Edit" onPress={() => handleEditOutlet(item)} />
         )}

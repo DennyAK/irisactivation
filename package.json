@@ -13,8 +13,10 @@
     "migrate:assignments:apply": "node scripts/migrate-assignments.js --apply",
     "deploy:rules": "npx firebase deploy --only firestore:rules",
     "test:rules": "jest --config jest-rules.config.cjs --runInBand",
-  "test:rules:emu": "npx firebase emulators:exec --only firestore \"node ./node_modules/jest/bin/jest.js --config jest-rules.config.cjs --runInBand\"",
-  "deploy:indexes": "npx firebase deploy --only firestore:indexes"
+    "test:rules:emu": "npx firebase emulators:exec --only firestore \"node ./node_modules/jest/bin/jest.js --config jest-rules.config.cjs --runInBand\"",
+    "deploy:indexes": "npx firebase deploy --only firestore:indexes",
+    "seed:quiz": "node scripts/seed-quiz-from-file.js seedQuizQuestionsNew.json",
+    "backfill:audit-actors": "node scripts/backfill-audit-actors.js"
   },
   "jest": {
     "preset": "jest-expo",
@@ -24,7 +26,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
-    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-picker/picker": "2.11.1",
     "@react-navigation/drawer": "^7.5.3",
@@ -35,6 +37,7 @@
     "expo-font": "~13.3.2",
     "expo-image-manipulator": "~13.1.7",
     "expo-image-picker": "~16.1.4",
+    "expo-linear-gradient": "^14.1.5",
     "expo-linking": "~7.1.7",
     "expo-location": "~18.1.6",
     "expo-router": "^5.1.4",
@@ -47,12 +50,17 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
+    "react-native-draggable-flatlist": "^4.0.3",
+    "react-native-gifted-charts": "^1.4.63",
     "react-native-image-marker": "^1.2.6",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
+    "react-native-svg": "^15.12.1",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-web": "~0.20.0"
+    "react-native-web": "~0.20.0",
+    "expo-updates": "~0.28.17",
+    "sentry-expo": "~7.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

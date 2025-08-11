@@ -1,6 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Audit logs: readable by admins/superadmins only; not writable by clients
+    match /audit_logs/{logId} {
+      allow read: if userRole() in ['admin', 'superadmin'];
+      allow write: if false; // only Cloud Functions service account writes
+    }
   // Helpers (UID-only identity checks)
   function isSignedIn() { return request.auth != null; }
   function userRole() { return isSignedIn() ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role : null; }
@@ -211,7 +216,9 @@ service cloud.firestore {
     }
 
     match /quiz_questions/{questionId} {
-      allow read: if request.auth != null;
+  allow read: if request.auth != null;
+  // Allow only admins/superadmins to manage quiz questions
+  allow create, update, delete: if userRole() in ['admin','superadmin'];
     }
 
     match /provinces/{provinceId} {

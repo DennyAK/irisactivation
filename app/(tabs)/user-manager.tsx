@@ -15,10 +15,22 @@ export default function UserManagerMenu() {
       href: '/user-screens/user-management',
     },
     {
+      label: 'Team Management',
+      icon: 'people-circle-outline',
+      subtitle: 'Area Managers, Iris TLs & BAs by Province',
+      href: '/user-screens/team-management',
+    },
+    {
       label: 'Role Request',
       icon: 'help-circle-outline',
       subtitle: 'Take or review role requests',
       href: '/user-screens/admin-role-requests',
+    },
+    {
+      label: 'About',
+      icon: 'information-circle-outline',
+      subtitle: 'Version, channel, links, and OTA updates',
+      href: '/user-screens/about',
     },
     
   ];

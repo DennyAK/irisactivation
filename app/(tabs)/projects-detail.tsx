@@ -3,10 +3,25 @@ export const options = {
 };
 
 import { View, Text, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { auth, db } from '../../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { Roles, isAdminRole } from '../../constants/roles';
 import { MenuGrid } from '../../components/ui/MenuCard';
 import { palette, spacing, typography } from '../../constants/Design';
 
 export default function ProjectDetailMenu() {
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = auth.currentUser; if (!u) { setRole(null); return; }
+        const ref = doc(db, 'users', u.uid); const snap = await getDoc(ref);
+        setRole(snap.exists() ? (snap.data() as any).role || '' : '');
+      } catch { setRole(''); }
+    })();
+  }, []);
+
   const menuItems = [
     {
       label: 'Project Overview',
@@ -20,6 +35,17 @@ export default function ProjectDetailMenu() {
       subtitle: 'View and manage activation requests',
       href: '/projects-screens/activation' as const,
     },
+    ...(isAdminRole(role as any) ? [{
+      label: 'Audit Logs (Projects)',
+      icon: 'time-outline',
+      subtitle: 'Recent changes in projects & activations',
+      href: '/(tabs)/audit-logs?collection=projects' as const,
+    }, {
+      label: 'Audit Logs (Activations)',
+      icon: 'time-outline',
+      subtitle: 'Recent changes in activations',
+      href: '/(tabs)/audit-logs?collection=activations' as const,
+    }] : []),
     
   ];
 

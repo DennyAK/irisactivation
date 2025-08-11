@@ -3,15 +3,30 @@ export const options = {
 };
 
 import { View, Text, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { auth, db } from '../../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { isAdminRole } from '../../constants/roles';
 import { MenuGrid } from '../../components/ui/MenuCard';
 import { palette, spacing, typography } from '../../constants/Design';
 
 export default function OutletDetailMenu() {
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = auth.currentUser; if (!u) { setRole(null); return; }
+        const ref = doc(db, 'users', u.uid); const snap = await getDoc(ref);
+        setRole(snap.exists() ? (snap.data() as any).role || '' : '');
+      } catch { setRole(''); }
+    })();
+  }, []);
+
   const menuItems: {
     label: string;
     icon: string;
     subtitle: string;
-    href: '/outlets-screens/outlets' | '/outlets-screens/province-list' | '/outlets-screens/city-list';
+    href: '/outlets-screens/outlets' | '/outlets-screens/province-list' | '/outlets-screens/city-list' | '/(tabs)/audit-logs?collection=outlets';
   }[] = [
     {
       label: 'Outlet Detail',
@@ -31,6 +46,12 @@ export default function OutletDetailMenu() {
       subtitle: 'View and manage city list',
       href: '/outlets-screens/city-list',
     },
+    ...(isAdminRole(role as any) ? [{
+      label: 'Audit Logs (Outlets)',
+      icon: 'time-outline',
+      subtitle: 'Recent changes in outlets',
+      href: '/(tabs)/audit-logs?collection=outlets' as const,
+    }] : []),
   ];
 
   return (

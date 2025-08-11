@@ -37,10 +37,11 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
   const activeColor = Colors[colorScheme ?? 'light'].tint;
   const inactiveColor = Colors[colorScheme ?? 'light'].tabIconDefault;
 
-  // Only show the index tab for guests
+  // Show a limited set of tabs for guests; full set for authenticated
   let filteredRoutes = state.routes;
   if (userRole === 'guest') {
-    filteredRoutes = state.routes.filter(route => route.name === 'index');
+    const allowed = new Set(['index', 'clicker']);
+    filteredRoutes = state.routes.filter(route => allowed.has(route.name));
   } else {
     filteredRoutes = state.routes.filter(route => {
       const options = descriptors[route.key].options as any;
@@ -88,8 +89,7 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
             });
           };
 
-          // Only render the index tab for guests
-          if (userRole === 'guest' && route.name !== 'index') return null;
+          // Guests see only allowed routes (pre-filtered above)
 
           return (
             <TouchableOpacity
@@ -175,6 +175,28 @@ export default function TabLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="clicker"
+          options={{
+            title: 'Clicker',
+            tabBarIcon: ({ color }) => <TabBarIcon name="plus" color={color} />, 
+            headerRight: () => (
+              <Link href="/modal" asChild>
+                <Pressable>
+                  {({ pressed }) => (
+                    <FontAwesome
+                      name="ellipsis-h"
+                      size={25}
+                      color={Colors[colorScheme ?? 'light'].text}
+                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                    />
+                  )}
+                </Pressable>
+              </Link>
+            ),
+            href: '/clicker',
+          }}
+        />
       </Tabs>
     );
   }
@@ -207,6 +229,26 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Clicker: visible to all logged-in users, placed beside Profile */}
+      <Tabs.Screen name="clicker" options={{
+        title: 'Clicker',
+        tabBarIcon: ({ color }) => <TabBarIcon name="plus" color={color} />, 
+        headerRight: () => (
+          <Link href="/modal" asChild>
+            <Pressable>
+              {({ pressed }) => (
+                <FontAwesome
+                  name="ellipsis-h"
+                  size={25}
+                  color={Colors[colorScheme ?? 'light'].text}
+                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                />
+              )}
+            </Pressable>
+          </Link>
+        ),
+        href: '/clicker',
+      }} />
       {/* All other tabs for non-guests */}
       
       <Tabs.Screen name="user-manager" options={{
@@ -286,6 +328,27 @@ export default function TabLayout() {
         ),
         href: '/tasks',
       }} />      
+      {(userRole === 'admin' || userRole === 'superadmin') && (
+        <Tabs.Screen name="audit-logs" options={{
+          title: 'Audit Logs',
+          tabBarIcon: ({ color }) => <TabBarIcon name="history" color={color} />, 
+          headerRight: () => (
+            <Link href="/modal" asChild>
+              <Pressable>
+                {({ pressed }) => (
+                  <FontAwesome
+                    name="ellipsis-h"
+                    size={25}
+                    color={Colors[colorScheme ?? 'light'].text}
+                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                  />
+                )}
+              </Pressable>
+            </Link>
+          ),
+          href: '/audit-logs',
+        }} />
+      )}
     </Tabs>
     
   );

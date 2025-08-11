@@ -22,8 +22,18 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-// Initialize Auth (React Native default persistence will be used)
-const auth = getAuth(app);
+// Initialize Auth with RN persistence when available; fallback to basic getAuth()
+let auth = getAuth(app);
+try {
+  // Dynamically use RN-specific persistence if available
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { initializeAuth, getReactNativePersistence } = require('firebase/auth/react-native');
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage as any),
+  });
+} catch (_) {
+  // Fallback: memory persistence (no crash). You may see a warning in dev.
+}
 const db = getFirestore(app);
 const storage = getStorage(app);
 

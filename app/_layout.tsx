@@ -4,8 +4,11 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import 'react-native-reanimated';
 
+// Sentry: dynamically require to avoid bundler resolution issues in dev
+let Sentry: any;
 import { useColorScheme } from '@/components/useColorScheme';
 
 export {
@@ -20,6 +23,22 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+// Silence RN New Architecture warning from dependencies calling LayoutAnimation.enable.
+LogBox.ignoreLogs([
+  'setLayoutAnimationEnabledExperimental is currently a no-op',
+  'setLayoutAnimationEnabledExperimental is currently a no-op in the New Architecture',
+]);
+
+// Sentry init (optional, dynamic)
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  Sentry = require('sentry-expo');
+  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN || (global as any)?.__SENTRY_DSN__;
+  if (dsn && Sentry?.init) {
+    Sentry.init({ dsn, enableInExpoDevelopment: true, debug: __DEV__, tracesSampleRate: 0.1 });
+  }
+} catch {}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
