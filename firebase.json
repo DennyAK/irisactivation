@@ -3,7 +3,8 @@
     "default": "activation-d6f75"
   },
   "firestore": {
-  "rules": "firestore.uid-only.rules"
+  "rules": "firestore.uid-only.rules",
+  "indexes": "firestore.indexes.json"
   },
   "storage": {
     "rules": "storage.rules"

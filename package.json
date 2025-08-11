@@ -13,7 +13,8 @@
     "migrate:assignments:apply": "node scripts/migrate-assignments.js --apply",
     "deploy:rules": "npx firebase deploy --only firestore:rules",
     "test:rules": "jest --config jest-rules.config.cjs --runInBand",
-    "test:rules:emu": "npx firebase emulators:exec --only firestore \"node ./node_modules/jest/bin/jest.js --config jest-rules.config.cjs --runInBand\""
+  "test:rules:emu": "npx firebase emulators:exec --only firestore \"node ./node_modules/jest/bin/jest.js --config jest-rules.config.cjs --runInBand\"",
+  "deploy:indexes": "npx firebase deploy --only firestore:indexes"
   },
   "jest": {
     "preset": "jest-expo",

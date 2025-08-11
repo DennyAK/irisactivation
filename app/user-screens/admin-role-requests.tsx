@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { db } from '../../firebaseConfig';
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore';
@@ -8,6 +8,8 @@ import { palette, spacing, radius, shadow, typography } from '../../constants/De
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
+import FilterHeader from '../../components/ui/FilterHeader';
+import { compareCreatedAt } from '../../utils/sort';
 
 export default function AdminRoleRequestsScreen() {
   type RoleRequestItem = {
@@ -20,6 +22,8 @@ export default function AdminRoleRequestsScreen() {
   };
   const [requests, setRequests] = useState<RoleRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [sortAsc, setSortAsc] = useState(false);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -57,13 +61,34 @@ export default function AdminRoleRequestsScreen() {
     }
   };
 
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = term
+      ? requests.filter((r) => {
+          const hay = [r.email, r.reason, r.requestedRole, r.currentRole].filter(Boolean).join(' ').toLowerCase();
+          return hay.includes(term);
+        })
+      : requests;
+  return [...list].sort((a, b) => compareCreatedAt(a, b, sortAsc));
+  }, [requests, search, sortAsc]);
+
   if (loading) return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.screenTitle}>Role Requests</Text>
+      <FilterHeader
+        title="Role Requests"
+        search={search}
+        status={''}
+        statusOptions={[]}
+        storageKey="filters:role-requests"
+        sortAsc={sortAsc}
+        onToggleSort={() => setSortAsc(s => !s)}
+        onApply={({ search: s }) => setSearch(s)}
+        onClear={() => setSearch('')}
+      />
       <FlatList
-        data={requests}
+        data={filtered}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>

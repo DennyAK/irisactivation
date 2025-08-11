@@ -1,8 +1,6 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { StyleSheet, Text, View, FlatList, Button, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { auth, db } from '../../firebaseConfig';
 import { collection, getDocs, doc, updateDoc, query, where, getDoc, DocumentSnapshot } from 'firebase/firestore';
@@ -13,6 +11,8 @@ import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { InfoRow } from '../../components/ui/InfoRow';
+import FilterHeader from '../../components/ui/FilterHeader';
+import { compareCreatedAt } from '../../utils/sort';
 
 export default function UserManagementScreen() {
   type UserItem = {
@@ -39,10 +39,11 @@ export default function UserManagementScreen() {
     city: '',
   });
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [sortAsc, setSortAsc] = useState(false);
 
   const isFocused = useIsFocused();
   useEffect(() => {
-    if (!isFocused) return;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
@@ -114,15 +115,42 @@ export default function UserManagementScreen() {
   const canManage = userRole === 'admin' || userRole === 'superadmin';
   const canEdit = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
 
+  const filteredUsers = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = term
+      ? users.filter((u) => {
+          const hay = [u.email, u.firstName, u.lastName, u.phone, u.city, u.province, u.role]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return hay.includes(term);
+        })
+      : users;
+    return [...list].sort((a, b) => compareCreatedAt(a, b, sortAsc));
+  }, [users, search, sortAsc]);
+
   if (loading) {
     return <ActivityIndicator />;
   }
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.screenTitle}>User Management</Text>
+      <FilterHeader
+        title="User Management"
+        search={search}
+        status={''}
+        statusOptions={[]}
+        storageKey="filters:users"
+        sortAsc={sortAsc}
+        onToggleSort={() => setSortAsc(s => !s)}
+        onApply={({ search: s }) => setSearch(s)}
+        onClear={() => setSearch('')}
+      />
+      {/* local filter + sort */}
+      
+      
       <FlatList
-        data={users}
+        data={filteredUsers}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>

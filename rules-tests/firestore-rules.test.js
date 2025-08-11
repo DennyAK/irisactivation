@@ -3,19 +3,21 @@ const path = require('path');
 const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
 const { doc, setDoc, updateDoc } = require('firebase/firestore');
 
-jest.setTimeout(60000);
+jest.setTimeout(120000);
 
 let testEnv;
 
 beforeAll(async () => {
   const rules = fs.readFileSync(path.join(__dirname, '..', 'firestore.uid-only.rules'), 'utf8');
-  const hostEnv = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
-  const [host, portStr] = hostEnv.split(':');
-  const port = Number(portStr);
+  // Rely on firebase emulators:exec to set FIRESTORE_EMULATOR_HOST
   testEnv = await initializeTestEnvironment({
     projectId: 'demo-test',
-    firestore: { rules, host, port },
+    firestore: { rules },
   });
+});
+
+beforeEach(async () => {
+  await testEnv.clearFirestore();
 });
 
 afterAll(async () => {
@@ -83,11 +85,12 @@ describe('Firestore UID-only rules', () => {
         salesReportDetailStatus: '',
         assignedToBA: 'ba-uid',
         assignedToTL: 'tl-uid',
+    createdBy: 'ba-uid'
       });
     });
 
-    await assertSucceeds(updateDoc(doc(ba.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done By BA' }));
-    await assertSucceeds(updateDoc(doc(tl.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done by TL' }));
-    await assertSucceeds(updateDoc(doc(am.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done by AM' }));
+  await assertSucceeds(updateDoc(doc(ba.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done By BA', updatedBy: 'ba-uid' }));
+  await assertSucceeds(updateDoc(doc(tl.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done by TL', updatedBy: 'tl-uid' }));
+  await assertSucceeds(updateDoc(doc(am.firestore(), 'sales_report_detail/srd-1'), { salesReportDetailStatus: 'Done by AM', updatedBy: 'am-uid' }));
   });
 });

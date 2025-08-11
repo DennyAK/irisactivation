@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl, Modal, TextInput, ScrollView } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, writeBatch, doc, DocumentSnapshot, getDoc } from 'firebase/firestore';
@@ -6,8 +6,10 @@ import { addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { provinces as provinceData } from '../../data/indonesian-regions';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { compareByStringKey } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
+import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function ProvinceListScreen() {
   // Add Province modal state
@@ -18,6 +20,8 @@ export default function ProvinceListScreen() {
   const [provinces, setProvinces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -53,6 +57,13 @@ export default function ProvinceListScreen() {
       setLoading(false);
     }
   };
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = term ? provinces.filter(p => (p.name || '').toLowerCase().includes(term)) : provinces;
+  const sorted = [...list].sort((a, b) => compareByStringKey(a, b, 'name', sortAsc));
+    return sorted;
+  }, [provinces, search, sortAsc]);
 
   const handleClearProvinces = async () => {
     setLoading(true);
@@ -106,12 +117,22 @@ export default function ProvinceListScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.screenTitle}>Indonesian Provinces</Text>
+      <FilterHeader
+        title="Indonesian Provinces"
+        search={search}
+        status={''}
+        statusOptions={[]}
+        storageKey="filters:provinces"
+        sortAsc={sortAsc}
+        onToggleSort={() => setSortAsc(s => !s)}
+        onApply={({ search: s }) => setSearch(s)}
+        onClear={() => setSearch('')}
+      />
       {isAdmin && (
         <PrimaryButton title="Add Province" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />
       )}
       <FlatList
-        data={provinces}
+        data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>

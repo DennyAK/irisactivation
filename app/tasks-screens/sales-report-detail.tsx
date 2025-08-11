@@ -5,7 +5,7 @@ import { Picker } from '@react-native-picker/picker';
 import SalesReportModal from '../../components/SalesReportModal';
 import SalesReportDetailsModal, { buildSalesReportText } from '../../components/SalesReportDetailsModal';
 import { db, auth } from '../../firebaseConfig';
-import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where, orderBy, startAfter, limit } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
@@ -76,6 +76,8 @@ export default function SalesReportDetailScreen() {
   const [detailsMode, setDetailsMode] = useState<'review' | 'description'>('description');
   // Track expanded items in the list (to show full details like old UI)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Sort toggle (default newest first)
+  const [sortAsc, setSortAsc] = useState(false);
   // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -204,14 +206,14 @@ export default function SalesReportDetailScreen() {
           ...formData,
           salesReportDetailStatus: nextStatus,
           updatedAt: now,
-          updatedBy: auth.currentUser?.email || auth.currentUser?.uid || 'unknown',
+          updatedBy: auth.currentUser?.uid || 'unknown',
         });
       } else {
         const ref = collection(db, 'sales_report_detail');
         await addDoc(ref, {
           ...formData,
           createdAt: now,
-          createdBy: auth.currentUser?.email || auth.currentUser?.uid || 'unknown',
+          createdBy: auth.currentUser?.uid || 'unknown',
         });
       }
       await fetchReports();
@@ -243,41 +245,55 @@ export default function SalesReportDetailScreen() {
   const isFocused = useIsFocused();
   useEffect(() => {
     if (userRole && isFocused) {
-      fetchReports();
+      fetchReports(true);
     }
-  }, [userRole, isFocused]);
+  }, [userRole, isFocused, sortAsc]);
 
-  const fetchReports = async () => {
+  // Pagination state
+  const PAGE_SIZE = 20;
+  const [lastDoc, setLastDoc] = useState<any | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [endReached, setEndReached] = useState(false);
+
+  const fetchReports = async (reset: boolean = true) => {
     try {
-      setLoading(true);
+      if (reset) {
+        setLoading(true);
+        setEndReached(false);
+        setLastDoc(null);
+      } else {
+        if (loadingMore || endReached) return;
+        setLoadingMore(true);
+      }
       const reportsRef = collection(db, 'sales_report_detail');
       const uid = auth.currentUser?.uid || '';
-      const email = auth.currentUser?.email || '';
-      let snapshot;
-      if (userRole === 'Iris - BA' && (uid || email)) {
-        try {
-          snapshot = await getDocs(query(reportsRef, where('assignedToBA', '==', uid)));
-        } catch {}
-        if (!snapshot || snapshot.empty) {
-          snapshot = await getDocs(query(reportsRef, where('assignedToBA', '==', email)));
-        }
-      } else if (userRole === 'Iris - TL' && (uid || email)) {
-        try {
-          snapshot = await getDocs(query(reportsRef, where('assignedToTL', '==', uid)));
-        } catch {}
-        if (!snapshot || snapshot.empty) {
-          snapshot = await getDocs(query(reportsRef, where('assignedToTL', '==', email)));
-        }
+      let qRef: any;
+      if (userRole === 'Iris - BA' && uid) {
+        qRef = query(reportsRef, where('assignedToBA', '==', uid));
+      } else if (userRole === 'Iris - TL' && uid) {
+        qRef = query(reportsRef, where('assignedToTL', '==', uid));
       } else {
-        snapshot = await getDocs(reportsRef);
+        qRef = query(reportsRef);
       }
-      let items: ReportItem[] = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      // Order and paginate by createdAt desc
+      const dir: 'asc' | 'desc' = sortAsc ? 'asc' : 'desc';
+      const pageable = lastDoc
+        ? query(qRef, orderBy('createdAt', dir), startAfter(lastDoc), limit(PAGE_SIZE))
+        : query(qRef, orderBy('createdAt', dir), limit(PAGE_SIZE));
+
+      const snapshot = await getDocs(pageable);
+      if (snapshot.empty) {
+        if (reset) setReports([]);
+        setEndReached(true);
+      }
+  const newItems: ReportItem[] = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
       // Enrich with outlets like in Quick Sales Report
+      let items: ReportItem[] = newItems;
       try {
         const outletsSnapshot = await getDocs(collection(db, 'outlets'));
         const outletMap: Record<string, any> = {};
         outletsSnapshot.forEach(doc => { outletMap[doc.id] = doc.data(); });
-        items = items.map(report => {
+        items = items.map((report: any) => {
           const outlet = outletMap[report.outletId || ''] || {};
           return {
             ...report,
@@ -288,12 +304,19 @@ export default function SalesReportDetailScreen() {
           } as ReportItem;
         });
       } catch {}
-      setReports(items);
+      if (reset) {
+        setReports(items);
+      } else {
+        setReports(prev => [...prev, ...items]);
+      }
+      const last = snapshot.docs[snapshot.docs.length - 1] || null;
+      setLastDoc(last);
     } catch (err) {
       console.error('fetchReports error', err);
       Alert.alert('Error', 'Failed to fetch reports');
     } finally {
-      setLoading(false);
+      if (reset) setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -373,7 +396,7 @@ export default function SalesReportDetailScreen() {
               <SecondaryButton title="Review back to BA" onPress={async () => {
                 try {
                   const ref = doc(db, 'sales_report_detail', item.id);
-      await updateDoc(ref, { salesReportDetailStatus: SRDStatus.ReviewBackToBA, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+  await updateDoc(ref, { salesReportDetailStatus: SRDStatus.ReviewBackToBA, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
                   await fetchReports();
                 } catch (e) {
                   Alert.alert('Error', 'Failed to update status');
@@ -391,17 +414,17 @@ export default function SalesReportDetailScreen() {
             )}
           </View>
           <View style={styles.iconActions}>
-            <TouchableOpacity
+              <TouchableOpacity
               onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
               style={styles.iconButton}
-              accessibilityLabel="Expand"
+              accessibilityLabel={isExpanded ? 'Collapse row' : 'Expand row'}
             >
               <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { setDescriptionItem(item); setDetailsMode('description'); setDetailsVisible(true); }}
               style={styles.iconButton}
-              accessibilityLabel="Detail"
+              accessibilityLabel="Open details"
             >
               <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
             </TouchableOpacity>
@@ -425,6 +448,8 @@ export default function SalesReportDetailScreen() {
         statusOptions={SRD_STATUS_OPTIONS}
         placeholder="Search outlet or ID"
         storageKey="filters:srd"
+  sortAsc={sortAsc}
+  onToggleSort={() => setSortAsc(prev => !prev)}
         onApply={({ search: s, status }) => { setSearch(s); setStatusFilter(status); }}
         onClear={() => { setSearch(''); setStatusFilter(''); }}
       />
@@ -440,11 +465,13 @@ export default function SalesReportDetailScreen() {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await fetchReports();
+              await fetchReports(true);
               setRefreshing(false);
             }}
           />
         }
+        onEndReachedThreshold={0.5}
+        onEndReached={() => fetchReports(false)}
       />)}
       <SalesReportModal
         visible={isModalVisible}
@@ -466,7 +493,7 @@ export default function SalesReportDetailScreen() {
     onDoneByAM={detailsMode === 'review' && userRole === 'area manager' && selectedReport?.id ? async () => {
           try {
             const ref = doc(db, 'sales_report_detail', selectedReport.id);
-      await updateDoc(ref, { salesReportDetailStatus: SRDStatus.DoneByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+  await updateDoc(ref, { salesReportDetailStatus: SRDStatus.DoneByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
             await fetchReports();
             setDetailsVisible(false);
           } catch (e) {
@@ -477,7 +504,7 @@ export default function SalesReportDetailScreen() {
     onReviewBackToTL={detailsMode === 'review' && userRole === 'area manager' && selectedReport?.id ? async () => {
           try {
             const ref = doc(db, 'sales_report_detail', selectedReport.id);
-      await updateDoc(ref, { salesReportDetailStatus: SRDStatus.ReviewBackToTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+  await updateDoc(ref, { salesReportDetailStatus: SRDStatus.ReviewBackToTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
             await fetchReports();
             setDetailsVisible(false);
           } catch (e) {

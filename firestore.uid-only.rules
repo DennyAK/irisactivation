@@ -13,6 +13,40 @@ service cloud.firestore {
   function isAssignedToTL(doc) { return doc.assignedToTL == request.auth.uid; }
 
   // Centralized transition helpers
+  function strOk(v, max) {
+    return v == null || (v is string && v.size() <= max);
+  }
+
+  function auditOnCreateOk(newData) {
+    return newData.createdBy == request.auth.uid;
+  }
+
+  function auditOnUpdateOk(oldData, newData) {
+    return newData.updatedBy == request.auth.uid && newData.createdBy == oldData.createdBy;
+  }
+
+  function srdTextLengthsOk(newData) {
+    return (
+      strOk(newData.issuesNotesRequests, 2000) &&
+      strOk(newData.learningPoints, 2000) &&
+      strOk(newData.guinessPromoDescription, 500) &&
+      strOk(newData.guinessSmoothPromoDescription, 500) &&
+      strOk(newData.guinessSmoothPromoDescriptionType2, 500) &&
+      strOk(newData.guinessGfesPromoDescription, 500) &&
+      strOk(newData.guinessGfesPromoDescriptionType2, 500) &&
+      strOk(newData.guinessKegsPromoDescription, 500) &&
+      strOk(newData.guinessKegsPromoDescriptionType2, 500) &&
+      strOk(newData.guinessMdPromoDescription, 500) &&
+      strOk(newData.guinessMdPromoDescriptionType2, 500) &&
+      strOk(newData.guinessGdicPromoDescription, 500) &&
+      strOk(newData.guinessGdicPromoDescriptionType2, 500) &&
+      strOk(newData.merchandiseDescription1, 300) &&
+      strOk(newData.merchandiseDescription2, 300) &&
+      strOk(newData.merchandiseDescription3, 300) &&
+      strOk(newData.merchandiseDescription4, 300) &&
+      strOk(newData.merchandiseDescription5, 300)
+    );
+  }
   function canUpdateAttendance(before, after) {
     let statusBefore = before.taskAttendanceStatus == null ? '' : before.taskAttendanceStatus;
     let statusAfter = after.taskAttendanceStatus == null ? statusBefore : after.taskAttendanceStatus;
@@ -95,19 +129,24 @@ service cloud.firestore {
 
     match /projects/{projectId} {
       allow read: if request.auth != null;
-      allow create, delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'];
+      // Admins can create; only superadmin can delete
+      allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'];
+      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
       allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin', 'area manager'];
     }
 
-    match /activation/{activationId} {
+    match /activations/{activationId} {
       allow read: if request.auth != null;
-      allow create, delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'];
+      // Admins can create; only superadmin can delete
+      allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'];
+      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
       allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin', 'area manager'];
     }
 
     match /outlets/{outletId} {
       allow read: if request.auth != null;
-      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'];
+      // Only superadmin can delete outlets
+      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
       allow create, update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin', 'area manager'];
     }
 
@@ -151,14 +190,24 @@ service cloud.firestore {
 
   match /sales_report_quick/{reportId} {
       allow read: if userRole() in ['admin','superadmin','area manager','Iris - BA','Iris - TL'];
-      allow create, delete: if userRole() in ['admin','superadmin','area manager'];
-      allow update: if canUpdateQR(resource.data, request.resource.data);
+  allow create: if userRole() in ['admin','superadmin','area manager']
+        && auditOnCreateOk(request.resource.data)
+        && srdTextLengthsOk(request.resource.data);
+  allow delete: if userRole() in ['admin','superadmin','area manager'];
+  allow update: if canUpdateQR(resource.data, request.resource.data)
+        && auditOnUpdateOk(resource.data, request.resource.data)
+        && srdTextLengthsOk(request.resource.data);
     }
 
   match /sales_report_detail/{docId} {
       allow read: if userRole() in ['admin','superadmin','area manager','Iris - BA','Iris - TL'];
-      allow create, delete: if userRole() in ['admin','superadmin','area manager'];
-      allow update: if canUpdateSRD(resource.data, request.resource.data);
+  allow create: if userRole() in ['admin','superadmin','area manager']
+        && auditOnCreateOk(request.resource.data)
+        && srdTextLengthsOk(request.resource.data);
+  allow delete: if userRole() in ['admin','superadmin','area manager'];
+  allow update: if canUpdateSRD(resource.data, request.resource.data)
+        && auditOnUpdateOk(resource.data, request.resource.data)
+        && srdTextLengthsOk(request.resource.data);
     }
 
     match /quiz_questions/{questionId} {

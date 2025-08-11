@@ -1,0 +1,41 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "sales_report_detail",
+      "queryScope": "COLLECTION",
+      "fields": [
+  { "fieldPath": "assignedToBA", "order": "ASCENDING" },
+  { "fieldPath": "salesReportDetailStatus", "order": "ASCENDING" },
+  { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sales_report_quick",
+      "queryScope": "COLLECTION",
+      "fields": [
+  { "fieldPath": "assignedToBA", "order": "ASCENDING" },
+  { "fieldPath": "taskSalesReportQuickStatus", "order": "ASCENDING" },
+  { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "task_attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
+  { "fieldPath": "assignedToBA", "order": "ASCENDING" },
+  { "fieldPath": "taskAttendanceStatus", "order": "ASCENDING" },
+  { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "task_early_assessment",
+      "queryScope": "COLLECTION",
+      "fields": [
+  { "fieldPath": "assignedToBA", "order": "ASCENDING" },
+  { "fieldPath": "status", "order": "ASCENDING" },
+  { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

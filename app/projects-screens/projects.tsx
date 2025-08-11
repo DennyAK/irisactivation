@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
@@ -6,9 +6,11 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { compareCreatedAt } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import StatusPill from '../../components/ui/StatusPill';
+import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function ProjectsScreen() {
   const router = useRouter();
@@ -28,6 +30,8 @@ export default function ProjectsScreen() {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [sortAsc, setSortAsc] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -87,6 +91,21 @@ export default function ProjectsScreen() {
       setLoading(false);
     }
   };
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = term
+      ? projects.filter((p) => {
+          const hay = [p.projectName, p.projectType, p.projectTier, p.activationName, p.createdByName]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return hay.includes(term);
+        })
+      : projects;
+  const sorted = [...list].sort((a, b) => compareCreatedAt(a, b, sortAsc));
+    return sorted;
+  }, [projects, search, sortAsc]);
 
   const handleAddProject = () => {
     if (formData.projectName.trim() === '') {
@@ -156,14 +175,25 @@ export default function ProjectsScreen() {
   }
 
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  const isSuperadmin = userRole === 'superadmin';
   const canEdit = isAdmin || userRole === 'area manager';
 
   return (
     <View style={styles.container}>
-      <Text style={styles.screenTitle}>Projects</Text>
+      <FilterHeader
+        title="Projects"
+        search={search}
+        status={''}
+        statusOptions={[]}
+        storageKey="filters:projects"
+        sortAsc={sortAsc}
+        onToggleSort={() => setSortAsc(s => !s)}
+        onApply={({ search: s }) => setSearch(s)}
+        onClear={() => setSearch('')}
+      />
       {isAdmin && <PrimaryButton title="Add New Project" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />}
       <FlatList
-        data={projects}
+        data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -179,7 +209,7 @@ export default function ProjectsScreen() {
             {canEdit && (
               <View style={styles.actionsRow}>
                 <SecondaryButton title="Edit" onPress={() => handleEditProject(item)} style={styles.flexBtn} />
-                {isAdmin && <SecondaryButton title="Delete" onPress={() => handleDeleteProject(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
+                {isSuperadmin && <SecondaryButton title="Delete" onPress={() => handleDeleteProject(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
               </View>
             )}
           </View>

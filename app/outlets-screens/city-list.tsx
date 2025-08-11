@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, writeBatch, doc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
@@ -6,8 +6,10 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { Picker } from '@react-native-picker/picker';
 import { provinces as provinceData, citiesAndRegencies } from '../../data/indonesian-regions';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { compareByStringKey } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
+import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function CityListScreen() {
   // Pull-to-refresh state
@@ -18,6 +20,8 @@ export default function CityListScreen() {
   const [loadingProvinces, setLoadingProvinces] = useState(true);
   const [loadingCities, setLoadingCities] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -78,6 +82,12 @@ export default function CityListScreen() {
     }
   };
 
+  const visibleCities = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = term ? cities.filter(c => (c.name || '').toLowerCase().includes(term)) : cities;
+  return [...list].sort((a, b) => compareByStringKey(a, b, 'name', sortAsc));
+  }, [cities, search, sortAsc]);
+
   const handleClearCities = async () => {
     setLoadingCities(true);
     try {
@@ -137,7 +147,17 @@ export default function CityListScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.screenTitle}>Indonesian Cities & Regencies</Text>
+      <FilterHeader
+        title="Indonesian Cities & Regencies"
+        search={search}
+        status={''}
+        statusOptions={[]}
+        storageKey="filters:cities"
+        sortAsc={sortAsc}
+        onToggleSort={() => setSortAsc(s => !s)}
+        onApply={({ search: s }) => setSearch(s)}
+        onClear={() => setSearch('')}
+      />
       <View style={styles.pickerWrapper}>
         <Picker
           selectedValue={selectedProvince}
@@ -155,11 +175,11 @@ export default function CityListScreen() {
           <SecondaryButton title="Clear All" onPress={handleClearCities} style={styles.flexBtn} />
         </View>
       )}
-      {loadingCities ? (
+    {loadingCities ? (
         <ActivityIndicator style={{ marginTop: spacing(10) }} />
-      ) : cities.length > 0 ? (
+    ) : cities.length > 0 ? (
         <FlatList
-          data={cities}
+      data={visibleCities}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.card}>

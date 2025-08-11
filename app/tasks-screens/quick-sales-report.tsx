@@ -9,7 +9,7 @@ import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { db, auth } from '../../firebaseConfig';
-import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where, orderBy, startAfter, limit } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import QuickSalesReportDetailsModal, { buildQuickSalesReportText } from '@/components/QuickSalesReportDetailsModal';
 import * as Clipboard from 'expo-clipboard';
@@ -46,6 +46,9 @@ export default function QuickSalesReportScreen() {
       return matchesSearch && matchesStatus;
     });
   }, [reports, debouncedSearch, statusFilter]);
+
+  // Sort by date toggle
+  const [sortAsc, setSortAsc] = useState(false);
 
   const initialFormData = {
     guardDate: '',
@@ -93,32 +96,51 @@ export default function QuickSalesReportScreen() {
   const isFocused = useIsFocused();
   useEffect(() => {
     if (userRole && isFocused) {
-      fetchReports();
+      fetchReports(true);
     }
-  }, [userRole, isFocused]);
+  }, [userRole, isFocused, sortAsc]);
 
-  const fetchReports = async () => {
-    setLoading(true);
+  // Pagination state
+  const PAGE_SIZE = 20;
+  const [lastDoc, setLastDoc] = useState<any | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [endReached, setEndReached] = useState(false);
+
+  const fetchReports = async (reset: boolean = true) => {
+    if (reset) {
+      setLoading(true);
+      setEndReached(false);
+      setLastDoc(null);
+    } else {
+      if (loadingMore || endReached) return;
+      setLoadingMore(true);
+    }
     try {
-      // Fetch all reports
       const collectionRef = collection(db, 'sales_report_quick');
-      const snapshot = await getDocs(collectionRef);
-      let list = snapshot.docs.map(doc => ({
-        id: doc.id,
-        assignedToBA: doc.data().assignedToBA,
-        assignedToTL: doc.data().assignedToTL,
-        outletId: doc.data().outletId || '',
-        outletName: doc.data().outletName || '',
-        ...doc.data()
-      }));
-      // Filter for BA role: only show records assigned to current user
-  if (userRole === Roles.IrisBA && auth.currentUser?.uid) {
-        list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
+      const uid = auth.currentUser?.uid || '';
+      let base = collectionRef;
+      let qRef: any;
+      if (userRole === Roles.IrisBA && uid) {
+        qRef = query(base, where('assignedToBA', '==', uid));
+      } else if (userRole === Roles.IrisTL && uid) {
+        qRef = query(base, where('assignedToTL', '==', uid));
+      } else {
+        qRef = query(base);
       }
-      // Filter for TL role: only show records assigned to current TL
-  if (userRole === Roles.IrisTL && auth.currentUser?.uid) {
-        list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
+      const dir: 'asc' | 'desc' = sortAsc ? 'asc' : 'desc';
+      const cursor = reset ? null : lastDoc;
+      const pageable = cursor
+        ? query(qRef, orderBy('createdAt', dir), startAfter(cursor), limit(PAGE_SIZE))
+        : query(qRef, orderBy('createdAt', dir), limit(PAGE_SIZE));
+      const snapshot = await getDocs(pageable);
+      if (snapshot.empty) {
+        if (reset) setReports([]);
+        setEndReached(true);
       }
+      let list = snapshot.docs.map(docSnap => {
+        const data = docSnap.data() as any;
+        return { id: docSnap.id, ...data };
+      });
 
       // Fetch all outlets and build a map
       const outletsSnapshot = await getDocs(collection(db, 'outlets'));
@@ -139,12 +161,19 @@ export default function QuickSalesReportScreen() {
         };
       });
 
-      setReports(list);
+      if (reset) {
+        setReports(list);
+      } else {
+        setReports(prev => [...prev, ...list]);
+      }
+      const last = snapshot.docs[snapshot.docs.length - 1] || null;
+      setLastDoc(last);
     } catch (error) {
       console.error("Error fetching reports: ", error);
       Alert.alert("Error", "Failed to fetch sales reports.");
     } finally {
-      setLoading(false);
+      if (reset) setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -172,23 +201,23 @@ export default function QuickSalesReportScreen() {
     };
     // Compute next status via centralized helper, allow admin picker override
     if (selectedReport) {
-      const prev = (selectedReport.taskSalesReportQuickStatus || '') as any;
+  const prev = (selectedReport.taskSalesReportQuickStatus || '') as any;
       const adminChosen = formData.taskSalesReportQuickStatus as any;
       const computed = nextStatusOnSubmitQR((userRole as any) || '', prev);
       dataToSubmit.taskSalesReportQuickStatus = adminChosen || computed;
       dataToSubmit.updatedAt = serverTimestamp();
-      dataToSubmit.updatedBy = auth.currentUser?.uid || auth.currentUser?.email || 'unknown';
+  dataToSubmit.updatedBy = auth.currentUser?.uid || 'unknown';
     }
     if (modalType === 'add') {
-      addDoc(collection(db, "sales_report_quick"), { ...dataToSubmit, createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' })
+      addDoc(collection(db, "sales_report_quick"), { ...dataToSubmit, createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || 'unknown' })
         .then(() => {
-          fetchReports();
+          fetchReports(true);
           setIsModalVisible(false);
         }).catch(error => Alert.alert("Add Failed", error.message));
     } else if (selectedReport) {
       updateDoc(doc(db, "sales_report_quick", selectedReport.id), dataToSubmit)
         .then(() => {
-          fetchReports();
+          fetchReports(true);
           setIsModalVisible(false);
         }).catch(error => Alert.alert("Update Failed", error.message));
     }
@@ -198,7 +227,7 @@ export default function QuickSalesReportScreen() {
     Alert.alert("Delete Report", "Are you sure?", [
       { text: "Cancel" },
       { text: "OK", onPress: () => {
-        deleteDoc(doc(db, "sales_report_quick", id)).then(() => fetchReports());
+  deleteDoc(doc(db, "sales_report_quick", id)).then(() => fetchReports(true));
       }}
     ]);
   };
@@ -240,7 +269,7 @@ export default function QuickSalesReportScreen() {
             )}
           </View>
         )}
-        <View style={styles.actionsRow}>
+          <View style={styles.actionsRow}>
           {userRole === Roles.IrisBA && stateMachine.canTransition('QR', Roles.IrisBA, status || QRStatus.Empty, QRStatus.DoneByBA) && (
             <PrimaryButton title="QR by BA" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
@@ -261,14 +290,14 @@ export default function QuickSalesReportScreen() {
             <TouchableOpacity
               onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
               style={styles.iconButton}
-              accessibilityLabel="Expand"
+              accessibilityLabel={isExpanded ? 'Collapse row' : 'Expand row'}
             >
               <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
               style={styles.iconButton}
-              accessibilityLabel="Detail"
+              accessibilityLabel="Open details"
             >
               <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
             </TouchableOpacity>
@@ -423,10 +452,10 @@ export default function QuickSalesReportScreen() {
           <Text>Restock Description: {selectedReport?.productRestockDescription || '-'}</Text>
           <View style={{ marginTop: 20 }}>
             <View style={{ marginBottom: 12 }}>
-        <PrimaryButton title="Confirm QR Review by AM" onPress={async () => {
+  <PrimaryButton title="Confirm QR Review by AM" onPress={async () => {
                 try {
-          await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: QRStatus.ReviewByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
-                  fetchReports();
+    await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: QRStatus.ReviewByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
+      fetchReports(true);
                   setIsAMReviewModalVisible(false);
                   Alert.alert('Success', 'Status updated to QR Review by AM.');
                 } catch (e) {
@@ -435,10 +464,10 @@ export default function QuickSalesReportScreen() {
               }} />
             </View>
             <View style={{ marginBottom: 12 }}>
-        <SecondaryButton title="Review back to TL" onPress={async () => {
+  <SecondaryButton title="Review back to TL" onPress={async () => {
                 try {
-          await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: QRStatus.ReviewBackToTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
-                  fetchReports();
+    await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: QRStatus.ReviewBackToTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
+      fetchReports(true);
                   setIsAMReviewModalVisible(false);
                   Alert.alert('Success', 'Status updated to Review back to TL.');
                 } catch (e) {
@@ -464,6 +493,8 @@ export default function QuickSalesReportScreen() {
         statusOptions={QR_STATUS_OPTIONS}
         placeholder="Search outlet or ID"
         storageKey="filters:qr"
+  sortAsc={sortAsc}
+  onToggleSort={() => setSortAsc(prev => !prev)}
         onApply={({ search: s, status }) => { setSearch(s); setStatusFilter(status); }}
         onClear={() => { setSearch(''); setStatusFilter(''); }}
       />
@@ -479,11 +510,13 @@ export default function QuickSalesReportScreen() {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await fetchReports();
+              await fetchReports(true);
               setRefreshing(false);
             }}
           />
         }
+        onEndReachedThreshold={0.5}
+        onEndReached={() => fetchReports(false)}
       />)}
       <QuickSalesReportDetailsModal
         visible={detailsVisible}

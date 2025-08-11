@@ -197,10 +197,10 @@ export default function TaskQuickQuizScreen() {
       ...formData,
       quizDate: new Date(formData.quizDate),
       createdAt: serverTimestamp(),
-      createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
+  createdBy: auth.currentUser?.uid || 'unknown'
     }).then((docRef) => {
       // Update the just-created document to set takeQuickQuizId to its own id
-      updateDoc(docRef, { takeQuickQuizId: docRef.id, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' }).then(() => {
+  updateDoc(docRef, { takeQuickQuizId: docRef.id, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' }).then(() => {
         setIsAddModalVisible(false);
         resetFormData();
         fetchQuizzes();
@@ -238,7 +238,7 @@ export default function TaskQuickQuizScreen() {
         ...formData,
         quizDate: new Date(formData.quizDate),
         updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
+  updatedBy: auth.currentUser?.uid || 'unknown'
       }).then(() => {
         setIsEditModalVisible(false);
         resetFormData();
@@ -304,7 +304,7 @@ export default function TaskQuickQuizScreen() {
           quickQuizResult: `${score}/10`,
           taskQuickQuizStatus: status,
           updatedAt: serverTimestamp(),
-          updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
+          updatedBy: auth.currentUser?.uid || 'unknown'
         }).then(() => {
           fetchQuizzes();
         });
@@ -317,7 +317,7 @@ export default function TaskQuickQuizScreen() {
           quickQuizResult: `${score}/10`,
           taskQuickQuizStatus: status,
           createdAt: serverTimestamp(),
-          createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
+          createdBy: auth.currentUser?.uid || 'unknown'
         });
       }
     }

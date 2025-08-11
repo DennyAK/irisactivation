@@ -55,6 +55,8 @@ export default function TaskAttendanceScreen() {
   });
   const [selectedAttendance, setSelectedAttendance] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  // Sort toggle (default newest first)
+  const [sortAsc, setSortAsc] = useState(false);
   // Expand and details
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [detailsVisible, setDetailsVisible] = useState(false);
@@ -118,7 +120,7 @@ export default function TaskAttendanceScreen() {
     if (userRole && isFocused) {
       fetchAttendances();
     }
-  }, [userRole, isFocused]);
+  }, [userRole, isFocused, sortAsc]);
 
   const fetchAttendances = async () => {
     setLoading(true);
@@ -137,7 +139,7 @@ export default function TaskAttendanceScreen() {
   if (userRole === Roles.IrisTL && auth.currentUser?.uid) {
         attendanceList = attendanceList.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
-      // Sort by createdAt descending (newest first)
+      // Sort by createdAt asc/desc
       attendanceList.sort((a, b) => {
         let aTime = 0;
         let bTime = 0;
@@ -147,7 +149,7 @@ export default function TaskAttendanceScreen() {
         if (b.createdAt && typeof b.createdAt.toDate === 'function') {
           bTime = b.createdAt.toDate().getTime();
         }
-        return bTime - aTime;
+        return sortAsc ? (aTime - bTime) : (bTime - aTime);
       });
       setAttendances(attendanceList);
     } catch (error) {
@@ -182,7 +184,7 @@ export default function TaskAttendanceScreen() {
       checkOutLatitude: parseFloat(formData.checkOutLatitude) || 0,
       checkOutLongitude: parseFloat(formData.checkOutLongitude) || 0,
       createdAt: serverTimestamp(),
-      createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
+  createdBy: auth.currentUser?.uid || 'unknown'
     }).then(() => {
       setIsAddModalVisible(false);
       resetFormData();
@@ -232,7 +234,7 @@ export default function TaskAttendanceScreen() {
         checkOutLongitude: parseFloat(formData.checkOutLongitude) || 0,
         taskAttendanceStatus: nextStatus,
         updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown'
+  updatedBy: auth.currentUser?.uid || 'unknown'
       };
 
       const attendanceDoc = doc(db, "task_attendance", selectedAttendance.id);
@@ -365,7 +367,7 @@ export default function TaskAttendanceScreen() {
   const handleApproveByTL = async (attendanceId: string) => {
     try {
       const attendanceDoc = doc(db, "task_attendance", attendanceId);
-  await updateDoc(attendanceDoc, { taskAttendanceStatus: AttendanceStatus.ApprovedByTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+  await updateDoc(attendanceDoc, { taskAttendanceStatus: AttendanceStatus.ApprovedByTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
       fetchAttendances();
       Alert.alert('Success', 'Attendance approved by TL.');
     } catch (error: any) {
@@ -376,7 +378,7 @@ export default function TaskAttendanceScreen() {
   const handleApproveByAM = async (attendanceId: string) => {
     try {
       const attendanceDoc = doc(db, "task_attendance", attendanceId);
-  await updateDoc(attendanceDoc, { taskAttendanceStatus: AttendanceStatus.ApprovedByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+  await updateDoc(attendanceDoc, { taskAttendanceStatus: AttendanceStatus.ApprovedByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
       fetchAttendances();
       Alert.alert('Success', 'Attendance approved by Area Manager.');
     } catch (error: any) {
@@ -507,14 +509,14 @@ export default function TaskAttendanceScreen() {
               <TouchableOpacity
                 onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
                 style={styles.iconButton}
-                accessibilityLabel="Expand"
+                accessibilityLabel={isExpanded ? 'Collapse row' : 'Expand row'}
               >
                 <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
                 style={styles.iconButton}
-                accessibilityLabel="Detail"
+                accessibilityLabel="Open details"
               >
                 <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
               </TouchableOpacity>
@@ -570,6 +572,8 @@ export default function TaskAttendanceScreen() {
         statusOptions={ATTENDANCE_STATUS_OPTIONS}
         placeholder="Search outlet or ID"
         storageKey="filters:attendance"
+  sortAsc={sortAsc}
+  onToggleSort={() => setSortAsc(prev => !prev)}
         onApply={({ search: s, status }) => { setSearch(s); setStatusFilter(status); }}
         onClear={() => { setSearch(''); setStatusFilter(''); }}
       />

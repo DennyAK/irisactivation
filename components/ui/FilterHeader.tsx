@@ -16,11 +16,13 @@ interface Props {
   statusOptions: Option[];
   placeholder?: string;
   storageKey?: string; // if set, persist last-used filters
+  sortAsc?: boolean; // optional sort direction
+  onToggleSort?: () => void;
   onApply: (filters: { search: string; status: string }) => void;
   onClear: () => void;
 }
 
-export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOptions, placeholder = 'Search...', storageKey, onApply, onClear }) => {
+export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOptions, placeholder = 'Search...', storageKey, sortAsc, onToggleSort, onApply, onClear }) => {
   const [open, setOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(search);
   const [localStatus, setLocalStatus] = useState(status);
@@ -75,6 +77,13 @@ export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOpt
     <View style={styles.headerRow}>
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {typeof sortAsc === 'boolean' && onToggleSort && (
+          <SecondaryButton
+            title={sortAsc ? 'Oldest' : 'Newest'}
+            onPress={onToggleSort}
+            style={[styles.filterBtn, { marginRight: spacing(2) }]}
+          />
+        )}
         {active && (
           <TouchableOpacity onPress={handleClear} style={styles.resetChip} accessibilityLabel="Reset filters">
             <Text style={styles.resetChipText}>Reset</Text>
@@ -95,14 +104,18 @@ export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOpt
           placeholder={placeholder}
           style={styles.input}
         />
-        <Text style={[styles.label, { marginTop: spacing(3) }]}>Status</Text>
-        <View style={[styles.input, { padding: 0 }]}> 
-          <Picker selectedValue={localStatus} onValueChange={(v) => setLocalStatus(String(v))} style={{ height: 40 }}>
-            {statusOptions.map(opt => (
-              <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
-            ))}
-          </Picker>
-        </View>
+        {statusOptions && statusOptions.length > 0 && (
+          <>
+            <Text style={[styles.label, { marginTop: spacing(3) }]}>Status</Text>
+            <View style={[styles.input, { padding: 0 }]}> 
+              <Picker selectedValue={localStatus} onValueChange={(v) => setLocalStatus(String(v))} style={{ height: 40 }}>
+                {statusOptions.map(opt => (
+                  <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+                ))}
+              </Picker>
+            </View>
+          </>
+        )}
         <View style={{ flexDirection: 'row', marginTop: spacing(4) }}>
           <PrimaryButton title="Apply" onPress={handleApply} style={{ marginRight: spacing(3) }} />
           <SecondaryButton title="Clear" onPress={handleClear} />
@@ -113,8 +126,8 @@ export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOpt
 };
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(4) },
-  title: { ...typography.h1, color: palette.text, flex: 1, marginRight: spacing(3) },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) },
+  title: { fontSize: 18, fontWeight: '700', color: palette.text, flex: 1, marginRight: spacing(3) },
   filterBtn: { alignSelf: 'flex-end' },
   resetChip: { paddingHorizontal: spacing(2.5), paddingVertical: spacing(1.5), backgroundColor: '#F3F4F6', borderRadius: 999, marginRight: spacing(2) },
   resetChipText: { fontSize: 12, color: palette.text },

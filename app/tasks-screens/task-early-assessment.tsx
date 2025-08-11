@@ -44,6 +44,8 @@ export default function TaskEarlyAssessmentScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [detailsItem, setDetailsItem] = useState<any | null>(null);
+  // Sort toggle (default newest first)
+  const [sortAsc, setSortAsc] = useState(false);
   const [outletDetails, setOutletDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   // Filters
@@ -277,7 +279,13 @@ export default function TaskEarlyAssessmentScreen() {
   if (userRole === Roles.IrisTL && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
-      setAssessments(list);
+      // Sort by createdAt asc/desc when available
+      const sorted = [...list].sort((a: any, b: any) => {
+        const ta = a?.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const tb = b?.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return sortAsc ? (ta - tb) : (tb - ta);
+      });
+      setAssessments(sorted);
     } catch (error) {
       console.error("Error fetching assessments: ", error);
       Alert.alert("Error", "Failed to fetch assessments.");
@@ -289,7 +297,7 @@ export default function TaskEarlyAssessmentScreen() {
   useEffect(() => {
     fetchAssessments();
     // Optionally, fetch user role here if needed
-  }, [userRole]);
+  }, [userRole, sortAsc]);
 
   const handleOpenModal = (type: 'add' | 'edit', item?: any) => {
     setModalType(type);
@@ -358,6 +366,9 @@ export default function TaskEarlyAssessmentScreen() {
         }
       } else {
         setOutletDetails(null);
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: spacing(2), paddingHorizontal: spacing(2) }}>
+              <SecondaryButton title={sortAsc ? 'Oldest first' : 'Newest first'} onPress={() => setSortAsc(prev => !prev)} />
+            </View>
       }
     };
     fetchOutletDetails();
@@ -389,13 +400,13 @@ export default function TaskEarlyAssessmentScreen() {
     }
 
     if (modalType === 'add') {
-      addDoc(collection(db, "task_early_assessment"), { ...dataToSubmit, createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' })
+  addDoc(collection(db, "task_early_assessment"), { ...dataToSubmit, createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || 'unknown' })
         .then(() => {
           fetchAssessments();
           setIsModalVisible(false);
         }).catch(error => Alert.alert("Add Failed", error.message));
     } else if (selectedAssessment) {
-      updateDoc(doc(db, "task_early_assessment", selectedAssessment.id), { ...dataToSubmit, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' })
+  updateDoc(doc(db, "task_early_assessment", selectedAssessment.id), { ...dataToSubmit, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' })
         .then(() => {
           fetchAssessments();
           setIsModalVisible(false);
@@ -464,14 +475,14 @@ export default function TaskEarlyAssessmentScreen() {
             <TouchableOpacity
               onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
               style={styles.iconButton}
-              accessibilityLabel="Expand"
+              accessibilityLabel={isExpanded ? 'Collapse row' : 'Expand row'}
             >
               <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
               style={styles.iconButton}
-              accessibilityLabel="Detail"
+              accessibilityLabel="Open details"
             >
               <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
             </TouchableOpacity>
@@ -597,7 +608,7 @@ export default function TaskEarlyAssessmentScreen() {
                     { text: 'Cancel', style: 'cancel' },
                     { text: 'OK', onPress: async () => {
                       try {
-      await updateDoc(doc(db, 'task_early_assessment', item.id), { status: EAStatus.AssessByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+  await updateDoc(doc(db, 'task_early_assessment', item.id), { status: EAStatus.AssessByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
                         fetchAssessments();
                         setIsReviewModalVisible(false);
                         Alert.alert('Success', 'Status updated to ASSESS BY AM.');
@@ -613,7 +624,7 @@ export default function TaskEarlyAssessmentScreen() {
                     { text: 'No', style: 'cancel' },
                     { text: 'Yes', onPress: async () => {
                       try {
-      await updateDoc(doc(db, 'task_early_assessment', item.id), { status: EAStatus.ReassessByTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || auth.currentUser?.email || 'unknown' });
+  await updateDoc(doc(db, 'task_early_assessment', item.id), { status: EAStatus.ReassessByTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
                         fetchAssessments();
                         setIsReviewModalVisible(false);
                         Alert.alert('Success', 'Status updated to RE ASSESS BY TL.');
@@ -1189,6 +1200,8 @@ export default function TaskEarlyAssessmentScreen() {
         statusOptions={EA_STATUS_OPTIONS}
         placeholder="Search outlet or ID"
         storageKey="filters:ea"
+        sortAsc={sortAsc}
+        onToggleSort={() => setSortAsc(prev => !prev)}
         onApply={({ search: s, status }) => { setSearch(s); setStatusFilter(status); }}
         onClear={() => { setSearch(''); setStatusFilter(''); }}
       />

@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Run app tests
+        run: npx jest --ci --passWithNoTests
+      - name: Install Firebase CLI
+        run: npm i -g firebase-tools
+      - name: Run rules tests with emulator
+        env:
+          FIREBASE_EMULATOR_HUB: localhost:4400
+        run: |
+          npx firebase emulators:exec --only firestore "node ./node_modules/jest/bin/jest.js --config jest-rules.config.cjs --runInBand --ci --passWithNoTests"

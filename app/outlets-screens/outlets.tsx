@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where } from 'firebase/firestore';
@@ -7,9 +7,11 @@ import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { compareCreatedAt } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import StatusPill from '../../components/ui/StatusPill';
+import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function OutletsScreen() {
   const router = useRouter();
@@ -39,6 +41,10 @@ export default function OutletsScreen() {
   });
   const [selectedOutlet, setSelectedOutlet] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  // Filters & Sort
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState(''); // no status in outlets, kept for API compatibility
+  const [sortAsc, setSortAsc] = useState(false); // default newest first
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -121,6 +127,32 @@ export default function OutletsScreen() {
       setLoading(false);
     }
   };
+
+  const filteredOutlets = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const bySearch = term
+      ? outlets.filter((o) => {
+          const hay = [
+            o.outletName,
+            o.provinceName,
+            o.cityName,
+            o.outletChannel,
+            o.outletTier,
+            o.outletCompleteAddress,
+            o.outletContactNo,
+            o.outletPicName,
+            o.outletPicContactNumber,
+            o.outletSocialMedia,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return hay.includes(term);
+        })
+      : outlets;
+  const sorted = [...bySearch].sort((a, b) => compareCreatedAt(a, b, sortAsc));
+    return sorted;
+  }, [outlets, search, sortAsc]);
 
   const fetchProvinces = async () => {
     try {
@@ -226,6 +258,7 @@ export default function OutletsScreen() {
 
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
   const canCreateOrEdit = isAdmin || userRole === 'area manager';
+  const canDeleteOutlet = userRole === 'superadmin';
 
   const channelTone = (val: string): any => {
     if (!val) return 'neutral';
@@ -249,12 +282,15 @@ export default function OutletsScreen() {
       <Text style={styles.metaText}>PIC: <Text style={styles.metaStrong}>{item.outletPicName || '-'} ({item.outletPicContactNumber || '-'})</Text></Text>
       {!!item.outletSocialMedia && <Text style={styles.metaText}>Social: <Text style={styles.metaStrong}>{item.outletSocialMedia}</Text></Text>}
       <Text style={styles.coords}>Coords: {item.latitude}, {item.longitude}</Text>
-      {canCreateOrEdit && (
-        <View style={styles.actionsRow}>
+      <View style={styles.actionsRow}>
+        <SecondaryButton title="History" onPress={() => router.push({ pathname: '/outlets-screens/outlet-history', params: { outletId: item.id, outletName: item.outletName } })} />
+        {canCreateOrEdit && (
           <SecondaryButton title="Edit" onPress={() => handleEditOutlet(item)} />
-          {isAdmin && <SecondaryButton title="Delete" onPress={() => handleDeleteOutlet(item.id)} style={styles.dangerBtn} />}
-        </View>
-      )}
+        )}
+  {canDeleteOutlet && (
+          <SecondaryButton title="Delete" onPress={() => handleDeleteOutlet(item.id)} style={styles.dangerBtn} />
+        )}
+      </View>
     </View>
   );
 
@@ -330,12 +366,22 @@ export default function OutletsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.screenTitle}>Outlets</Text>
+      <FilterHeader
+        title="Outlets"
+        search={search}
+        status={status}
+        statusOptions={[]}
+        storageKey="filters:outlets"
+        sortAsc={sortAsc}
+        onToggleSort={() => setSortAsc((s) => !s)}
+        onApply={({ search: s }) => setSearch(s)}
+        onClear={() => { setSearch(''); setStatus(''); }}
+      />
       {canCreateOrEdit && (
         <PrimaryButton title="Add New Outlet" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />
       )}
       <FlatList
-        data={outlets}
+        data={filteredOutlets}
         keyExtractor={(item) => item.id}
         renderItem={renderOutlet}
         contentContainerStyle={{ paddingBottom: spacing(30) }}

@@ -1,22 +1,53 @@
-import { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, Button, Modal, TextInput, StyleSheet, Alert } from 'react-native';
-import { db } from '../../firebaseConfig';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, FlatList, ActivityIndicator, Modal, TextInput, StyleSheet, Alert, RefreshControl } from 'react-native';
+import { db, auth } from '../../firebaseConfig';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, getDoc, DocumentSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { compareCreatedAt } from '../../utils/sort';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
+import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function ActivationScreen() {
   const [activations, setActivations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sortAsc, setSortAsc] = useState(false);
   const [formData, setFormData] = useState({
     activationId: '',
     activationName: '',
     activationDetail: '',
   });
   const [selectedActivation, setSelectedActivation] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchActivations();
+  const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+    setCurrentUserId(user.uid);
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const docSnap: DocumentSnapshot = await getDoc(userDocRef);
+          if (docSnap.exists()) setUserRole((docSnap.data() as any).role || '');
+          else setUserRole('');
+        } catch {
+          setUserRole('');
+        }
+      } else {
+        setUserRole('');
+    setCurrentUserId(null);
+      }
+    });
+    return () => unsub();
   }, []);
+
+  useEffect(() => {
+    if (userRole !== null) fetchActivations();
+  }, [userRole]);
 
   const fetchActivations = async () => {
     setLoading(true);
@@ -24,13 +55,39 @@ export default function ActivationScreen() {
       const activationsCollection = collection(db, 'activations');
       const snapshot = await getDocs(activationsCollection);
       const activationList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setActivations(activationList);
+      // Enrich with creator's name like Projects screen
+      const withNames = await Promise.all(activationList.map(async (a: any) => {
+        let createdByName = 'Unknown User';
+        try {
+          if (a.createdBy) {
+            const userRef = doc(db, 'users', a.createdBy);
+            const uSnap = await getDoc(userRef);
+            if (uSnap.exists()) {
+              const u = uSnap.data() as any;
+              createdByName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || createdByName;
+            }
+          }
+        } catch {}
+        return { ...a, createdByName };
+      }));
+      setActivations(withNames as any[]);
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch activations.');
     } finally {
       setLoading(false);
     }
   };
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = term
+      ? activations.filter((a) => {
+          const hay = [a.activationName, a.activationId, a.activationDetail].filter(Boolean).join(' ').toLowerCase();
+          return hay.includes(term);
+        })
+      : activations;
+  return [...list].sort((a, b) => compareCreatedAt(a, b, sortAsc));
+  }, [activations, search, sortAsc]);
 
   const handleAddOrUpdate = async () => {
     if (!formData.activationId || !formData.activationName) {
@@ -39,9 +96,9 @@ export default function ActivationScreen() {
     }
     try {
       if (selectedActivation) {
-        await updateDoc(doc(db, 'activations', selectedActivation.id), formData);
+        await updateDoc(doc(db, 'activations', selectedActivation.id), { ...formData, updatedAt: serverTimestamp() });
       } else {
-        await addDoc(collection(db, 'activations'), formData);
+  await addDoc(collection(db, 'activations'), { ...formData, createdAt: serverTimestamp(), createdBy: currentUserId || null });
       }
       setIsModalVisible(false);
       setFormData({ activationId: '', activationName: '', activationDetail: '' });
@@ -71,37 +128,65 @@ export default function ActivationScreen() {
     }
   };
 
-  if (loading) return <ActivityIndicator />;
+  if (loading) return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  const isSuperadmin = userRole === 'superadmin';
+  const canEdit = isAdmin || userRole === 'area manager';
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Activations</Text>
-      <Button title="Add Activation" onPress={() => { setFormData({ activationId: '', activationName: '', activationDetail: '' }); setSelectedActivation(null); setIsModalVisible(true); }} />
+      <FilterHeader
+        title="Activations"
+        search={search}
+        status={''}
+        statusOptions={[]}
+        storageKey="filters:activations"
+        sortAsc={sortAsc}
+        onToggleSort={() => setSortAsc(s => !s)}
+        onApply={({ search: s }) => setSearch(s)}
+        onClear={() => setSearch('')}
+      />
+      {isAdmin && (
+        <PrimaryButton title="Add Activation" onPress={() => { setFormData({ activationId: '', activationName: '', activationDetail: '' }); setSelectedActivation(null); setIsModalVisible(true); }} style={{ marginBottom: spacing(3) }} />
+      )}
       <FlatList
-        data={activations}
+        data={filtered}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <View style={styles.itemContainer}>
-            <Text style={styles.itemTitle}>{item.activationName}</Text>
-            <Text>ID: {item.activationId}</Text>
-            <Text>Detail: {item.activationDetail}</Text>
-            <View style={styles.buttonContainer}>
-              <Button title="Edit" onPress={() => handleEdit(item)} />
-              <Button title="Delete" onPress={() => handleDelete(item.id)} />
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{item.activationName}</Text>
+            </View>
+            <Text style={styles.meta}>ID: <Text style={styles.metaStrong}>{item.activationId}</Text></Text>
+            {!!item.activationDetail && <Text style={styles.meta}>Detail: <Text style={styles.metaStrong}>{item.activationDetail}</Text></Text>}
+            {!!item.createdByName && <Text style={styles.meta}>Creator: <Text style={styles.metaStrong}>{item.createdByName}</Text></Text>}
+            <View style={styles.actionsRow}>
+              {canEdit && <SecondaryButton title="Edit" onPress={() => handleEdit(item)} style={styles.flexBtn} />}
+              {isSuperadmin && <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
             </View>
           </View>
         )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchActivations();
+              setRefreshing(false);
+            }}
+          />
+        }
       />
       <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>{selectedActivation ? 'Edit' : 'Add'} Activation</Text>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>{selectedActivation ? 'Edit' : 'Add'} Activation</Text>
             <TextInput style={styles.input} value={formData.activationId} onChangeText={text => setFormData({ ...formData, activationId: text })} placeholder="Activation ID" />
             <TextInput style={styles.input} value={formData.activationName} onChangeText={text => setFormData({ ...formData, activationName: text })} placeholder="Activation Name" />
             <TextInput style={styles.input} value={formData.activationDetail} onChangeText={text => setFormData({ ...formData, activationDetail: text })} placeholder="Activation Detail" />
-            <View style={styles.buttonContainer}>
-              <Button title={selectedActivation ? 'Update' : 'Add'} onPress={handleAddOrUpdate} />
-              <Button title="Cancel" onPress={() => setIsModalVisible(false)} />
+            <View style={styles.modalActions}>
+              <PrimaryButton title={selectedActivation ? 'Update' : 'Add'} onPress={handleAddOrUpdate} style={styles.flexBtn} />
+              <SecondaryButton title="Cancel" onPress={() => setIsModalVisible(false)} style={styles.flexBtn} />
             </View>
           </View>
         </View>
@@ -111,12 +196,18 @@ export default function ActivationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  itemContainer: { marginBottom: 10, padding: 10, borderColor: 'gray', borderWidth: 1 },
-  itemTitle: { fontSize: 16, fontWeight: 'bold' },
+  container: { flex: 1, backgroundColor: palette.bg, padding: spacing(4) },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(4), marginBottom: spacing(3), borderWidth: 1, borderColor: palette.border, ...shadow.card },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(2) },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: palette.text, flexShrink: 1 },
+  meta: { fontSize: 13, color: palette.textMuted, marginBottom: spacing(1.2) },
+  metaStrong: { color: palette.text },
+  actionsRow: { flexDirection: 'row', gap: spacing(3), marginTop: spacing(3) },
+  flexBtn: { flex: 1 },
+  deleteBtn: { backgroundColor: '#fee2e2', borderColor: '#fecaca' },
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10 },
-  input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, padding: 8 },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 }
+  modalSheet: { width: '90%', backgroundColor: palette.surface, padding: spacing(5), borderRadius: radius.xl },
+  modalTitle: { ...typography.h2, textAlign: 'center', marginBottom: spacing(5), color: palette.text },
+  modalActions: { flexDirection: 'row', gap: spacing(3), marginTop: spacing(2) },
+  input: { borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surfaceAlt, paddingHorizontal: spacing(3), paddingVertical: spacing(3), marginBottom: spacing(3), fontSize: 14 },
 });
