@@ -33,7 +33,8 @@ LogBox.ignoreLogs([
 // Sentry init (optional, dynamic)
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  Sentry = require('sentry-expo');
+  const m = 'sentry-expo';
+  Sentry = require(m);
   const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN || (global as any)?.__SENTRY_DSN__;
   if (dsn && Sentry?.init) {
     Sentry.init({ dsn, enableInExpoDevelopment: true, debug: __DEV__, tracesSampleRate: 0.1 });

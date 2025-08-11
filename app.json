@@ -34,16 +34,23 @@
     ],
     "updates": {
       "enabled": true,
-      "checkAutomatically": "ON_LOAD",
+      "checkAutomatically": "ON_ERROR_RECOVERY",
       "fallbackToCacheTimeout": 0,
       "requestHeaders": {},
-      "url": "https://u.expo.dev/00000000-0000-0000-0000-000000000000"
+      "url": "https://u.expo.dev/e492caed-2ee7-45b9-8ffe-9908947980f4"
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e492caed-2ee7-45b9-8ffe-9908947980f4"
+      }
+    },
+    "owner": "denker"
   }
 }
