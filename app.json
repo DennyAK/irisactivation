@@ -14,14 +14,16 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.denker.irisactivation"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+  "edgeToEdgeEnabled": true,
+  "package": "com.denker.irisactivation"
     },
     "web": {
       "bundler": "metro",
@@ -51,6 +53,6 @@
         "projectId": "e492caed-2ee7-45b9-8ffe-9908947980f4"
       }
     },
-    "owner": "denker"
+  "owner": "denker"
   }
 }
