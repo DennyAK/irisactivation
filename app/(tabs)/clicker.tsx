@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, Vibration, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, Vibration, Switch, Animated } from 'react-native';
 import { palette, spacing, radius, shadow, typography, hitSlop } from '../../constants/Design';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -54,6 +54,11 @@ export default function ClickerScreen() {
   const renameInputRef = useRef<TextInput | null>(null);
   const [didSelectAll, setDidSelectAll] = useState(false);
   const [hapticsOn, setHapticsOn] = useState(true);
+  const scaleRefs = useRef<Record<string, Animated.Value>>({});
+  const incDelayRefs = useRef<Record<string, any>>({});
+  const incIntervalRefs = useRef<Record<string, any>>({});
+  const decDelayRefs = useRef<Record<string, any>>({});
+  const decIntervalRefs = useRef<Record<string, any>>({});
 
   // Hydrate from storage on mount and when user changes
   useEffect(() => {
@@ -95,6 +100,21 @@ export default function ClickerScreen() {
     try { Vibration.vibrate(ms); } catch {}
   }, [hapticsOn]);
 
+  const getScale = useCallback((id: string) => {
+    if (!scaleRefs.current[id]) {
+      scaleRefs.current[id] = new Animated.Value(1);
+    }
+    return scaleRefs.current[id];
+  }, []);
+
+  const bump = useCallback((id: string) => {
+    const v = getScale(id);
+    Animated.sequence([
+      Animated.timing(v, { toValue: 1.1, duration: 80, useNativeDriver: true }),
+      Animated.timing(v, { toValue: 1, duration: 80, useNativeDriver: true }),
+    ]).start();
+  }, [getScale]);
+
   const addItem = useCallback(() => {
     const name = newName.trim();
     if (!name) return;
@@ -108,15 +128,43 @@ export default function ClickerScreen() {
     buzz(10);
   }, [newName, items, buzz]);
 
+  const changeCount = useCallback((id: string, delta: number, doBuzz: boolean) => {
+    setItems(prev => prev.map(i => i.id === id ? { ...i, count: Math.max(0, i.count + delta) } : i));
+    bump(id);
+    if (doBuzz) buzz(6);
+  }, [bump, buzz]);
+
   const increment = useCallback((id: string) => {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, count: i.count + 1 } : i));
-    buzz(6);
-  }, [buzz]);
+    changeCount(id, 1, true);
+  }, [changeCount]);
 
   const decrement = useCallback((id: string) => {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, count: Math.max(0, i.count - 1) } : i));
-    buzz(6);
-  }, [buzz]);
+    changeCount(id, -1, true);
+  }, [changeCount]);
+
+  // Press-and-hold handlers
+  const startAutoInc = useCallback((id: string) => {
+    // delay before starting fast repeat
+    incDelayRefs.current[id] = setTimeout(() => {
+      incIntervalRefs.current[id] = setInterval(() => changeCount(id, 1, false), 80);
+    }, 300);
+  }, [changeCount]);
+
+  const stopAutoInc = useCallback((id: string) => {
+    if (incDelayRefs.current[id]) { clearTimeout(incDelayRefs.current[id]); incDelayRefs.current[id] = null; }
+    if (incIntervalRefs.current[id]) { clearInterval(incIntervalRefs.current[id]); incIntervalRefs.current[id] = null; }
+  }, []);
+
+  const startAutoDec = useCallback((id: string) => {
+    decDelayRefs.current[id] = setTimeout(() => {
+      decIntervalRefs.current[id] = setInterval(() => changeCount(id, -1, false), 80);
+    }, 300);
+  }, [changeCount]);
+
+  const stopAutoDec = useCallback((id: string) => {
+    if (decDelayRefs.current[id]) { clearTimeout(decDelayRefs.current[id]); decDelayRefs.current[id] = null; }
+    if (decIntervalRefs.current[id]) { clearInterval(decIntervalRefs.current[id]); decIntervalRefs.current[id] = null; }
+  }, []);
 
   const resetAll = () => {
     Alert.alert('Reset counters', 'This will clear all variables and restore defaults. Continue?', [
@@ -166,6 +214,16 @@ export default function ClickerScreen() {
     })();
   }, [items, storageKey, hydrated]);
 
+  useEffect(() => {
+    return () => {
+      // cleanup timers
+      Object.keys(incDelayRefs.current).forEach((k) => incDelayRefs.current[k] && clearTimeout(incDelayRefs.current[k]));
+      Object.keys(decDelayRefs.current).forEach((k) => decDelayRefs.current[k] && clearTimeout(decDelayRefs.current[k]));
+      Object.keys(incIntervalRefs.current).forEach((k) => incIntervalRefs.current[k] && clearInterval(incIntervalRefs.current[k]));
+      Object.keys(decIntervalRefs.current).forEach((k) => decIntervalRefs.current[k] && clearInterval(decIntervalRefs.current[k]));
+    };
+  }, []);
+
   // Persist haptics setting
   useEffect(() => {
     (async () => {
@@ -199,11 +257,35 @@ export default function ClickerScreen() {
       >
         <Text style={styles.varName} numberOfLines={1}>{item.name}</Text>
         <View style={styles.counterRow}>
-          <TouchableOpacity onPress={() => decrement(item.id)} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Decrement">
+          <TouchableOpacity
+            onPress={() => decrement(item.id)}
+            onPressIn={() => startAutoDec(item.id)}
+            onPressOut={() => stopAutoDec(item.id)}
+            style={styles.iconBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Decrement"
+          >
             <Ionicons name="remove-circle" size={28} color={palette.danger || '#d9534f'} />
           </TouchableOpacity>
-          <Text style={styles.countCentered}>{item.count}</Text>
-          <TouchableOpacity onPress={() => increment(item.id)} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Increment">
+          <TouchableOpacity
+            activeOpacity={1}
+            onLongPress={() => {
+              Alert.alert('Reset counter', `Reset "${item.name}" to 0?`, [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Reset', style: 'destructive', onPress: () => changeCount(item.id, -item.count, true) },
+              ]);
+            }}
+          >
+            <Animated.Text style={[styles.countCentered, { transform: [{ scale: getScale(item.id) }] }]}>{item.count}</Animated.Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => increment(item.id)}
+            onPressIn={() => startAutoInc(item.id)}
+            onPressOut={() => stopAutoInc(item.id)}
+            style={styles.iconBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Increment"
+          >
             <Ionicons name="add-circle" size={28} color={palette.success} />
           </TouchableOpacity>
           <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Reorder">
