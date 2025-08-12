@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, Linking, Alert, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { palette, spacing, typography, radius } from '../../constants/Design';
@@ -10,6 +11,7 @@ import { useThemePreference } from '../../components/ThemePreference';
 import { useI18n } from '../../components/I18n';
 
 export default function AboutTabScreen() {
+  const insets = useSafeAreaInsets();
   const manifest = Constants.manifest2 as any;
   const appVersion = Constants.expoConfig?.version || manifest?.extra?.expoClient?.version || 'unknown';
   const buildNumber = Constants.expoConfig?.android?.versionCode || Constants.expoConfig?.ios?.buildNumber || 'unknown';
@@ -50,7 +52,12 @@ export default function AboutTabScreen() {
   }, []);
 
   return (
-    <View style={styles.screen}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingTop: spacing(10), paddingHorizontal: spacing(6), paddingBottom: insets.bottom + spacing(12) }}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
   <Text style={styles.title}>{t('about_title')} • OTA v1</Text>
       <View style={styles.card}>
         <Line label="App Version" value={String(appVersion)} />
@@ -80,7 +87,7 @@ export default function AboutTabScreen() {
           <SecondaryButton title={t('bahasa')} onPress={() => setLocale('id')} />
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -94,7 +101,7 @@ function Line({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: palette.bg, paddingTop: spacing(10), paddingHorizontal: spacing(6) },
+  screen: { flex: 1, backgroundColor: palette.bg },
   title: { ...typography.h1, color: palette.text, marginBottom: spacing(6) },
   card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(6) },
   line: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing(2) },
