@@ -30,12 +30,14 @@ function TabBarIcon(props: {
 }) {
   return <FontAwesome size={24} style={{ marginBottom: -3 }} {...props} />;
 }
+import { useI18n } from '@/components/I18n';
+import { useEffectiveScheme } from '@/components/ThemePreference';
 
 function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBarProps & { userRole?: string | null }) {
-  const colorScheme = useColorScheme();
+  const effective = useEffectiveScheme();
   const { bottom } = useSafeAreaInsets();
-  const activeColor = Colors[colorScheme ?? 'light'].tint;
-  const inactiveColor = Colors[colorScheme ?? 'light'].tabIconDefault;
+  const activeColor = Colors[effective].tint;
+  const inactiveColor = Colors[effective].tabIconDefault;
 
   // Show a limited set of tabs for guests; full set for authenticated
   let filteredRoutes = state.routes;
@@ -50,7 +52,7 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
   }
 
   return (
-    <View style={{ backgroundColor: 'white', borderTopColor: '#ccc', borderTopWidth: 1, height: 56 + bottom, paddingBottom: bottom }}>
+    <View style={{ backgroundColor: Colors[effective].background, borderTopColor: Colors[effective].tabIconDefault, borderTopWidth: 1, height: 56 + bottom, paddingBottom: bottom }}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -124,9 +126,11 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
+  const effective = useEffectiveScheme();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
@@ -140,7 +144,6 @@ export default function TabLayout() {
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -168,13 +171,15 @@ export default function TabLayout() {
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} userRole={userRole} />}
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          tabBarActiveTintColor: Colors[effective].tint,
+          headerStyle: { backgroundColor: Colors[effective].background },
+          headerTintColor: Colors[effective].text,
         }}
       >
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Profile',
+            title: t('profile'),
             tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />, 
             headerRight: () => (
               <Link href="/modal" asChild>
@@ -183,7 +188,7 @@ export default function TabLayout() {
                     <FontAwesome
                       name="ellipsis-h"
                       size={25}
-                      color={Colors[colorScheme ?? 'light'].text}
+                      color={Colors[effective].text}
                       style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                     />
                   )}
@@ -195,7 +200,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="clicker"
           options={{
-            title: 'Clicker',
+            title: t('clicker'),
             tabBarIcon: ({ color }) => <TabBarIcon name="plus" color={color} />, 
             headerRight: () => (
               <Link href="/modal" asChild>
@@ -204,7 +209,7 @@ export default function TabLayout() {
                     <FontAwesome
                       name="ellipsis-h"
                       size={25}
-                      color={Colors[colorScheme ?? 'light'].text}
+                      color={Colors[effective].text}
                       style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                     />
                   )}
@@ -216,7 +221,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="about"
             options={{
-              title: 'About',
+              title: t('about'),
               tabBarIcon: ({ color }) => <TabBarIcon name="info-circle" color={color} />, 
               headerRight: () => (
                 <Link href="/modal" asChild>
@@ -225,7 +230,7 @@ export default function TabLayout() {
                       <FontAwesome
                         name="ellipsis-h"
                         size={25}
-                        color={Colors[colorScheme ?? 'light'].text}
+                        color={Colors[effective].text}
                         style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                       />
                     )}
@@ -242,13 +247,15 @@ export default function TabLayout() {
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} userRole={userRole} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+  tabBarActiveTintColor: Colors[effective].tint,
+  headerStyle: { backgroundColor: Colors[effective].background },
+  headerTintColor: Colors[effective].text,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Profile',
+          title: t('profile'),
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />, 
           headerRight: () => (
             <Link href="/modal" asChild>
@@ -257,7 +264,7 @@ export default function TabLayout() {
                   <FontAwesome
                     name="ellipsis-h"
                     size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
+                    color={Colors[effective].text}
                     style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                   />
                 )}
@@ -268,7 +275,7 @@ export default function TabLayout() {
       />
       {/* Clicker: visible to all logged-in users, placed beside Profile */}
   <Tabs.Screen name="clicker" options={{
-        title: 'Clicker',
+        title: t('clicker'),
         tabBarIcon: ({ color }) => <TabBarIcon name="plus" color={color} />, 
         headerRight: () => (
           <Link href="/modal" asChild>
@@ -277,7 +284,7 @@ export default function TabLayout() {
                 <FontAwesome
                   name="ellipsis-h"
                   size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
+                  color={Colors[effective].text}
                   style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                 />
               )}
@@ -286,7 +293,7 @@ export default function TabLayout() {
         ),
       }} />
       <Tabs.Screen name="about" options={{
-        title: 'About',
+        title: t('about'),
         tabBarIcon: ({ color }) => <TabBarIcon name="info-circle" color={color} />, 
         headerRight: () => (
           <Link href="/modal" asChild>
@@ -295,7 +302,7 @@ export default function TabLayout() {
                 <FontAwesome
                   name="ellipsis-h"
                   size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
+                  color={Colors[effective].text}
                   style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                 />
               )}
@@ -306,7 +313,7 @@ export default function TabLayout() {
       {/* All other tabs for non-guests */}
       
   <Tabs.Screen name="user-manager" options={{
-        title: 'Users Manager',
+        title: t('users_manager'),
         tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />, 
         headerRight: () => (
           <Link href="/modal" asChild>
@@ -315,7 +322,7 @@ export default function TabLayout() {
                 <FontAwesome
                   name="ellipsis-h"
                   size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
+                  color={Colors[effective].text}
                   style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                 />
               )}
@@ -325,7 +332,7 @@ export default function TabLayout() {
         href: '/user-manager',
   }} />
       <Tabs.Screen name="projects-detail" options={{
-        title: 'Projects',
+        title: t('projects'),
         tabBarIcon: ({ color }) => <TabBarIcon name="briefcase" color={color} />, 
         headerRight: () => (
           <Link href="/modal" asChild>
@@ -334,7 +341,7 @@ export default function TabLayout() {
                 <FontAwesome
                   name="ellipsis-h"
                   size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
+                  color={Colors[effective].text}
                   style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                 />
               )}
@@ -345,7 +352,7 @@ export default function TabLayout() {
       }} />
       
       <Tabs.Screen name="outlets-detail" options={{
-        title: 'Outlets',
+        title: t('outlets'),
         tabBarIcon: ({ color }) => <TabBarIcon name="building" color={color} />, 
         headerRight: () => (
           <Link href="/modal" asChild>
@@ -354,7 +361,7 @@ export default function TabLayout() {
                 <FontAwesome
                   name="ellipsis-h"
                   size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
+                  color={Colors[effective].text}
                   style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                 />
               )}
@@ -364,7 +371,7 @@ export default function TabLayout() {
         href: '/outlets-detail',
       }} />
       <Tabs.Screen name="tasks" options={{
-        title: 'Tasks',
+        title: t('tasks'),
         tabBarIcon: ({ color }) => <TabBarIcon name="tasks" color={color} />, 
         headerRight: () => (
           <Link href="/modal" asChild>
@@ -373,7 +380,7 @@ export default function TabLayout() {
                 <FontAwesome
                   name="ellipsis-h"
                   size={25}
-                  color={Colors[colorScheme ?? 'light'].text}
+                  color={Colors[effective].text}
                   style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                 />
               )}

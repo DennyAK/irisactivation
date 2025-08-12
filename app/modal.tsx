@@ -8,9 +8,13 @@ import { useRouter } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { palette, radius, shadow, spacing } from '@/constants/Design';
+import { useI18n } from '@/components/I18n';
+import { useEffectiveScheme } from '@/components/ThemePreference';
 
 export default function ModalScreen() {
   const router = useRouter();
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
 
   const [role, setRole] = useState<string | null>(null);
 
@@ -71,12 +75,12 @@ export default function ModalScreen() {
   }, [role]);
 
   return (
-    <View style={styles.menuContainer}>
-      <Text style={styles.title}>Menu</Text>
+    <View style={[styles.menuContainer, { backgroundColor: scheme === 'dark' ? '#000' : '#fff' }]}>
+      <Text style={[styles.title, { color: scheme === 'dark' ? '#fff' : '#000' }]}>{t('menu')}</Text>
       <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingBottom: 40 }}>
         <TouchableOpacity style={[styles.logoutCard, { alignSelf: 'stretch', justifyContent: 'center' }]} onPress={handleLogout}>
           <Ionicons name="log-out" size={20} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>{t('logout')}</Text>
         </TouchableOpacity>
         <View style={{ height: spacing(2) }} />
         <View style={styles.grid}>

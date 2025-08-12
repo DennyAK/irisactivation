@@ -54,3 +54,9 @@ export function useThemePreference() {
   if (!ctx) throw new Error('useThemePreference must be used within ThemePreferenceProvider');
   return ctx;
 }
+
+// Convenience hook to get the effective scheme that respects the user preference
+export function useEffectiveScheme(): 'light' | 'dark' {
+  const { systemScheme, preference } = useThemePreference();
+  return preference === 'system' ? systemScheme : preference;
+}

@@ -20,6 +20,16 @@ const resources: Record<Locale, Dict> = {
   dark: 'Dark',
   english: 'English',
   bahasa: 'Bahasa',
+  // global labels
+  profile: 'Profile',
+  clicker: 'Clicker',
+  about: 'About',
+  users_manager: 'Users Manager',
+  projects: 'Projects',
+  outlets: 'Outlets',
+  tasks: 'Tasks',
+  menu: 'Menu',
+  logout: 'Logout',
   },
   id: {
   about_title: 'Tentang Aplikasi Ini',
@@ -36,6 +46,16 @@ const resources: Record<Locale, Dict> = {
   dark: 'Gelap',
   english: 'Inggris',
   bahasa: 'Bahasa',
+  // global labels
+  profile: 'Profil',
+  clicker: 'Clicker',
+  about: 'Tentang',
+  users_manager: 'Manajer Pengguna',
+  projects: 'Proyek',
+  outlets: 'Outlet',
+  tasks: 'Tugas',
+  menu: 'Menu',
+  logout: 'Keluar',
   },
 };
 
