@@ -38,6 +38,7 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
   const { bottom } = useSafeAreaInsets();
   const activeColor = Colors[effective].tint;
   const inactiveColor = Colors[effective].tabIconDefault;
+  const isDark = effective === 'dark';
 
   // Show a limited set of tabs for guests; full set for authenticated
   let filteredRoutes = state.routes;
@@ -52,7 +53,7 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
   }
 
   return (
-    <View style={{ backgroundColor: Colors[effective].background, borderTopColor: Colors[effective].tabIconDefault, borderTopWidth: 1, height: 56 + bottom, paddingBottom: bottom }}>
+    <View style={{ backgroundColor: isDark ? '#0b1220' : Colors.light.background, borderTopColor: isDark ? '#1f2937' : '#ccc', borderTopWidth: 1, height: 56 + bottom, paddingBottom: bottom }}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -128,6 +129,7 @@ export default function TabLayout() {
   const [loading, setLoading] = useState(true);
   const { t } = useI18n();
   const effective = useEffectiveScheme();
+  const isDark = effective === 'dark';
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -172,8 +174,8 @@ export default function TabLayout() {
         tabBar={(props) => <CustomTabBar {...props} userRole={userRole} />}
         screenOptions={{
           tabBarActiveTintColor: Colors[effective].tint,
-          headerStyle: { backgroundColor: Colors[effective].background },
-          headerTintColor: Colors[effective].text,
+          headerStyle: { backgroundColor: isDark ? '#0b1220' : Colors.light.background },
+          headerTintColor: isDark ? '#e5e7eb' : '#000',
         }}
       >
         <Tabs.Screen
@@ -248,8 +250,8 @@ export default function TabLayout() {
       tabBar={(props) => <CustomTabBar {...props} userRole={userRole} />}
       screenOptions={{
   tabBarActiveTintColor: Colors[effective].tint,
-  headerStyle: { backgroundColor: Colors[effective].background },
-  headerTintColor: Colors[effective].text,
+  headerStyle: { backgroundColor: isDark ? '#0b1220' : Colors.light.background },
+  headerTintColor: isDark ? '#e5e7eb' : '#000',
       }}
     >
       <Tabs.Screen

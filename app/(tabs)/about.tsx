@@ -96,10 +96,11 @@ export default function AboutTabScreen() {
 }
 
 function Line({ label, value }: { label: string; value: string }) {
+  const scheme = useEffectiveScheme();
   return (
     <View style={styles.line}>
-      <Text style={styles.lineLabel}>{label}</Text>
-      <Text style={styles.lineValue}>{value}</Text>
+      <Text style={[styles.lineLabel, { color: scheme === 'dark' ? '#94a3b8' : '#6b7280' }]}>{label}</Text>
+      <Text style={[styles.lineValue, { color: scheme === 'dark' ? '#e5e7eb' : palette.text }]}>{value}</Text>
     </View>
   );
 }
