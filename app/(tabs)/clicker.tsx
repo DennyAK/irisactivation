@@ -246,22 +246,47 @@ export default function ClickerScreen() {
       try { await AsyncStorage.setItem('clicker:settings:step', String(stepSize)); } catch {}
     })();
   }, [stepSize]);
-  const renderAction = (item: ClickVar, side: 'left' | 'right') => (
-    <TouchableOpacity
-      style={[styles.swipeAction, side === 'left' ? styles.actionLeft : styles.actionRight]}
-      onPress={() => {
-        if (side === 'left') {
-          openRename(item);
-        } else {
-          confirmDelete(item.id, item.name);
-        }
-        swipeRefs.current[item.id]?.close?.();
-      }}
-      activeOpacity={0.8}
-    >
-      <Text style={styles.actionText}>{side === 'left' ? 'Rename' : 'Remove'}</Text>
-    </TouchableOpacity>
-  );
+  const renderAction = (item: ClickVar, side: 'left' | 'right') => {
+    if (side === 'left') {
+      // Left swipe: Rename (neutral)
+      return (
+        <TouchableOpacity
+          style={[styles.swipeAction, styles.actionLeft]}
+          onPress={() => {
+            openRename(item);
+            swipeRefs.current[item.id]?.close?.();
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.actionText}>Rename</Text>
+        </TouchableOpacity>
+      );
+    }
+    // Right swipe: show two actions stacked: Decrement (-) and Remove (both red)
+    return (
+      <View style={[styles.actionStack, styles.actionRight]}>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.actionDanger]}
+          onPress={() => {
+            changeCount(item.id, -1, true);
+            swipeRefs.current[item.id]?.close?.();
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.actionTextLight}>-1</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.actionDanger]}
+          onPress={() => {
+            confirmDelete(item.id, item.name);
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.actionTextLight}>Remove</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const renderItem = ({ item, drag, isActive }: RenderItemParams<ClickVar>) => {
     const content = (
@@ -273,14 +298,14 @@ export default function ClickerScreen() {
         <Text style={styles.varName} numberOfLines={1}>{item.name}</Text>
         <View style={styles.counterRow}>
           <TouchableOpacity
-            onPress={() => decrement(item.id)}
-            onPressIn={() => startAutoDec(item.id)}
-            onPressOut={() => stopAutoDec(item.id)}
+            onPress={() => increment(item.id)}
+            onPressIn={() => startAutoInc(item.id)}
+            onPressOut={() => stopAutoInc(item.id)}
             style={styles.iconBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityLabel="Decrement"
+            accessibilityLabel="Increment"
           >
-            <Ionicons name="remove-circle" size={28} color={palette.danger || '#d9534f'} />
+            <Ionicons name="add-circle" size={28} color={palette.success} />
           </TouchableOpacity>
           <TouchableOpacity
             activeOpacity={1}
@@ -296,16 +321,6 @@ export default function ClickerScreen() {
             }}
           >
             <Animated.Text style={[styles.countCentered, { transform: [{ scale: getScale(item.id) }] }]}>{item.count}</Animated.Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => increment(item.id)}
-            onPressIn={() => startAutoInc(item.id)}
-            onPressOut={() => stopAutoInc(item.id)}
-            style={styles.iconBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityLabel="Increment"
-          >
-            <Ionicons name="add-circle" size={28} color={palette.success} />
           </TouchableOpacity>
           <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Reorder">
             <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
@@ -349,31 +364,23 @@ export default function ClickerScreen() {
 
   const footer = (
     <View style={{ paddingTop: spacing(2), paddingBottom: Math.max(insets.bottom, spacing(8)) }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
-        <Text style={{ color: palette.text, fontWeight: '600' }}>Haptics</Text>
-        <Switch
-          value={hapticsOn}
-          onValueChange={setHapticsOn}
-          thumbColor={Platform.OS === 'android' ? (hapticsOn ? palette.primary : '#eee') : undefined}
-          trackColor={{ false: '#999', true: palette.primary }}
-        />
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
-        <Text style={{ color: palette.text, fontWeight: '600' }}>Step</Text>
-        <View style={{ flexDirection: 'row', gap: spacing(1) as any }}>
-          <TouchableOpacity onPress={() => setStepSize(1)} style={[styles.stepChip, stepSize === 1 && styles.stepChipActive]}>
-            <Text style={[styles.stepChipText, stepSize === 1 && styles.stepChipTextActive]}>x1</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setStepSize(5)} style={[styles.stepChip, stepSize === 5 && styles.stepChipActive]}>
-            <Text style={[styles.stepChipText, stepSize === 5 && styles.stepChipTextActive]}>x5</Text>
-          </TouchableOpacity>
+      <View style={styles.settingsCard}>
+        <Text style={styles.settingsTitle}>Clicker Setting</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
+          <Text style={{ color: palette.text, fontWeight: '600' }}>Haptics</Text>
+          <Switch
+            value={hapticsOn}
+            onValueChange={setHapticsOn}
+            thumbColor={Platform.OS === 'android' ? (hapticsOn ? palette.primary : '#eee') : undefined}
+            trackColor={{ false: '#999', true: palette.primary }}
+          />
         </View>
+        <View style={{ flexDirection: 'row', gap: spacing(2) as any, marginBottom: spacing(2), justifyContent: 'space-between' }}>
+          <SecondaryButton title="Clear Counts" onPress={clearCounts} />
+          <SecondaryButton title="Copy Summary" onPress={copySummary} />
+        </View>
+        <PrimaryButton title="Reset" onPress={resetAll} />
       </View>
-      <View style={{ flexDirection: 'row', gap: spacing(2) as any, marginBottom: spacing(2) }}>
-        <SecondaryButton title="Clear Counts" onPress={clearCounts} />
-        <SecondaryButton title="Copy Summary" onPress={copySummary} />
-      </View>
-      <PrimaryButton title="Reset" onPress={resetAll} />
     </View>
   );
 
@@ -491,6 +498,10 @@ const styles = StyleSheet.create({
   actionLeft: { width: 100, marginRight: spacing(2) },
   actionRight: { width: 100, marginLeft: spacing(2), alignSelf: 'flex-end' },
   actionText: { color: palette.text, fontWeight: '700' },
+  actionTextLight: { color: '#fff', fontWeight: '800' },
+  actionStack: { width: 100, marginLeft: spacing(2), alignSelf: 'flex-end', justifyContent: 'center' },
+  actionBtn: { paddingVertical: spacing(3), borderRadius: radius.md, marginBottom: spacing(2), alignItems: 'center', borderWidth: 1 },
+  actionDanger: { backgroundColor: palette.danger, borderColor: palette.danger },
   dragActive: { opacity: 0.9, transform: [{ scale: 0.98 }] as any },
   renameTitle: { fontWeight: '800', marginBottom: spacing(2), color: palette.text },
   smallBtn: { paddingVertical: spacing(2.5), paddingHorizontal: spacing(4), borderRadius: radius.md },
@@ -498,4 +509,6 @@ const styles = StyleSheet.create({
   stepChipActive: { borderColor: palette.primary, backgroundColor: palette.primarySoft },
   stepChipText: { color: palette.text, fontWeight: '700' },
   stepChipTextActive: { color: palette.primary },
+  settingsCard: { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: radius.lg, padding: spacing(4), ...shadow.card },
+  settingsTitle: { ...typography.h2, color: palette.text, marginBottom: spacing(3) },
 });
