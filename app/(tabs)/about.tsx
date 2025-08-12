@@ -6,6 +6,8 @@ import { palette, spacing, typography, radius } from '../../constants/Design';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import { trackEvent, trackScreen } from '../../components/analytics';
+import { useThemePreference } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 
 export default function AboutTabScreen() {
   const manifest = Constants.manifest2 as any;
@@ -15,6 +17,8 @@ export default function AboutTabScreen() {
   const runtimeVersion = Updates.runtimeVersion || 'unknown';
   const updateId = Updates.updateId || 'none';
   const [checking, setChecking] = useState(false);
+  const { preference, setPreference } = useThemePreference();
+  const { t, locale, setLocale } = useI18n();
 
   useEffect(() => {
     trackScreen('About', { version: appVersion, channel });
@@ -47,20 +51,34 @@ export default function AboutTabScreen() {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.title}>About This App • OTA v1</Text>
+  <Text style={styles.title}>{t('about_title')} • OTA v1</Text>
       <View style={styles.card}>
         <Line label="App Version" value={String(appVersion)} />
         <Line label="Build" value={String(buildNumber)} />
         <Line label="Channel" value={String(channel)} />
         <Line label="Runtime" value={String(runtimeVersion)} />
         <Line label="Update ID" value={String(updateId)} />
+  <Line label="Theme" value={preference === 'system' ? 'System' : preference} />
       </View>
       <View style={styles.actions}>
-        <PrimaryButton title={checking ? 'Checking…' : 'Check for Update'} onPress={checkForUpdate} />
-        <SecondaryButton title="Privacy Policy" onPress={() => open('https://example.com/privacy')} />
-        <SecondaryButton title="Terms of Service" onPress={() => open('https://example.com/terms')} />
-        <SecondaryButton title="Support" onPress={() => open('mailto:support@example.com')} />
-        <SecondaryButton title="Rate App" onPress={() => open('market://details?id=com.example.app')} />
+        <PrimaryButton title={checking ? t('checking') : t('check_update')} onPress={checkForUpdate} />
+        <SecondaryButton title={t('privacy_policy')} onPress={() => open('https://example.com/privacy')} />
+        <SecondaryButton title={t('terms')} onPress={() => open('https://example.com/terms')} />
+        <SecondaryButton title={t('support')} onPress={() => open('mailto:support@example.com')} />
+        <SecondaryButton title={t('rate_app')} onPress={() => open('market://details?id=com.example.app')} />
+        <View style={{ height: spacing(2) }} />
+        <Text style={{ color: palette.text, fontWeight: '700' }}>{t('appearance')}</Text>
+        <View style={{ flexDirection: 'row', gap: spacing(2) }}>
+          <SecondaryButton title={t('system')} onPress={() => setPreference('system')} />
+          <SecondaryButton title={t('light')} onPress={() => setPreference('light')} />
+          <SecondaryButton title={t('dark')} onPress={() => setPreference('dark')} />
+        </View>
+        <View style={{ height: spacing(2) }} />
+        <Text style={{ color: palette.text, fontWeight: '700' }}>{t('language')}</Text>
+        <View style={{ flexDirection: 'row', gap: spacing(2) }}>
+          <SecondaryButton title={t('english')} onPress={() => setLocale('en')} />
+          <SecondaryButton title={t('bahasa')} onPress={() => setLocale('id')} />
+        </View>
       </View>
     </View>
   );

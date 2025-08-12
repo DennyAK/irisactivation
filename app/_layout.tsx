@@ -11,6 +11,8 @@ import 'react-native-reanimated';
 // Sentry: dynamically require to avoid bundler resolution issues in dev
 let Sentry: any;
 import { useColorScheme } from '@/components/useColorScheme';
+import { ThemePreferenceProvider, useThemePreference } from '@/components/ThemePreference';
+import { I18nProvider } from '@/components/I18n';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -63,14 +65,22 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <I18nProvider>
+      <ThemePreferenceProvider>
+        <RootLayoutNav />
+      </ThemePreferenceProvider>
+    </I18nProvider>
+  );
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const systemScheme = useColorScheme();
+  const { preference } = useThemePreference();
+  const effectiveScheme = preference === 'system' ? systemScheme : preference;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={effectiveScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="signup" options={{ headerShown: false }} />
