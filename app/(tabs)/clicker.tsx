@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, Vibration, Switch, Animated } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { palette, spacing, radius, shadow, typography, hitSlop } from '../../constants/Design';
 import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -54,6 +56,7 @@ export default function ClickerScreen() {
   const renameInputRef = useRef<TextInput | null>(null);
   const [didSelectAll, setDidSelectAll] = useState(false);
   const [hapticsOn, setHapticsOn] = useState(true);
+  const [stepSize, setStepSize] = useState<1 | 5>(1);
   const scaleRefs = useRef<Record<string, Animated.Value>>({});
   const incDelayRefs = useRef<Record<string, any>>({});
   const incIntervalRefs = useRef<Record<string, any>>({});
@@ -85,8 +88,13 @@ export default function ClickerScreen() {
           const parsed = JSON.parse(raw) as ClickVar[];
           if (Array.isArray(parsed)) setItems(parsed);
         }
-  const hRaw = await AsyncStorage.getItem('clicker:settings:haptics');
-  if (!cancelled && hRaw != null) setHapticsOn(hRaw === '1');
+        const hRaw = await AsyncStorage.getItem('clicker:settings:haptics');
+        if (!cancelled && hRaw != null) setHapticsOn(hRaw === '1');
+        const sRaw = await AsyncStorage.getItem('clicker:settings:step');
+        if (!cancelled && sRaw != null) {
+          const val = parseInt(sRaw, 10);
+          setStepSize(val === 5 ? 5 : 1);
+        }
       } catch {}
       if (!cancelled) setHydrated(true);
     })();
@@ -129,10 +137,11 @@ export default function ClickerScreen() {
   }, [newName, items, buzz]);
 
   const changeCount = useCallback((id: string, delta: number, doBuzz: boolean) => {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, count: Math.max(0, i.count + delta) } : i));
+    const applied = delta * stepSize;
+    setItems(prev => prev.map(i => i.id === id ? { ...i, count: Math.max(0, i.count + applied) } : i));
     bump(id);
     if (doBuzz) buzz(6);
-  }, [bump, buzz]);
+  }, [bump, buzz, stepSize]);
 
   const increment = useCallback((id: string) => {
     changeCount(id, 1, true);
@@ -231,6 +240,12 @@ export default function ClickerScreen() {
     })();
   }, [hapticsOn]);
 
+  // Persist step size setting
+  useEffect(() => {
+    (async () => {
+      try { await AsyncStorage.setItem('clicker:settings:step', String(stepSize)); } catch {}
+    })();
+  }, [stepSize]);
   const renderAction = (item: ClickVar, side: 'left' | 'right') => (
     <TouchableOpacity
       style={[styles.swipeAction, side === 'left' ? styles.actionLeft : styles.actionRight]}
@@ -272,7 +287,11 @@ export default function ClickerScreen() {
             onLongPress={() => {
               Alert.alert('Reset counter', `Reset "${item.name}" to 0?`, [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Reset', style: 'destructive', onPress: () => changeCount(item.id, -item.count, true) },
+                { text: 'Reset', style: 'destructive', onPress: () => {
+                  setItems(prev => prev.map(i => i.id === item.id ? { ...i, count: 0 } : i));
+                  bump(item.id);
+                  buzz(10);
+                } },
               ]);
             }}
           >
@@ -310,6 +329,24 @@ export default function ClickerScreen() {
     );
   };
 
+  const clearCounts = () => {
+    Alert.alert('Clear counts', 'Set all counts to zero? Your variables will be kept.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Clear', style: 'destructive', onPress: () => setItems(prev => prev.map(i => ({ ...i, count: 0 }))) },
+    ]);
+  };
+
+  const copySummary = async () => {
+    try {
+      const lines = items.map(i => `${i.name}: ${i.count}`);
+      const text = lines.join('\n');
+      await Clipboard.setStringAsync(text);
+      Alert.alert('Copied', 'Current counters copied to clipboard.');
+    } catch (e) {
+      Alert.alert('Copy failed', 'Unable to copy to clipboard.');
+    }
+  };
+
   const footer = (
     <View style={{ paddingTop: spacing(2), paddingBottom: Math.max(insets.bottom, spacing(8)) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
@@ -320,6 +357,21 @@ export default function ClickerScreen() {
           thumbColor={Platform.OS === 'android' ? (hapticsOn ? palette.primary : '#eee') : undefined}
           trackColor={{ false: '#999', true: palette.primary }}
         />
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
+        <Text style={{ color: palette.text, fontWeight: '600' }}>Step</Text>
+        <View style={{ flexDirection: 'row', gap: spacing(1) as any }}>
+          <TouchableOpacity onPress={() => setStepSize(1)} style={[styles.stepChip, stepSize === 1 && styles.stepChipActive]}>
+            <Text style={[styles.stepChipText, stepSize === 1 && styles.stepChipTextActive]}>x1</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setStepSize(5)} style={[styles.stepChip, stepSize === 5 && styles.stepChipActive]}>
+            <Text style={[styles.stepChipText, stepSize === 5 && styles.stepChipTextActive]}>x5</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', gap: spacing(2) as any, marginBottom: spacing(2) }}>
+        <SecondaryButton title="Clear Counts" onPress={clearCounts} />
+        <SecondaryButton title="Copy Summary" onPress={copySummary} />
       </View>
       <PrimaryButton title="Reset" onPress={resetAll} />
     </View>
@@ -442,4 +494,8 @@ const styles = StyleSheet.create({
   dragActive: { opacity: 0.9, transform: [{ scale: 0.98 }] as any },
   renameTitle: { fontWeight: '800', marginBottom: spacing(2), color: palette.text },
   smallBtn: { paddingVertical: spacing(2.5), paddingHorizontal: spacing(4), borderRadius: radius.md },
+  stepChip: { paddingVertical: spacing(1.5), paddingHorizontal: spacing(3), borderRadius: radius.md, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface },
+  stepChipActive: { borderColor: palette.primary, backgroundColor: palette.primarySoft },
+  stepChipText: { color: palette.text, fontWeight: '700' },
+  stepChipTextActive: { color: palette.primary },
 });
