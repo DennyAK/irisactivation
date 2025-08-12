@@ -46,13 +46,12 @@
     "expo-system-ui": "~5.0.10",
     "expo-updates": "~0.28.17",
     "expo-web-browser": "~14.2.0",
-  "firebase": "^12.1.0",
+    "firebase": "^12.1.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gifted-charts": "^1.4.63",
-    
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
@@ -60,10 +59,11 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.20.0",
     "sentry-expo": "~7.0.0",
-  "expo-dev-client": "~5.2.4"
+    "expo-dev-client": "~5.2.4",
+    "react-native-gesture-handler": "~2.24.0"
   },
   "devDependencies": {
-  "firebase-admin": "^13.4.0",
+    "firebase-admin": "^13.4.0",
     "@babel/core": "^7.25.2",
     "@firebase/rules-unit-testing": "^5.0.0",
     "@types/jest": "^30.0.0",
