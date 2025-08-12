@@ -293,7 +293,7 @@ export default function OutletsScreen() {
         {isAdmin && (
           <SecondaryButton
             title="View Audit"
-            onPress={() => router.push({ pathname: '/(tabs)/audit-logs', params: { collection: 'outlets', docId: item.id } })}
+            onPress={() => router.push({ pathname: '/audit-screens/audit-logs' as any, params: { collection: 'outlets', docId: item.id } })}
           />
         )}
         {canCreateOrEdit && (

@@ -211,7 +211,7 @@ export default function ProjectsScreen() {
                 {isAdmin && (
                   <SecondaryButton
                     title="View Audit"
-                    onPress={() => router.push({ pathname: '/(tabs)/audit-logs', params: { collection: 'projects', docId: item.id } })}
+                    onPress={() => router.push({ pathname: '/audit-screens/audit-logs' as any, params: { collection: 'projects', docId: item.id } })}
                     style={styles.flexBtn}
                   />
                 )}

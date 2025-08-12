@@ -6,7 +6,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
-import { isAdminRole } from '../../constants/roles';
+// import { isAdminRole } from '../../constants/roles';
 import { MenuGrid } from '../../components/ui/MenuCard';
 import { palette, spacing, typography } from '../../constants/Design';
 
@@ -26,7 +26,7 @@ export default function OutletDetailMenu() {
     label: string;
     icon: string;
     subtitle: string;
-    href: '/outlets-screens/outlets' | '/outlets-screens/province-list' | '/outlets-screens/city-list' | '/(tabs)/audit-logs?collection=outlets';
+    href: '/outlets-screens/outlets' | '/outlets-screens/province-list' | '/outlets-screens/city-list';
   }[] = [
     {
       label: 'Outlet Detail',
@@ -45,13 +45,7 @@ export default function OutletDetailMenu() {
       icon: 'map-outline',
       subtitle: 'View and manage city list',
       href: '/outlets-screens/city-list',
-    },
-    ...(isAdminRole(role as any) ? [{
-      label: 'Audit Logs (Outlets)',
-      icon: 'time-outline',
-      subtitle: 'Recent changes in outlets',
-      href: '/(tabs)/audit-logs?collection=outlets' as const,
-    }] : []),
+  },
   ];
 
   return (

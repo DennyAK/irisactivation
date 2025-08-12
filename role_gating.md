@@ -16,7 +16,7 @@ Roles
 - guest: Profile, Clicker, About
 - authenticated (non-guest): Profile, Clicker, About, Tasks, Outlets, Projects
 - user-manager tab: visible (menu-only detailed entries are gated inside)
-- audit-logs tab: admin/superadmin only
+- audit-logs tab: removed; Audit Logs is now under /audit-screens/audit-logs (admin/superadmin only)
 
 - Menu (top-right)
 - Always: Profile, Clicker, About, Tasks, Attendance, Assessment, Quick Quiz, Sales Report, Sales Detail, Outlets, Provinces, Cities, Projects, Activation, Projects List

@@ -382,27 +382,7 @@ export default function TabLayout() {
         ),
         href: '/tasks',
       }} />      
-      {(userRole === 'admin' || userRole === 'superadmin') && (
-        <Tabs.Screen name="audit-logs" options={{
-          title: 'Audit Logs',
-          tabBarIcon: ({ color }) => <TabBarIcon name="history" color={color} />, 
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="ellipsis-h"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-          href: '/audit-logs',
-        }} />
-      )}
+  {/* Audit Logs tab removed; access via /audit-screens/audit-logs only */}
     </Tabs>
     
   );

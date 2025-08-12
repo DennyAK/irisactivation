@@ -137,7 +137,6 @@ export default function AuditLogsScreen() {
   
   // Backfill actor names/emails for older logs lacking this info
   useEffect(() => {
-    // compute current filtered list locally to avoid referencing a variable before declaration
     const list = rows.filter(r => {
       const byCol = !collectionFilter || r.collection === collectionFilter;
       const byDoc = !docIdFilter || r.docId === docIdFilter;
@@ -152,7 +151,7 @@ export default function AuditLogsScreen() {
       const hasInDoc = !!(r.actorName || r.actorEmail);
       const hasInMap = !!actorMap[id];
       if (!hasInDoc && !hasInMap) missingIds.add(id);
-      if (missingIds.size >= 25) break; // cap per pass
+      if (missingIds.size >= 25) break;
     }
     if (missingIds.size === 0) return;
     (async () => {

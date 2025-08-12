@@ -35,17 +35,7 @@ export default function ProjectDetailMenu() {
       subtitle: 'View and manage activation requests',
       href: '/projects-screens/activation' as const,
     },
-    ...(isAdminRole(role as any) ? [{
-      label: 'Audit Logs (Projects)',
-      icon: 'time-outline',
-      subtitle: 'Recent changes in projects & activations',
-      href: '/(tabs)/audit-logs?collection=projects' as const,
-    }, {
-      label: 'Audit Logs (Activations)',
-      icon: 'time-outline',
-      subtitle: 'Recent changes in activations',
-      href: '/(tabs)/audit-logs?collection=activations' as const,
-    }] : []),
+  // Audit links removed per request
     
   ];
 
