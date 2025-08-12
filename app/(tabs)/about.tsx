@@ -7,11 +7,12 @@ import { palette, spacing, typography, radius } from '../../constants/Design';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import { trackEvent, trackScreen } from '../../components/analytics';
-import { useThemePreference } from '../../components/ThemePreference';
+import { useThemePreference, useEffectiveScheme } from '../../components/ThemePreference';
 import { useI18n } from '../../components/I18n';
 
 export default function AboutTabScreen() {
   const insets = useSafeAreaInsets();
+  const scheme = useEffectiveScheme();
   const manifest = Constants.manifest2 as any;
   const appVersion = Constants.expoConfig?.version || manifest?.extra?.expoClient?.version || 'unknown';
   const buildNumber = Constants.expoConfig?.android?.versionCode || Constants.expoConfig?.ios?.buildNumber || 'unknown';
@@ -53,19 +54,19 @@ export default function AboutTabScreen() {
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: scheme === 'dark' ? '#0b1220' : palette.bg }]}
       contentContainerStyle={{ paddingTop: spacing(10), paddingHorizontal: spacing(6), paddingBottom: insets.bottom + spacing(12) }}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-  <Text style={styles.title}>{t('about_title')} • OTA v1</Text>
-      <View style={styles.card}>
+      <Text style={[styles.title, { color: scheme === 'dark' ? '#e5e7eb' : palette.text }]}>{t('about_title')} • OTA v1</Text>
+      <View style={[styles.card, { backgroundColor: scheme === 'dark' ? '#111827' : palette.surface, borderColor: scheme === 'dark' ? '#1f2937' : palette.border }]}>
         <Line label="App Version" value={String(appVersion)} />
         <Line label="Build" value={String(buildNumber)} />
         <Line label="Channel" value={String(channel)} />
         <Line label="Runtime" value={String(runtimeVersion)} />
         <Line label="Update ID" value={String(updateId)} />
-  <Line label="Theme" value={preference === 'system' ? 'System' : preference} />
+        <Line label="Theme" value={preference === 'system' ? 'System' : preference} />
       </View>
       <View style={styles.actions}>
         <PrimaryButton title={checking ? t('checking') : t('check_update')} onPress={checkForUpdate} />
@@ -73,18 +74,21 @@ export default function AboutTabScreen() {
         <SecondaryButton title={t('terms')} onPress={() => open('https://example.com/terms')} />
         <SecondaryButton title={t('support')} onPress={() => open('mailto:support@example.com')} />
         <SecondaryButton title={t('rate_app')} onPress={() => open('market://details?id=com.example.app')} />
-        <View style={{ height: spacing(2) }} />
-        <Text style={{ color: palette.text, fontWeight: '700' }}>{t('appearance')}</Text>
-        <View style={{ flexDirection: 'row', gap: spacing(2) }}>
-          <SecondaryButton title={t('system')} onPress={() => setPreference('system')} />
-          <SecondaryButton title={t('light')} onPress={() => setPreference('light')} />
-          <SecondaryButton title={t('dark')} onPress={() => setPreference('dark')} />
-        </View>
-        <View style={{ height: spacing(2) }} />
-        <Text style={{ color: palette.text, fontWeight: '700' }}>{t('language')}</Text>
-        <View style={{ flexDirection: 'row', gap: spacing(2) }}>
-          <SecondaryButton title={t('english')} onPress={() => setLocale('en')} />
-          <SecondaryButton title={t('bahasa')} onPress={() => setLocale('id')} />
+        <View style={{ height: spacing(3) }} />
+        <View style={[styles.card, { backgroundColor: scheme === 'dark' ? '#111827' : palette.surface, borderColor: scheme === 'dark' ? '#1f2937' : palette.border }]}>
+          <Text style={{ color: scheme === 'dark' ? '#e5e7eb' : palette.text, fontWeight: '700', marginBottom: spacing(3) }}>{t('app_settings')}</Text>
+          <Text style={{ color: scheme === 'dark' ? '#cbd5e1' : palette.text, fontWeight: '700' }}>{t('appearance')}</Text>
+          <View style={{ flexDirection: 'row', gap: spacing(2), marginTop: spacing(2) }}>
+            <SecondaryButton title={t('system')} onPress={() => setPreference('system')} selected={preference === 'system'} />
+            <SecondaryButton title={t('light')} onPress={() => setPreference('light')} selected={preference === 'light'} />
+            <SecondaryButton title={t('dark')} onPress={() => setPreference('dark')} selected={preference === 'dark'} />
+          </View>
+          <View style={{ height: spacing(3) }} />
+          <Text style={{ color: scheme === 'dark' ? '#cbd5e1' : palette.text, fontWeight: '700' }}>{t('language')}</Text>
+          <View style={{ flexDirection: 'row', gap: spacing(2), marginTop: spacing(2) }}>
+            <SecondaryButton title={t('english')} onPress={() => setLocale('en')} selected={locale === 'en'} />
+            <SecondaryButton title={t('bahasa')} onPress={() => setLocale('id')} selected={locale === 'id'} />
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -101,9 +105,9 @@ function Line({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: palette.bg },
-  title: { ...typography.h1, color: palette.text, marginBottom: spacing(6) },
-  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(6) },
+  screen: { flex: 1 },
+  title: { ...typography.h1, marginBottom: spacing(6) },
+  card: { borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(6), borderWidth: 1 },
   line: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing(2) },
   lineLabel: { color: palette.textMuted },
   lineValue: { color: palette.text, fontWeight: '600' },

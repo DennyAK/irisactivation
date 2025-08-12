@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import { palette, radius, spacing } from '../../constants/Design';
+import { useEffectiveScheme } from '../ThemePreference';
 
 interface Props {
   title: string;
@@ -8,17 +9,26 @@ interface Props {
   disabled?: boolean;
   style?: ViewStyle | ViewStyle[];
   compact?: boolean;
+  selected?: boolean;
 }
 
-export const SecondaryButton: React.FC<Props> = ({ title, onPress, disabled, style, compact }) => {
+export const SecondaryButton: React.FC<Props> = ({ title, onPress, disabled, style, compact, selected }) => {
+  const scheme = useEffectiveScheme();
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
       disabled={disabled}
-      style={[styles.base, compact && styles.compactBase, disabled && styles.disabled, style]}
+      style={[
+        styles.base,
+        compact && styles.compactBase,
+        { backgroundColor: scheme === 'dark' ? '#0b1220' : palette.surfaceAlt, borderColor: scheme === 'dark' ? '#1f2937' : palette.border },
+        selected && { backgroundColor: scheme === 'dark' ? '#0f172a' : '#e6f0ff', borderColor: '#3b82f6' },
+        disabled && styles.disabled,
+        style,
+      ]}
     >
-      <Text style={[styles.text, compact && styles.textCompact]}>{title}</Text>
+      <Text style={[styles.text, compact && styles.textCompact, { color: scheme === 'dark' ? '#e5e7eb' : palette.text }, selected && { color: '#1e3a8a' }]}>{title}</Text>
     </TouchableOpacity>
   );
 };
