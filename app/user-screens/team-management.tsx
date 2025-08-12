@@ -162,16 +162,11 @@ export default function TeamManagementScreen() {
             <View style={{ marginTop: spacing(3) }}>
               <SecondaryButton
                 title="History"
-                onPress={() =>
-                  router.push({
-                    pathname: '/user-screens/team-history',
-                    params: {
-                      userId: item.id,
-                      userName:
-                        `${item.firstName || ''} ${item.lastName || ''}`.trim() || item.email || 'User',
-                    },
-                  } as any)
-                }
+                onPress={() => {
+                  const name = (`${item.firstName || ''} ${item.lastName || ''}`.trim() || item.email || 'User');
+                  const url = `/user-screens/team-history?userId=${encodeURIComponent(item.id)}&userName=${encodeURIComponent(name)}`;
+                  router.push(url as any);
+                }}
               />
             </View>
           </View>

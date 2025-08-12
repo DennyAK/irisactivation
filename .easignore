@@ -1,0 +1,34 @@
+# EAS Build ignore rules
+# If this file exists, EAS will NOT fall back to .gitignore
+
+# Common caches and local-only folders
+.expo/
+.expo-shared/
+dist/
+web-build/
+.metro-health-check*
+
+# VCS
+.git/
+.gitignore
+.gitattributes
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Node modules (EAS reconstructs from package.json)
+node_modules/
+
+# Env files (set these in EAS secrets instead)
+.env*
+
+# Do NOT ignore firebaseConfig.ts so it’s included in builds
+# (Firebase web config is public; safe to ship)
+# firebaseConfig.ts is intentionally included

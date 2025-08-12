@@ -283,7 +283,13 @@ export default function OutletsScreen() {
       {!!item.outletSocialMedia && <Text style={styles.metaText}>Social: <Text style={styles.metaStrong}>{item.outletSocialMedia}</Text></Text>}
       <Text style={styles.coords}>Coords: {item.latitude}, {item.longitude}</Text>
       <View style={styles.actionsRow}>
-        <SecondaryButton title="History" onPress={() => router.push({ pathname: '/outlets-screens/outlet-history', params: { outletId: item.id, outletName: item.outletName } })} />
+        <SecondaryButton
+          title="History"
+          onPress={() => {
+            const url = `/outlets-screens/outlet-history?outletId=${encodeURIComponent(item.id)}&outletName=${encodeURIComponent(item.outletName || '')}`;
+            router.push(url as any);
+          }}
+        />
         {isAdmin && (
           <SecondaryButton
             title="View Audit"

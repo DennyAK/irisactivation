@@ -47,7 +47,7 @@ export default function AboutScreen() {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.title}>About This App</Text>
+      <Text style={styles.title}>About This App • OTA v1</Text>
       <View style={styles.card}>
         <Line label="App Version" value={String(appVersion)} />
         <Line label="Build" value={String(buildNumber)} />
