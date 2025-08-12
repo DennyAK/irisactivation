@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, Vibration } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, Vibration, Switch } from 'react-native';
 import { palette, spacing, radius, shadow, typography, hitSlop } from '../../constants/Design';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -53,6 +53,7 @@ export default function ClickerScreen() {
   const [renameText, setRenameText] = useState('');
   const renameInputRef = useRef<TextInput | null>(null);
   const [didSelectAll, setDidSelectAll] = useState(false);
+  const [hapticsOn, setHapticsOn] = useState(true);
 
   // Hydrate from storage on mount and when user changes
   useEffect(() => {
@@ -79,6 +80,8 @@ export default function ClickerScreen() {
           const parsed = JSON.parse(raw) as ClickVar[];
           if (Array.isArray(parsed)) setItems(parsed);
         }
+  const hRaw = await AsyncStorage.getItem('clicker:settings:haptics');
+  if (!cancelled && hRaw != null) setHapticsOn(hRaw === '1');
       } catch {}
       if (!cancelled) setHydrated(true);
     })();
@@ -86,6 +89,11 @@ export default function ClickerScreen() {
   }, [storageKey]);
 
   const canAdd = useMemo(() => newName.trim().length > 0 && !items.some(i => i.name.toLowerCase() === newName.trim().toLowerCase()), [newName, items]);
+
+  const buzz = useCallback((ms = 10) => {
+    if (!hapticsOn) return;
+    try { Vibration.vibrate(ms); } catch {}
+  }, [hapticsOn]);
 
   const addItem = useCallback(() => {
     const name = newName.trim();
@@ -97,12 +105,18 @@ export default function ClickerScreen() {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
     setItems(prev => [...prev, { id, name, count: 0 }]);
     setNewName('');
-    try { Vibration.vibrate(10); } catch {}
-  }, [newName, items]);
+    buzz(10);
+  }, [newName, items, buzz]);
 
   const increment = useCallback((id: string) => {
     setItems(prev => prev.map(i => i.id === id ? { ...i, count: i.count + 1 } : i));
-  }, []);
+    buzz(6);
+  }, [buzz]);
+
+  const decrement = useCallback((id: string) => {
+    setItems(prev => prev.map(i => i.id === id ? { ...i, count: Math.max(0, i.count - 1) } : i));
+    buzz(6);
+  }, [buzz]);
 
   const resetAll = () => {
     Alert.alert('Reset counters', 'This will clear all variables and restore defaults. Continue?', [
@@ -118,18 +132,18 @@ export default function ClickerScreen() {
     Alert.alert('Delete variable', `Delete "${name}"?`, [
       { text: 'Cancel', style: 'cancel', onPress: () => swipeRefs.current[id]?.close?.() },
       { text: 'Delete', style: 'destructive', onPress: () => {
-        setItems(prev => prev.filter(i => i.id !== id));
-    try { Vibration.vibrate(12); } catch {}
+    setItems(prev => prev.filter(i => i.id !== id));
+    buzz(12);
       }},
     ]);
-  }, []);
+  }, [buzz]);
 
   const openRename = useCallback((item: ClickVar) => {
     setRenameFor(item);
     setRenameText(item.name);
     setDidSelectAll(false);
-    try { Vibration.vibrate(8); } catch {}
-  }, []);
+    buzz(8);
+  }, [buzz]);
 
   const applyRename = useCallback(() => {
     const next = renameText.trim();
@@ -141,8 +155,8 @@ export default function ClickerScreen() {
     }
     setItems(prev => prev.map(i => i.id === renameFor.id ? { ...i, name: next } : i));
     setRenameFor(null);
-    try { Vibration.vibrate(8); } catch {}
-  }, [renameText, renameFor, items]);
+    buzz(8);
+  }, [renameText, renameFor, items, buzz]);
 
   // Persist on changes
   useEffect(() => {
@@ -151,6 +165,13 @@ export default function ClickerScreen() {
       try { await AsyncStorage.setItem(storageKey, JSON.stringify(items)); } catch {}
     })();
   }, [items, storageKey, hydrated]);
+
+  // Persist haptics setting
+  useEffect(() => {
+    (async () => {
+      try { await AsyncStorage.setItem('clicker:settings:haptics', hapticsOn ? '1' : '0'); } catch {}
+    })();
+  }, [hapticsOn]);
 
   const renderAction = (item: ClickVar, side: 'left' | 'right') => (
     <TouchableOpacity
@@ -178,11 +199,14 @@ export default function ClickerScreen() {
       >
         <Text style={styles.varName} numberOfLines={1}>{item.name}</Text>
         <View style={styles.counterRow}>
-          <TouchableOpacity onPress={() => increment(item.id)} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="add-circle" size={28} color={palette.success} />
+          <TouchableOpacity onPress={() => decrement(item.id)} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Decrement">
+            <Ionicons name="remove-circle" size={28} color={palette.danger || '#d9534f'} />
           </TouchableOpacity>
           <Text style={styles.countCentered}>{item.count}</Text>
-          <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={() => increment(item.id)} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Increment">
+            <Ionicons name="add-circle" size={28} color={palette.success} />
+          </TouchableOpacity>
+          <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Reorder">
             <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
           </TouchableOpacity>
         </View>
@@ -206,6 +230,15 @@ export default function ClickerScreen() {
 
   const footer = (
     <View style={{ paddingTop: spacing(2), paddingBottom: Math.max(insets.bottom, spacing(8)) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
+        <Text style={{ color: palette.text, fontWeight: '600' }}>Haptics</Text>
+        <Switch
+          value={hapticsOn}
+          onValueChange={setHapticsOn}
+          thumbColor={Platform.OS === 'android' ? (hapticsOn ? palette.primary : '#eee') : undefined}
+          trackColor={{ false: '#999', true: palette.primary }}
+        />
+      </View>
       <PrimaryButton title="Reset" onPress={resetAll} />
     </View>
   );
