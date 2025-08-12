@@ -48,6 +48,8 @@ export default function ClickerScreen() {
   const storageKey = useMemo(() => `clicker:items:${uid || 'anon'}`, [uid]);
   const swipeRefs = useRef<Record<string, Swipeable | null>>({});
   const insets = useSafeAreaInsets();
+  const [renameFor, setRenameFor] = useState<ClickVar | null>(null);
+  const [renameText, setRenameText] = useState('');
 
   // Hydrate from storage on mount and when user changes
   useEffect(() => {
@@ -117,6 +119,23 @@ export default function ClickerScreen() {
     ]);
   };
 
+  const openRename = (item: ClickVar) => {
+    setRenameFor(item);
+    setRenameText(item.name);
+  };
+
+  const applyRename = () => {
+    const next = renameText.trim();
+    if (!renameFor) return;
+    if (!next) { setRenameFor(null); return; }
+    if (items.some(i => i.id !== renameFor.id && i.name.toLowerCase() === next.toLowerCase())) {
+      Alert.alert('Duplicate', 'Another variable already has that name.');
+      return;
+    }
+    setItems(prev => prev.map(i => i.id === renameFor.id ? { ...i, name: next } : i));
+    setRenameFor(null);
+  };
+
   // Persist on changes
   useEffect(() => {
     if (!hydrated) return; // avoid overwriting before initial load
@@ -125,42 +144,18 @@ export default function ClickerScreen() {
     })();
   }, [items, storageKey, hydrated]);
 
-  const renderAction = (id: string, name: string, side: 'left' | 'right') => (
+  const renderAction = (item: ClickVar, side: 'left' | 'right') => (
     <TouchableOpacity
-      style={[styles.deleteAction, side === 'left' ? styles.actionLeft : styles.actionRight]}
-      onPress={() => confirmDelete(id, name)}
+      style={[styles.swipeAction, side === 'left' ? styles.actionLeft : styles.actionRight]}
+      onPress={() => side === 'left' ? openRename(item) : confirmDelete(item.id, item.name)}
       activeOpacity={0.8}
     >
-      <Text style={styles.deleteText}>Delete</Text>
+      <Text style={styles.actionText}>{side === 'left' ? 'Rename' : 'Remove'}</Text>
     </TouchableOpacity>
   );
 
-  const renderItem = ({ item, drag, isActive }: RenderItemParams<ClickVar>) => (
-    Platform.OS !== 'android' ? (
-      <Swipeable
-        ref={(ref) => { swipeRefs.current[item.id] = ref; }}
-        renderLeftActions={() => renderAction(item.id, item.name, 'left')}
-        renderRightActions={() => renderAction(item.id, item.name, 'right')}
-        onSwipeableOpen={() => confirmDelete(item.id, item.name)}
-      >
-        <TouchableOpacity
-          style={[styles.card, isActive ? styles.dragActive : undefined]}
-          onPress={() => increment(item.id)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.varName} numberOfLines={1}>{item.name}</Text>
-          <View style={styles.counterRow}>
-            <TouchableOpacity onPress={() => increment(item.id)} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="add-circle" size={28} color={palette.success} />
-            </TouchableOpacity>
-            <Text style={styles.countCentered}>{item.count}</Text>
-            <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Swipeable>
-    ) : (
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<ClickVar>) => {
+    const content = (
       <TouchableOpacity
         style={[styles.card, isActive ? styles.dragActive : undefined]}
         onPress={() => increment(item.id)}
@@ -172,18 +167,24 @@ export default function ClickerScreen() {
             <Ionicons name="add-circle" size={28} color={palette.success} />
           </TouchableOpacity>
           <Text style={styles.countCentered}>{item.count}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => confirmDelete(item.id, item.name)} style={[styles.iconBtn, { marginLeft: spacing(1) }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="trash-outline" size={22} color="#E53935" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
-    )
-  );
+    );
+    // Use Swipeable on all platforms now that the native module is present
+    return (
+      <Swipeable
+        ref={(ref) => { swipeRefs.current[item.id] = ref; }}
+        renderLeftActions={() => renderAction(item, 'left')}
+        renderRightActions={() => renderAction(item, 'right')}
+        onSwipeableWillClose={() => { /* no-op */ }}
+      >
+        {content}
+      </Swipeable>
+    );
+  };
 
   const footer = (
     <View style={{ paddingTop: spacing(2), paddingBottom: Math.max(insets.bottom, spacing(8)) }}>
@@ -223,6 +224,29 @@ export default function ClickerScreen() {
         ListFooterComponent={footer}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, spacing(8)) }}
       />
+
+      {renameFor && (
+        <View style={styles.renameSheet}>
+          <Text style={styles.renameTitle}>Rename variable</Text>
+          <TextInput
+            value={renameText}
+            onChangeText={setRenameText}
+            placeholder="New name"
+            placeholderTextColor={palette.textMuted}
+            style={[styles.input, { marginBottom: spacing(2) }]}
+            autoFocus
+            onSubmitEditing={applyRename}
+          />
+          <View style={{ flexDirection: 'row', gap: spacing(2) as any }}>
+            <TouchableOpacity style={[styles.smallBtn, { backgroundColor: palette.surface }]} onPress={() => setRenameFor(null)}>
+              <Text style={{ color: palette.text }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.smallBtn, { backgroundColor: palette.primary }]} onPress={applyRename}>
+              <Text style={{ color: '#fff' }}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </GestureHandlerRootView>
   );
 }
@@ -260,15 +284,31 @@ const styles = StyleSheet.create({
   iconBtn: { paddingHorizontal: spacing(1), paddingVertical: spacing(1) },
   addIconBtn: { paddingHorizontal: spacing(1), paddingVertical: spacing(1) },
   dragHandle: { paddingHorizontal: spacing(2), paddingVertical: spacing(1) },
-  deleteAction: {
+  swipeAction: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E53935',
     marginBottom: spacing(3),
     borderRadius: radius.lg,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.border,
   },
   actionLeft: { width: 100, marginRight: spacing(2) },
   actionRight: { width: 100, marginLeft: spacing(2), alignSelf: 'flex-end' },
-  deleteText: { color: 'white', fontWeight: '700' },
+  actionText: { color: palette.text, fontWeight: '700' },
   dragActive: { opacity: 0.9, transform: [{ scale: 0.98 }] as any },
+  renameSheet: {
+    position: 'absolute',
+    left: spacing(4),
+    right: spacing(4),
+    bottom: spacing(6),
+    backgroundColor: palette.surface,
+    padding: spacing(4),
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.card,
+  },
+  renameTitle: { fontWeight: '800', marginBottom: spacing(2), color: palette.text },
+  smallBtn: { paddingVertical: spacing(2.5), paddingHorizontal: spacing(4), borderRadius: radius.md },
 });
