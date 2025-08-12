@@ -7,6 +7,8 @@ import { collection, getDocs, doc, updateDoc, query, where, getDoc, DocumentSnap
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '@/components/I18n';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
@@ -15,6 +17,9 @@ import FilterHeader from '../../components/ui/FilterHeader';
 import { compareCreatedAt } from '../../utils/sort';
 
 export default function UserManagementScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
   type UserItem = {
     id: string;
     role?: string;
@@ -80,7 +85,7 @@ export default function UserManagementScreen() {
       setUsers(userList);
     } catch (error) {
       console.error("Error fetching users: ", error);
-      Alert.alert("Error", "Failed to fetch users. Check Firestore permissions.");
+  Alert.alert(t('error') || 'Error', 'Failed to fetch users. Check Firestore permissions.');
     } finally {
       setLoading(false);
     }
@@ -130,23 +135,27 @@ export default function UserManagementScreen() {
   }, [users, search, sortAsc]);
 
   if (loading) {
-    return <ActivityIndicator />;
+    return (
+      <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator />
+      </View>
+    );
   }
 
   // Hard guard: only admin/superadmin may access this screen
   if (!(userRole === 'admin' || userRole === 'superadmin')) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 16, fontWeight: '600' }}>Access denied</Text>
-        <Text>You don't have permission to view this page.</Text>
+      <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: isDark ? '#e5e7eb' : palette.text }}>{t('access_denied') || 'Access denied'}</Text>
+        <Text style={{ marginTop: spacing(1), color: isDark ? '#94a3b8' : palette.textMuted }}>{t('no_permission') || "You don't have permission to view this page."}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.screen}>
+  <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }]}>
       <FilterHeader
-        title="User Management"
+        title={t('user_mgmt')}
         search={search}
         status={''}
         statusOptions={[]}
@@ -163,18 +172,18 @@ export default function UserManagementScreen() {
         data={filteredUsers}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.email || 'Unknown'}</Text>
+              <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{item.email || (t('unknown') || 'Unknown')}</Text>
               <StatusPill label={item.role || '-'} tone={item.role?.includes('admin') ? 'primary' : item.role?.includes('manager') ? 'info' : 'neutral'} />
             </View>
-            <InfoRow label="Name" value={`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'} />
-            <InfoRow label="Phone" value={item.phone || '-'} />
-            <InfoRow label="City" value={item.city || '-'} />
-            <InfoRow label="Province" value={item.province || '-'} />
-            {canEdit && (
+            <InfoRow label={t('personal_info') || 'Name'} value={`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'} />
+            <InfoRow label={t('phone') || 'Phone'} value={item.phone || '-'} />
+            <InfoRow label={t('city') || 'City'} value={item.city || '-'} />
+            <InfoRow label={t('province') || 'Province'} value={item.province || '-'} />
+      {canEdit && (
               <View style={styles.actionsRow}>
-                <SecondaryButton title="Edit" onPress={() => handleEdit(item)} style={styles.actionBtn} />
+        <SecondaryButton title={t('edit')} onPress={() => handleEdit(item)} style={styles.actionBtn} />
               </View>
             )}
           </View>
@@ -189,10 +198,10 @@ export default function UserManagementScreen() {
           onRequestClose={() => setIsModalVisible(false)}
         >
           <View style={styles.modalContainer}>
-            <ScrollView contentContainerStyle={styles.modalScroll} style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Edit User</Text>
-              <Text style={styles.fieldLabel}>Role</Text>
-              <View style={styles.pickerWrapper}>
+            <ScrollView contentContainerStyle={styles.modalScroll} style={[styles.modalContent, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}> 
+              <Text style={[styles.modalTitle, isDark && { color: '#e5e7eb' }]}>{(t('edit_user') || 'Edit User')}</Text>
+              <Text style={[styles.fieldLabel, isDark && { color: '#94a3b8' }]}>{t('role') || 'Role'}</Text>
+              <View style={[styles.pickerWrapper, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}>
                 <Picker
                   selectedValue={formData.role}
                   onValueChange={(itemValue) => setFormData({ ...formData, role: itemValue })}
@@ -207,19 +216,19 @@ export default function UserManagementScreen() {
                   {userRole === 'superadmin' && <Picker.Item label="admin" value="admin" />}
                 </Picker>
               </View>
-              <Text style={styles.fieldLabel}>First Name</Text>
-              <TextInput style={styles.input} value={formData.firstName} onChangeText={(text) => setFormData({...formData, firstName: text})} placeholder="First Name" />
-              <Text style={styles.fieldLabel}>Last Name</Text>
-              <TextInput style={styles.input} value={formData.lastName} onChangeText={(text) => setFormData({...formData, lastName: text})} placeholder="Last Name" />
-              <Text style={styles.fieldLabel}>Phone</Text>
-              <TextInput style={styles.input} value={formData.phone} onChangeText={(text) => setFormData({...formData, phone: text})} placeholder="Phone" />
-              <Text style={styles.fieldLabel}>Province</Text>
-              <TextInput style={styles.input} value={formData.province} onChangeText={(text) => setFormData({...formData, province: text})} placeholder="Province" />
-              <Text style={styles.fieldLabel}>City</Text>
-              <TextInput style={styles.input} value={formData.city} onChangeText={(text) => setFormData({...formData, city: text})} placeholder="City" />
+              <Text style={[styles.fieldLabel, isDark && { color: '#94a3b8' }]}>{t('first_name') || 'First Name'}</Text>
+              <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.firstName} onChangeText={(text) => setFormData({...formData, firstName: text})} placeholder={t('first_name') || 'First Name'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+              <Text style={[styles.fieldLabel, isDark && { color: '#94a3b8' }]}>{t('last_name') || 'Last Name'}</Text>
+              <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.lastName} onChangeText={(text) => setFormData({...formData, lastName: text})} placeholder={t('last_name') || 'Last Name'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+              <Text style={[styles.fieldLabel, isDark && { color: '#94a3b8' }]}>{t('phone') || 'Phone'}</Text>
+              <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.phone} onChangeText={(text) => setFormData({...formData, phone: text})} placeholder={t('phone') || 'Phone'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+              <Text style={[styles.fieldLabel, isDark && { color: '#94a3b8' }]}>{t('province') || 'Province'}</Text>
+              <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.province} onChangeText={(text) => setFormData({...formData, province: text})} placeholder={t('province') || 'Province'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+              <Text style={[styles.fieldLabel, isDark && { color: '#94a3b8' }]}>{t('city') || 'City'}</Text>
+              <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.city} onChangeText={(text) => setFormData({...formData, city: text})} placeholder={t('city') || 'City'} placeholderTextColor={isDark ? '#64748b' : undefined} />
               <View style={styles.modalActions}>
-                <PrimaryButton title="Update" onPress={handleUpdate} style={{ flex:1 }} />
-                <SecondaryButton title="Cancel" onPress={() => setIsModalVisible(false)} style={{ flex:1 }} />
+                <PrimaryButton title={t('update')} onPress={handleUpdate} style={{ flex:1 }} />
+                <SecondaryButton title={t('cancel')} onPress={() => setIsModalVisible(false)} style={{ flex:1 }} />
               </View>
             </ScrollView>
           </View>

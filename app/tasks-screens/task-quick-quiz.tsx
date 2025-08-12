@@ -8,11 +8,26 @@ import FilterHeader from '../../components/ui/FilterHeader';
 import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useI18n } from '@/components/I18n';
+import { useEffectiveScheme } from '@/components/ThemePreference';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function TaskQuickQuizScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    body: isDark ? '#0b1220' : palette.bg,
+    surface: isDark ? '#111827' : palette.surface,
+    surfaceAlt: isDark ? '#0f172a' : palette.surfaceAlt,
+    border: isDark ? '#1f2937' : palette.border,
+    text: isDark ? '#e5e7eb' : palette.text,
+    muted: isDark ? '#94a3b8' : palette.textMuted,
+    placeholder: isDark ? '#64748b' : '#9ca3af',
+  };
+  const inputCommonProps = isDark ? { placeholderTextColor: colors.placeholder as any } : {};
   // Handler for 'Take Quiz Now' button
   const handleTakeQuizNow = (quizId: string, docId: string) => {
     setActiveQuizId(quizId);
@@ -352,18 +367,18 @@ export default function TaskQuickQuizScreen() {
     }
     const tone = status === 'Done' ? 'success' : 'warning';
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1, shadowOpacity: 0 } : {}]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Quiz: {item.id}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Quiz: {item.id}</Text>
           <StatusPill label={status} tone={tone as any} />
         </View>
-        <Text style={styles.meta}>Assigned BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
-        <Text style={styles.meta}>Date: <Text style={styles.metaValue}>{item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate || '-'}</Text></Text>
-        <Text style={styles.meta}>Result: <Text style={styles.metaValue}>{item.quickQuizResult || '-'}</Text></Text>
-        <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
-        <Text style={styles.meta}>Task ID: <Text style={styles.metaValue}>{item.tasksId || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Assigned BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Date: <Text style={[styles.metaValue, { color: colors.text }]}>{item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Result: <Text style={[styles.metaValue, { color: colors.text }]}>{item.quickQuizResult || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Created: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Task ID: <Text style={[styles.metaValue, { color: colors.text }]}>{item.tasksId || '-'}</Text></Text>
         {score < 8 && (
-          <PrimaryButton title="Take Quiz" onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} style={styles.actionBtn} />
+          <PrimaryButton title={t('take_quiz')} onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} style={styles.actionBtn} />
         )}
       </View>
     );
@@ -371,21 +386,21 @@ export default function TaskQuickQuizScreen() {
 
   const renderModalFields = () => (
     <>
-      <TextInput style={styles.input} value={formData.userId} onChangeText={(text) => setFormData({...formData, userId: text})} placeholder="User ID" />
-      <TextInput style={styles.input} value={formData.takeQuickQuizId} onChangeText={(text) => setFormData({...formData, takeQuickQuizId: text})} placeholder="Quiz ID" />
-      <TextInput style={styles.input} value={formData.quizDate} onChangeText={(text) => setFormData({...formData, quizDate: text})} placeholder="Quiz Date (YYYY-MM-DD)" />
-      <TextInput style={styles.input} value={formData.quickQuizResult} onChangeText={(text) => setFormData({...formData, quickQuizResult: text})} placeholder="Quiz Result" />
+      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.userId} onChangeText={(text) => setFormData({...formData, userId: text})} placeholder="User ID" {...inputCommonProps} />
+      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.takeQuickQuizId} onChangeText={(text) => setFormData({...formData, takeQuickQuizId: text})} placeholder="Quiz ID" {...inputCommonProps} />
+      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.quizDate} onChangeText={(text) => setFormData({...formData, quizDate: text})} placeholder="Quiz Date (YYYY-MM-DD)" {...inputCommonProps} />
+      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.quickQuizResult} onChangeText={(text) => setFormData({...formData, quickQuizResult: text})} placeholder="Quiz Result" {...inputCommonProps} />
     </>
   );
 
   return (
-  <View style={styles.screen}>
+  <View style={[styles.screen, { backgroundColor: colors.body }]}>
       <FilterHeader
-        title="Task Quick Quiz"
+        title={t('quick_quiz')}
         search={search}
         status={''}
         statusOptions={[{ label: 'All', value: '' }]} // placeholder, status not used
-        placeholder="Search by outlet or record ID"
+        placeholder={t('search_outlet_or_id')}
         storageKey="filters:quiz"
         onApply={({ search: s }) => { setSearch(s); }}
         onClear={() => { setSearch(''); }}
@@ -451,12 +466,12 @@ export default function TaskQuickQuizScreen() {
       {/* Quiz Modal */}
       <Modal visible={quizModalVisible} transparent={true} animationType="slide" onRequestClose={handleQuizModalClose}>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
             {quizScore === null ? (
               quizQuestions.length > 0 && currentQuestionIndex < quizQuestions.length ? (
                 <>
-                  <Text style={styles.modalTitle}>Question {currentQuestionIndex + 1} of {quizQuestions.length}</Text>
-                  <Text style={{ marginBottom: 16 }}>{quizQuestions[currentQuestionIndex].question}</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>Question {currentQuestionIndex + 1} of {quizQuestions.length}</Text>
+                  <Text style={{ marginBottom: 16, color: colors.text }}>{quizQuestions[currentQuestionIndex].question}</Text>
                   {Object.entries(quizQuestions[currentQuestionIndex].options).map(([key, value]) => (
                     <PrimaryButton key={key} title={`${key}: ${value}`} onPress={() => handleAnswer(key)} style={styles.actionBtn} />
                   ))}
@@ -464,8 +479,8 @@ export default function TaskQuickQuizScreen() {
               ) : <ActivityIndicator />
             ) : (
               <>
-                <Text style={styles.modalTitle}>Quiz Complete!</Text>
-                <Text>Your Score: {quizScore}/10</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Quiz Complete!</Text>
+                <Text style={{ color: colors.text }}>Your Score: {quizScore}/10</Text>
                 <PrimaryButton title="Close" onPress={handleQuizModalClose} />
               </>
             )}
@@ -476,29 +491,32 @@ export default function TaskQuickQuizScreen() {
       {/* Add/Edit Question Modal */}
       <Modal visible={isQuestionModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsQuestionModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{questionForm.id ? 'Edit' : 'Add'} Quiz Question</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{questionForm.id ? 'Edit' : 'Add'} Quiz Question</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={questionForm.question}
               onChangeText={text => setQuestionForm({ ...questionForm, question: text })}
               placeholder="Question"
+              {...inputCommonProps}
             />
             {['A', 'B', 'C', 'D'].map(opt => (
               <TextInput
                 key={opt}
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
                 value={questionForm.options[opt as keyof typeof questionForm.options]}
                 onChangeText={text => setQuestionForm({ ...questionForm, options: { ...questionForm.options, [opt as keyof typeof questionForm.options]: text } })}
                 placeholder={`Option ${opt}`}
+                {...inputCommonProps}
               />
             ))}
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={questionForm.answer}
               onChangeText={text => setQuestionForm({ ...questionForm, answer: text })}
               placeholder="Answer (A/B/C/D)"
               maxLength={1}
+              {...inputCommonProps}
             />
             <View style={styles.actionsRow}>
               <PrimaryButton title={questionForm.id ? 'Update' : 'Add'} onPress={handleSaveQuestion} style={styles.actionBtn} />
@@ -511,7 +529,7 @@ export default function TaskQuickQuizScreen() {
       {/* Add Quiz Record Modal */}
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
             <Text style={styles.modalTitle}>Add Quiz Record</Text>
             {renderModalFields()}
             <View style={styles.actionsRow}>
@@ -525,7 +543,7 @@ export default function TaskQuickQuizScreen() {
       {/* Edit Quiz Record Modal */}
       <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
             <Text style={styles.modalTitle}>Edit Quiz Record</Text>
             {renderModalFields()}
             <View style={styles.actionsRow}>

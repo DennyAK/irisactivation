@@ -6,6 +6,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 import { compareCreatedAt } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
@@ -13,6 +15,9 @@ import StatusPill from '../../components/ui/StatusPill';
 import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function ProjectsScreen() {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const router = useRouter();
   const isFocused = useIsFocused();
   // Pull-to-refresh state
@@ -85,8 +90,8 @@ export default function ProjectsScreen() {
 
       setProjects(projectsWithUserNames);
     } catch (error) {
-      console.error("Error fetching projects: ", error);
-      Alert.alert("Error", "Failed to fetch projects.");
+  console.error("Error fetching projects: ", error);
+  Alert.alert(t('error') || 'Error', t('failed_to_fetch_projects') || 'Failed to fetch projects.');
     } finally {
       setLoading(false);
     }
@@ -109,11 +114,11 @@ export default function ProjectsScreen() {
 
   const handleAddProject = () => {
     if (formData.projectName.trim() === '') {
-      Alert.alert("Invalid Name", "Project name cannot be empty.");
+      Alert.alert(t('invalid_name') || 'Invalid Name', t('project_name_cannot_be_empty') || 'Project name cannot be empty.');
       return;
     }
     if (!currentUserId) {
-        Alert.alert("Error", "You must be logged in to add a project.");
+        Alert.alert(t('error') || 'Error', t('must_be_logged_in_to_add_project') || 'You must be logged in to add a project.');
         return;
     }
     addDoc(collection(db, "projects"), {
@@ -126,7 +131,7 @@ export default function ProjectsScreen() {
       setFormData({ activationName: '', projectName: '', projectType: '', projectTier: '' });
       fetchProjects();
     }).catch(error => {
-      Alert.alert("Add Failed", error.message);
+      Alert.alert(t('add_failed') || 'Add Failed', error.message);
     });
   };
 
@@ -150,15 +155,15 @@ export default function ProjectsScreen() {
         setSelectedProject(null);
         fetchProjects();
       }).catch(error => {
-        Alert.alert("Update Failed", error.message);
+        Alert.alert(t('update_failed') || 'Update Failed', error.message);
       });
     }
   };
 
   const handleDeleteProject = (projectId: string) => {
-    Alert.alert("Delete Project", "Are you sure you want to delete this project?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "OK", onPress: () => {
+    Alert.alert(t('delete_project') || 'Delete Project', t('confirm_delete_project') || 'Are you sure you want to delete this project?', [
+      { text: t('cancel') || 'Cancel', style: "cancel" },
+      { text: t('ok') || 'OK', onPress: () => {
         deleteDoc(doc(db, "projects", projectId)).then(() => {
           fetchProjects();
         });
@@ -179,9 +184,9 @@ export default function ProjectsScreen() {
   const canEdit = isAdmin || userRole === 'area manager';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0b1220' : palette.bg }]}>
       <FilterHeader
-        title="Projects"
+        title={t('projects') || 'Projects'}
         search={search}
         status={''}
         statusOptions={[]}
@@ -191,32 +196,32 @@ export default function ProjectsScreen() {
         onApply={({ search: s }) => setSearch(s)}
         onClear={() => setSearch('')}
       />
-      {isAdmin && <PrimaryButton title="Add New Project" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />}
+      {isAdmin && <PrimaryButton title={t('add_project') || 'Add New Project'} onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }] }>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.projectName}</Text>
+              <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{item.projectName}</Text>
             </View>
             <View style={styles.pillsRow}>
               {!!item.projectType && <StatusPill label={item.projectType} tone="info" style={styles.pill} />}
               {!!item.projectTier && <StatusPill label={item.projectTier} tone="warning" style={styles.pill} />}
             </View>
-            {!!item.activationName && <Text style={styles.meta}>Activation: <Text style={styles.metaStrong}>{item.activationName}</Text></Text>}
-            {!!item.createdByName && <Text style={styles.meta}>Creator: <Text style={styles.metaStrong}>{item.createdByName}</Text></Text>}
+            {!!item.activationName && <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('activation') || 'Activation') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{item.activationName}</Text></Text>}
+            {!!item.createdByName && <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('creator') || 'Creator') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{item.createdByName}</Text></Text>}
             {canEdit && (
               <View style={styles.actionsRow}>
                 {isAdmin && (
                   <SecondaryButton
-                    title="View Audit"
+                    title={t('view_audit') || 'View Audit'}
                     onPress={() => router.push({ pathname: '/audit-screens/audit-logs' as any, params: { collection: 'projects', docId: item.id } })}
                     style={styles.flexBtn}
                   />
                 )}
-                <SecondaryButton title="Edit" onPress={() => handleEditProject(item)} style={styles.flexBtn} />
-                {isSuperadmin && <SecondaryButton title="Delete" onPress={() => handleDeleteProject(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
+                <SecondaryButton title={t('edit') || 'Edit'} onPress={() => handleEditProject(item)} style={styles.flexBtn} />
+                {isSuperadmin && <SecondaryButton title={t('delete') || 'Delete'} onPress={() => handleDeleteProject(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
               </View>
             )}
           </View>
@@ -237,15 +242,15 @@ export default function ProjectsScreen() {
       {/* Add Modal */}
       <Modal visible={isAddModalVisible} transparent animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Add Project</Text>
-            <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({ ...formData, activationName: text })} placeholder="Activation Name" />
-            <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({ ...formData, projectName: text })} placeholder="Project Name" />
-            <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({ ...formData, projectType: text })} placeholder="Project Type" />
-            <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({ ...formData, projectTier: text })} placeholder="Project Tier" />
+          <View style={[styles.modalSheet, isDark && { backgroundColor: '#111827' }] }>
+            <Text style={[styles.modalTitle, isDark && { color: '#e5e7eb' }]}>{t('add_project') || 'Add Project'}</Text>
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.activationName} onChangeText={(text) => setFormData({ ...formData, activationName: text })} placeholder={t('activation_name') || 'Activation Name'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.projectName} onChangeText={(text) => setFormData({ ...formData, projectName: text })} placeholder={t('project_name') || 'Project Name'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.projectType} onChangeText={(text) => setFormData({ ...formData, projectType: text })} placeholder={t('project_type') || 'Project Type'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.projectTier} onChangeText={(text) => setFormData({ ...formData, projectTier: text })} placeholder={t('project_tier') || 'Project Tier'} placeholderTextColor={isDark ? '#64748b' : undefined} />
             <View style={styles.modalActions}>
-              <PrimaryButton title="Add" onPress={handleAddProject} style={styles.flexBtn} />
-              <SecondaryButton title="Cancel" onPress={() => setIsAddModalVisible(false)} style={styles.flexBtn} />
+              <PrimaryButton title={t('add') || 'Add'} onPress={handleAddProject} style={styles.flexBtn} />
+              <SecondaryButton title={t('cancel') || 'Cancel'} onPress={() => setIsAddModalVisible(false)} style={styles.flexBtn} />
             </View>
           </View>
         </ScrollView>
@@ -253,15 +258,15 @@ export default function ProjectsScreen() {
       {/* Edit Modal */}
       <Modal visible={isEditModalVisible} transparent animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Edit Project</Text>
-            <TextInput style={styles.input} value={formData.activationName} onChangeText={(text) => setFormData({ ...formData, activationName: text })} placeholder="Activation Name" />
-            <TextInput style={styles.input} value={formData.projectName} onChangeText={(text) => setFormData({ ...formData, projectName: text })} placeholder="Project Name" />
-            <TextInput style={styles.input} value={formData.projectType} onChangeText={(text) => setFormData({ ...formData, projectType: text })} placeholder="Project Type" />
-            <TextInput style={styles.input} value={formData.projectTier} onChangeText={(text) => setFormData({ ...formData, projectTier: text })} placeholder="Project Tier" />
+          <View style={[styles.modalSheet, isDark && { backgroundColor: '#111827' }] }>
+            <Text style={[styles.modalTitle, isDark && { color: '#e5e7eb' }]}>{t('edit_project') || 'Edit Project'}</Text>
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.activationName} onChangeText={(text) => setFormData({ ...formData, activationName: text })} placeholder={t('activation_name') || 'Activation Name'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.projectName} onChangeText={(text) => setFormData({ ...formData, projectName: text })} placeholder={t('project_name') || 'Project Name'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.projectType} onChangeText={(text) => setFormData({ ...formData, projectType: text })} placeholder={t('project_type') || 'Project Type'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.projectTier} onChangeText={(text) => setFormData({ ...formData, projectTier: text })} placeholder={t('project_tier') || 'Project Tier'} placeholderTextColor={isDark ? '#64748b' : undefined} />
             <View style={styles.modalActions}>
-              <PrimaryButton title="Update" onPress={handleUpdateProject} style={styles.flexBtn} />
-              <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); setFormData({ activationName: '', projectName: '', projectType: '', projectTier: '' }); }} style={styles.flexBtn} />
+              <PrimaryButton title={t('update') || 'Update'} onPress={handleUpdateProject} style={styles.flexBtn} />
+              <SecondaryButton title={t('cancel') || 'Cancel'} onPress={() => { setIsEditModalVisible(false); setFormData({ activationName: '', projectName: '', projectType: '', projectTier: '' }); }} style={styles.flexBtn} />
             </View>
           </View>
         </ScrollView>

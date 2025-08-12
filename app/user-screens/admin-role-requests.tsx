@@ -5,6 +5,8 @@ import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/fi
 import { auth } from '../../firebaseConfig';
 import { useIsFocused } from '@react-navigation/native';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useEffectiveScheme } from '@/components/ThemePreference';
+import { useI18n } from '@/components/I18n';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
@@ -12,6 +14,9 @@ import FilterHeader from '../../components/ui/FilterHeader';
 import { compareCreatedAt } from '../../utils/sort';
 
 export default function AdminRoleRequestsScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
   type RoleRequestItem = {
     id: string;
     userId?: string;
@@ -54,7 +59,7 @@ export default function AdminRoleRequestsScreen() {
           await updateDoc(doc(db, 'users', req.userId), { role: req.requestedRole });
         }
       }
-      Alert.alert('Success', `Request ${status}`);
+  Alert.alert(t('success') || 'Success', `${t('role_request') || 'Request'} ${status}`);
       fetchRequests();
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -75,9 +80,9 @@ export default function AdminRoleRequestsScreen() {
   if (loading) return <ActivityIndicator style={{ marginTop: spacing(10) }} />;
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }]}>
       <FilterHeader
-        title="Role Requests"
+        title={t('admin_requests')}
         search={search}
         status={''}
         statusOptions={[]}
@@ -91,21 +96,21 @@ export default function AdminRoleRequestsScreen() {
         data={filtered}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.email || 'Unknown User'}</Text>
+              <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{item.email || (t('unknown_user') || 'Unknown User')}</Text>
               <StatusPill label={item.status || '—'} tone={item.status === 'approved' ? 'success' : item.status === 'denied' ? 'danger' : 'warning'} />
             </View>
-            <Text style={styles.meta}>Current Role: <Text style={styles.metaValue}>{item.currentRole || '-'}</Text></Text>
-            <Text style={styles.meta}>Requested: <Text style={styles.metaValue}>{item.requestedRole || '-'}</Text></Text>
-            {item.reason ? <Text style={styles.meta}>Reason: <Text style={styles.reason}>{item.reason}</Text></Text> : null}
+            <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('current_role') || 'Current Role') + ': '}<Text style={[styles.metaValue, isDark && { color: '#e5e7eb' }]}>{item.currentRole || '-'}</Text></Text>
+            <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('requested') || 'Requested') + ': '}<Text style={[styles.metaValue, isDark && { color: '#e5e7eb' }]}>{item.requestedRole || '-'}</Text></Text>
+            {item.reason ? <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('reason') || 'Reason') + ': '}<Text style={[styles.reason, isDark && { color: '#e5e7eb' }]}>{item.reason}</Text></Text> : null}
             {item.createdAt?.toDate ? (
-              <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt.toDate().toLocaleString()}</Text></Text>
+              <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('created') || 'Created') + ': '}<Text style={[styles.metaValue, isDark && { color: '#e5e7eb' }]}>{item.createdAt.toDate().toLocaleString()}</Text></Text>
             ) : null}
             {item.status === 'pending' && (
               <View style={styles.actionsRow}>
-                <PrimaryButton title="Approve" onPress={() => handleReview(item.id, 'approved')} style={styles.actionBtn} />
-                <SecondaryButton title="Deny" onPress={() => handleReview(item.id, 'denied')} style={styles.actionBtn} />
+                <PrimaryButton title={t('approve')} onPress={() => handleReview(item.id, 'approved')} style={styles.actionBtn} />
+                <SecondaryButton title={t('deny')} onPress={() => handleReview(item.id, 'denied')} style={styles.actionBtn} />
               </View>
             )}
           </View>

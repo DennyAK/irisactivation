@@ -9,10 +9,12 @@ import FilterHeader from '../../components/ui/FilterHeader';
 import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useI18n } from '@/components/I18n';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffectiveScheme } from '../../components/ThemePreference';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { query, where } from 'firebase/firestore';
@@ -40,6 +42,9 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 // --- Main Component ---
 export default function TasksScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
   type TaskItem = {
     id: string;
     assignedToUserBA?: string;
@@ -487,15 +492,15 @@ const fetchTLUsers = async () => {
   };
   // Render a single task item in the list
   const renderTask = ({ item }: { item: any }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.itemTitle}>Outlet: {item.outletName}</Text>
-      <Text>Province: {item.outletProvince || '-'}</Text>
-      <Text>Task Start Date: {item.startDate?.toDate().toLocaleDateString()}</Text>
-      <Text>Assigned to BA: {baUsers.find(u => u.id === item.assignedToUserBA)?.name || item.assignedToUserBA}</Text>
-      <Text>Assigned to TL: {tlUsers.find(u => u.id === item.assignedToUserTLID)?.name || item.assignedToUserTLID}</Text>
-      <Text>Assigned by: {item.assignedBy}</Text>
-      <Text>Created Time: {item.createdAt?.toDate().toLocaleString()}</Text>
-      <Text>Remark: {item.remark}</Text>
+    <View style={[styles.itemContainer, isDark && { backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937' }]}>
+      <Text style={[styles.itemTitle, isDark && { color: '#e5e7eb' }]}>Outlet: {item.outletName}</Text>
+      <Text style={[isDark && { color: '#e5e7eb' }]}>Province: {item.outletProvince || '-'}</Text>
+      <Text style={[isDark && { color: '#e5e7eb' }]}>Task Start Date: {item.startDate?.toDate().toLocaleDateString()}</Text>
+      <Text style={[isDark && { color: '#e5e7eb' }]}>Assigned to BA: {baUsers.find(u => u.id === item.assignedToUserBA)?.name || item.assignedToUserBA}</Text>
+      <Text style={[isDark && { color: '#e5e7eb' }]}>Assigned to TL: {tlUsers.find(u => u.id === item.assignedToUserTLID)?.name || item.assignedToUserTLID}</Text>
+      <Text style={[isDark && { color: '#e5e7eb' }]}>Assigned by: {item.assignedBy}</Text>
+      <Text style={[isDark && { color: '#e5e7eb' }]}>Created Time: {item.createdAt?.toDate().toLocaleString()}</Text>
+      <Text style={[isDark && { color: '#e5e7eb' }]}>Remark: {item.remark}</Text>
       {[
         { key: 'task_attendance', id: item.taskAttendanceId, label: 'Attendance', route: 'task-attendance', param: 'attendanceId', button: 'Do Attendance' },
         { key: 'task_assesment', id: item.task_assesmentId, label: 'Assessment', route: 'task-early-assessment', param: 'assessmentId', button: 'Do Assessment' },
@@ -524,8 +529,8 @@ const fetchTLUsers = async () => {
       ))}
       {canManage && (
         <View style={styles.buttonContainer}>
-          <PrimaryButton title="Edit" onPress={() => handleEditTask(item)} style={styles.actionBtn} />
-          <SecondaryButton title="Delete" onPress={() => handleDeleteTask(item.id)} style={styles.actionBtn} />
+          <PrimaryButton title={t('edit')} onPress={() => handleEditTask(item)} style={styles.actionBtn} />
+          <SecondaryButton title={t('delete')} onPress={() => handleDeleteTask(item.id)} style={styles.actionBtn} />
         </View>
       )}
     </View>
@@ -660,19 +665,19 @@ const fetchTLUsers = async () => {
 
   // --- Main Render ---
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }]}>
       <FilterHeader
-        title="Task Management"
+        title={t('task_management')}
         search={search}
         status={''}
         statusOptions={[{ label: 'All', value: '' }]}
-        placeholder="Search by outlet or task ID"
+        placeholder={t('search_outlet_or_task')}
         storageKey="filters:tasks"
         onApply={({ search: s }) => setSearch(s)}
         onClear={() => setSearch('')}
       />
       {/* Add Task Button (only for managers) */}
-  {canManage && <PrimaryButton title="Add New Task" onPress={() => setIsAddModalVisible(true)} style={{ marginBottom: spacing(5) }} />}
+  {canManage && <PrimaryButton title={`${t('add')} ${t('tasks')}`} onPress={() => setIsAddModalVisible(true)} style={{ marginBottom: spacing(5) }} />}
       {/* List of tasks */}
       {filteredTasks.length === 0 ? (
         <EmptyState onReset={() => setSearch('')} />
@@ -693,68 +698,69 @@ const fetchTLUsers = async () => {
         }
       />)}
       {/* Edit Attendance Modal */}
-      <Modal visible={isEditAttendanceModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditAttendanceModalVisible(false)}>
+  <Modal visible={isEditAttendanceModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditAttendanceModalVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Edit Task Attendance</Text>
+      <View style={[styles.modalContent, isDark && { backgroundColor: '#111827' }]}>
+    <Text style={[styles.title, isDark && { color: '#e5e7eb' }]}>{t('edit')} {t('attendance')}</Text>
             {attendanceForm && (
               <>
                 {/* Only allow editing remark field, as before */}
                 <TextInput
-                  style={styles.input}
+      style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]}
                   value={attendanceForm.remark || ''}
                   onChangeText={text => setAttendanceForm({ ...attendanceForm, remark: text })}
                   placeholder="Remark"
+      placeholderTextColor={isDark ? '#64748b' : undefined}
                 />
               </>
             )}
             <View style={styles.buttonContainer}>
-              <PrimaryButton title="Update" onPress={handleUpdateAttendance} style={styles.actionBtn} />
-              <SecondaryButton title="Cancel" onPress={() => { setIsEditAttendanceModalVisible(false); setAttendanceForm(null); setEditingAttendanceId(null); }} style={styles.actionBtn} />
+              <PrimaryButton title={t('update')} onPress={handleUpdateAttendance} style={styles.actionBtn} />
+              <SecondaryButton title={t('cancel')} onPress={() => { setIsEditAttendanceModalVisible(false); setAttendanceForm(null); setEditingAttendanceId(null); }} style={styles.actionBtn} />
             </View>
           </View>
         </SafeAreaView>
       </Modal>
       {/* Step 1: Add Task Modal (main fields only) */}
-      <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
+  <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <View style={styles.modalContainer}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={styles.modalContent}>
-              <Text style={styles.title}>Add New Task</Text>
+    <View style={[styles.modalContent, isDark && { backgroundColor: '#111827' }]}>
+      <Text style={[styles.title, isDark && { color: '#e5e7eb' }]}>{t('add')} {t('tasks')}</Text>
               {renderAddTaskFields()}
               <View style={styles.buttonContainer}>
-                <PrimaryButton title="Next" onPress={handleAddTask} style={styles.actionBtn} />
-                <SecondaryButton title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
+                <PrimaryButton title={t('next') || 'Next'} onPress={handleAddTask} style={styles.actionBtn} />
+                <SecondaryButton title={t('cancel')} onPress={() => { setIsAddModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
               </View>
             </View>
           </ScrollView>
         </View>
       </Modal>
       {/* Step 2: Add Child Features Modal (switches only) */}
-      <Modal visible={isAddChildModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddChildModalVisible(false)}>
+  <Modal visible={isAddChildModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddChildModalVisible(false)}>
         <View style={styles.modalContainer}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={styles.modalContent}>
-              <Text style={styles.title}>Add Task Features</Text>
+    <View style={[styles.modalContent, isDark && { backgroundColor: '#111827' }]}>
+      <Text style={[styles.title, isDark && { color: '#e5e7eb' }]}>{t('add')} Features</Text>
               {renderAddChildFields()}
               <View style={styles.buttonContainer}>
-                <PrimaryButton title="Save Features" onPress={handleAddChildFeatures} style={styles.actionBtn} />
-                <SecondaryButton title="Cancel" onPress={() => { setIsAddChildModalVisible(false); setNewTaskId(null); resetFormData(); }} style={styles.actionBtn} />
+                <PrimaryButton title={t('save') || 'Save'} onPress={handleAddChildFeatures} style={styles.actionBtn} />
+                <SecondaryButton title={t('cancel')} onPress={() => { setIsAddChildModalVisible(false); setNewTaskId(null); resetFormData(); }} style={styles.actionBtn} />
               </View>
             </View>
           </ScrollView>
         </View>
       </Modal>
       {/* Edit Modal: Form for editing an existing task */}
-      <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
+  <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <View style={styles.modalContainer}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={styles.modalContent}>
-              <Text style={styles.title}>Edit Task</Text>
+    <View style={[styles.modalContent, isDark && { backgroundColor: '#111827' }]}>
+      <Text style={[styles.title, isDark && { color: '#e5e7eb' }]}>{t('edit')} {t('tasks')}</Text>
               {renderAddTaskFields()}
               <View style={styles.buttonContainer}>
-                <PrimaryButton title="Update" onPress={handleUpdateTask} style={styles.actionBtn} />
-                <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
+                <PrimaryButton title={t('update')} onPress={handleUpdateTask} style={styles.actionBtn} />
+                <SecondaryButton title={t('cancel')} onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
               </View>
             </View>
           </ScrollView>

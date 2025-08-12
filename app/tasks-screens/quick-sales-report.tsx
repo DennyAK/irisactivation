@@ -5,6 +5,8 @@ import { Picker } from '@react-native-picker/picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 // Phase 4 UI integration
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useI18n } from '@/components/I18n';
+import { useEffectiveScheme } from '@/components/ThemePreference';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
@@ -21,6 +23,19 @@ import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 
 export default function QuickSalesReportScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    body: isDark ? '#0b1220' : palette.bg,
+    surface: isDark ? '#111827' : palette.surface,
+    surfaceAlt: isDark ? '#0f172a' : palette.surfaceAlt,
+    border: isDark ? '#1f2937' : palette.border,
+    text: isDark ? '#e5e7eb' : palette.text,
+    muted: isDark ? '#94a3b8' : palette.textMuted,
+    placeholder: isDark ? '#64748b' : '#9ca3af',
+  };
+  const inputCommonProps = isDark ? { placeholderTextColor: colors.placeholder as any } : {};
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [reports, setReports] = useState<any[]>([]);
@@ -242,30 +257,30 @@ export default function QuickSalesReportScreen() {
   const statusTone = getToneForQRStatus(status) as any;
     const isExpanded = !!expanded[item.id];
     return (
-      <View style={styles.card}>
+  <View style={[styles.card, isDark ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0 } : undefined]}>
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.cardTitle}>{item.outletName || '-'}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{item.outletName || '-'}</Text>
           <StatusPill label={status || '—'} tone={statusTone as any} />
         </View>
-        <Text style={styles.metaText}>Outlet ID: <Text style={styles.metaValue}>{item.outletId || '-'}</Text></Text>
-        <Text style={styles.metaText}>Date: <Text style={styles.metaValue}>{item.guardDate?.toDate ? item.guardDate.toDate().toLocaleDateString() : '-'}</Text></Text>
-        <Text style={styles.metaText}>Province: <Text style={styles.metaValue}>{item.outletProvince || '-'}</Text></Text>
-        <Text style={styles.metaText}>City: <Text style={styles.metaValue}>{item.outletCity || '-'}</Text></Text>
-        <Text style={styles.metaText}>Tier: <Text style={styles.metaValue}>{item.outletTier || '-'}</Text></Text>
-        <Text style={styles.metaText}>BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
-        <Text style={styles.metaText}>TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
-        <Text style={styles.metaText}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>Outlet ID: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletId || '-'}</Text></Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>Date: <Text style={[styles.metaValue, { color: colors.text }]}>{item.guardDate?.toDate ? item.guardDate.toDate().toLocaleDateString() : '-'}</Text></Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>Province: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletProvince || '-'}</Text></Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>City: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletCity || '-'}</Text></Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>Tier: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletTier || '-'}</Text></Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>TL: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToTL || '-'}</Text></Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>Created: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
         {isExpanded && (
           <View style={{ marginTop: spacing(3) }}>
-            <Text style={styles.metaText}>KEGS 330ml: <Text style={styles.metaValue}>{item.salesKegs330 || '-'}</Text></Text>
-            <Text style={styles.metaText}>KEGS 500ml: <Text style={styles.metaValue}>{item.salesKegs500 || '-'}</Text></Text>
-            <Text style={styles.metaText}>MD 500ml: <Text style={styles.metaValue}>{item.salesMd500 || '-'}</Text></Text>
-            <Text style={styles.metaText}>GDIC 400ml: <Text style={styles.metaValue}>{item.salesGdic400 || '-'}</Text></Text>
-            <Text style={styles.metaText}>Smooth Pint 330ml: <Text style={styles.metaValue}>{item.salesSmoothPint330 || '-'}</Text></Text>
-            <Text style={styles.metaText}>GFES Can 330ml: <Text style={styles.metaValue}>{item.salesGfesCan330 || '-'}</Text></Text>
-            <Text style={styles.metaText}>Restock: <Text style={styles.metaValue}>{item.productRestock ? 'Yes' : 'No'}</Text></Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>KEGS 330ml: <Text style={[styles.metaValue, { color: colors.text }]}>{item.salesKegs330 || '-'}</Text></Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>KEGS 500ml: <Text style={[styles.metaValue, { color: colors.text }]}>{item.salesKegs500 || '-'}</Text></Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>MD 500ml: <Text style={[styles.metaValue, { color: colors.text }]}>{item.salesMd500 || '-'}</Text></Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>GDIC 400ml: <Text style={[styles.metaValue, { color: colors.text }]}>{item.salesGdic400 || '-'}</Text></Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>Smooth Pint 330ml: <Text style={[styles.metaValue, { color: colors.text }]}>{item.salesSmoothPint330 || '-'}</Text></Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>GFES Can 330ml: <Text style={[styles.metaValue, { color: colors.text }]}>{item.salesGfesCan330 || '-'}</Text></Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>Restock: <Text style={[styles.metaValue, { color: colors.text }]}>{item.productRestock ? 'Yes' : 'No'}</Text></Text>
             {!!item.productRestockDescription && (
-              <Text style={styles.metaText}>Restock Desc: <Text style={styles.metaValue}>{item.productRestockDescription}</Text></Text>
+              <Text style={[styles.metaText, { color: colors.muted }]}>Restock Desc: <Text style={[styles.metaValue, { color: colors.text }]}>{item.productRestockDescription}</Text></Text>
             )}
           </View>
         )}
@@ -283,23 +298,23 @@ export default function QuickSalesReportScreen() {
             <SecondaryButton title="Edit" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
           )}
           {userRole === Roles.Superadmin && (
-            <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={styles.actionBtnDanger} />
+            <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={[styles.actionBtnDanger, isDark ? { backgroundColor: '#3f1d1d', borderColor: '#7f1d1d' } : {}]} />
           )}
           <View style={styles.iconActions}
           >
             <TouchableOpacity
               onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-              style={styles.iconButton}
+              style={[styles.iconButton, isDark ? { backgroundColor: '#1f2937' } : undefined]}
               accessibilityLabel={isExpanded ? 'Collapse row' : 'Expand row'}
             >
-              <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
+              <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color={scheme === 'dark' ? '#9CA3AF' : '#333'} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
-              style={styles.iconButton}
+              style={[styles.iconButton, isDark ? { backgroundColor: '#1f2937' } : undefined]}
               accessibilityLabel="Open details"
             >
-              <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
+              <Ionicons name="newspaper-outline" size={20} color={scheme === 'dark' ? '#60A5FA' : '#007AFF'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -310,81 +325,81 @@ export default function QuickSalesReportScreen() {
   const renderModal = () => (
     <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>{modalType === 'add' ? 'Add' : 'Edit'} Sales Report</Text>
+  <View style={[styles.modalContent, isDark ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border } : undefined]}>
+          <Text style={[styles.title, { color: colors.text }]}>{modalType === 'add' ? t('add') : t('edit')} {t('sales_report')}</Text>
           
-          <Text style={styles.sectionTitle}>Personnel Information</Text>
-          <Text>Assigned to BA: {formData.assignedToBA || '-'}</Text>
-          <Text>Assigned to TL: {formData.assignedToTL || '-'}</Text>
-          <Text style={styles.sectionTitle}>Outlet / Venue Details</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('personal_info')}</Text>
+          <Text style={{ color: colors.text }}>Assigned to BA: {formData.assignedToBA || '-'}</Text>
+          <Text style={{ color: colors.text }}>Assigned to TL: {formData.assignedToTL || '-'}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Outlet / Venue Details</Text>
 
-          <Text>Outlet ID: {formData.outletId || '-'}</Text>
-          <Text style={styles.itemTitle}>{formData.outletName} - {formData.guardDate ? formData.guardDate : '-'}</Text>
-          <Text>Province: {formData.outletProvince || '-'}</Text>
-          <Text>City: {formData.outletCity || '-'}</Text>
-          <Text>Outlet Tier: {formData.outletTier || '-'}</Text>
+          <Text style={{ color: colors.text }}>Outlet ID: {formData.outletId || '-'}</Text>
+          <Text style={[styles.itemTitle, { color: colors.text }]}>{formData.outletName} - {formData.guardDate ? formData.guardDate : '-'}</Text>
+          <Text style={{ color: colors.text }}>Province: {formData.outletProvince || '-'}</Text>
+          <Text style={{ color: colors.text }}>City: {formData.outletCity || '-'}</Text>
+          <Text style={{ color: colors.text }}>Outlet Tier: {formData.outletTier || '-'}</Text>
           
-          <Text style={styles.sectionTitle}>Guinness Selling Data</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Guinness Selling Data</Text>
           <View style={styles.rowInputs}>
             <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>KEGS (330ml) glass</Text>
-              <TextInput style={styles.input} value={formData.salesKegs330} onChangeText={text => setFormData({...formData, salesKegs330: text})} placeholder="KEGS (330ml) glass" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>KEGS (330ml) glass</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesKegs330} onChangeText={text => setFormData({...formData, salesKegs330: text})} placeholder="KEGS (330ml) glass" keyboardType="numeric" />
             </View>
             <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>KEGS (500ml) glass</Text>
-              <TextInput style={styles.input} value={formData.salesKegs500} onChangeText={text => setFormData({...formData, salesKegs500: text})} placeholder="KEGS (500ml) glass" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>KEGS (500ml) glass</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesKegs500} onChangeText={text => setFormData({...formData, salesKegs500: text})} placeholder="KEGS (500ml) glass" keyboardType="numeric" />
             </View>
           </View>
-          <Text style={styles.inputLabel}>MD (500ml) can</Text>
-          <TextInput style={styles.input} value={formData.salesMd500} onChangeText={text => setFormData({...formData, salesMd500: text})} placeholder="MD (500ml) can" keyboardType="numeric" />
-          <Text style={styles.inputLabel}>GDIC (400ml) can</Text>
-          <TextInput style={styles.input} value={formData.salesGdic400} onChangeText={text => setFormData({...formData, salesGdic400: text})} placeholder="GDIC (400ml) can" keyboardType="numeric" />
+          <Text style={[styles.inputLabel, { color: colors.muted }]}>MD (500ml) can</Text>
+          <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesMd500} onChangeText={text => setFormData({...formData, salesMd500: text})} placeholder="MD (500ml) can" keyboardType="numeric" />
+          <Text style={[styles.inputLabel, { color: colors.muted }]}>GDIC (400ml) can</Text>
+          <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesGdic400} onChangeText={text => setFormData({...formData, salesGdic400: text})} placeholder="GDIC (400ml) can" keyboardType="numeric" />
           <View style={styles.rowInputs}>
             <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>SMOOTH PINT 330ml</Text>
-              <TextInput style={styles.input} value={formData.salesSmoothPint330} onChangeText={text => setFormData({...formData, salesSmoothPint330: text})} placeholder="SMOOTH PINT 330ml" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>SMOOTH PINT 330ml</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesSmoothPint330} onChangeText={text => setFormData({...formData, salesSmoothPint330: text})} placeholder="SMOOTH PINT 330ml" keyboardType="numeric" />
             </View>
             <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>SMOOTH CAN 330ml</Text>
-              <TextInput style={styles.input} value={formData.salesSmoothCan330} onChangeText={text => setFormData({...formData, salesSmoothCan330: text})} placeholder="SMOOTH CAN 330ml" keyboardType="numeric" />
-            </View>
-          </View>
-          <View style={styles.rowInputs}>
-            <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>GFES PINT 330ml</Text>
-              <TextInput style={styles.input} value={formData.salesGfesPint330} onChangeText={text => setFormData({...formData, salesGfesPint330: text})} placeholder="GFES PINT 330ml" keyboardType="numeric" />
-            </View>
-            <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>GFES QUART 620ml</Text>
-              <TextInput style={styles.input} value={formData.salesGfesQuart620} onChangeText={text => setFormData({...formData, salesGfesQuart620: text})} placeholder="GFES QUART 620ml" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>SMOOTH CAN 330ml</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesSmoothCan330} onChangeText={text => setFormData({...formData, salesSmoothCan330: text})} placeholder="SMOOTH CAN 330ml" keyboardType="numeric" />
             </View>
           </View>
           <View style={styles.rowInputs}>
             <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>GFES CAN 330ml</Text>
-              <TextInput style={styles.input} value={formData.salesGfesCan330} onChangeText={text => setFormData({...formData, salesGfesCan330: text})} placeholder="GFES CAN 330ml" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>GFES PINT 330ml</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesGfesPint330} onChangeText={text => setFormData({...formData, salesGfesPint330: text})} placeholder="GFES PINT 330ml" keyboardType="numeric" />
             </View>
             <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>GFES CANBIG 500ml</Text>
-              <TextInput style={styles.input} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>GFES QUART 620ml</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesGfesQuart620} onChangeText={text => setFormData({...formData, salesGfesQuart620: text})} placeholder="GFES QUART 620ml" keyboardType="numeric" />
             </View>
           </View>
           <View style={styles.rowInputs}>
             <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>GFES CAN 330ml</Text>
-              <TextInput style={styles.input} value={formData.salesGfesCan330} onChangeText={text => setFormData({...formData, salesGfesCan330: text})} placeholder="GFES CAN 330ml" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>GFES CAN 330ml</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesGfesCan330} onChangeText={text => setFormData({...formData, salesGfesCan330: text})} placeholder="GFES CAN 330ml" keyboardType="numeric" />
             </View>
             <View style={{flex: 1, marginRight: 4}}>
-              <Text style={styles.inputLabel}>GFES CANBIG 500ml</Text>
-              <TextInput style={styles.input} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>GFES CANBIG 500ml</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
+            </View>
+          </View>
+          <View style={styles.rowInputs}>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>GFES CAN 330ml</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesGfesCan330} onChangeText={text => setFormData({...formData, salesGfesCan330: text})} placeholder="GFES CAN 330ml" keyboardType="numeric" />
+            </View>
+            <View style={{flex: 1, marginRight: 4}}>
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>GFES CANBIG 500ml</Text>
+              <TextInput {...inputCommonProps} style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]} value={formData.salesGfesCanbig500} onChangeText={text => setFormData({...formData, salesGfesCanbig500: text})} placeholder="GFES CANBIG 500ml" keyboardType="numeric" />
             </View>
           </View>
           {/* Admin-only: Quick Sales Report Status */}
           {(userRole === 'admin' || userRole === 'superadmin') && modalType === 'edit' && (
             <>
-              <Text style={styles.sectionTitle}>Status (Admin)</Text>
-              <Text style={styles.inputLabel}>Task Quick Sales Report Status</Text>
-              <View style={[styles.input, { padding: 0 }]}> 
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Status (Admin)</Text>
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>Task Quick Sales Report Status</Text>
+              <View style={[styles.input, { padding: 0 }, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border } : undefined]}> 
                 <Picker
                   selectedValue={formData.taskSalesReportQuickStatus}
                   onValueChange={(value) => setFormData({ ...formData, taskSalesReportQuickStatus: value as string })}
@@ -403,19 +418,20 @@ export default function QuickSalesReportScreen() {
               </View>
             </>
           )}
-          <Text style={styles.sectionTitle}>Restock Information</Text>
-          <View style={styles.switchContainer}><Text>Product Restock?</Text><Switch value={formData.productRestock} onValueChange={val => setFormData({...formData, productRestock: val})} /></View>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Restock Information</Text>
+          <View style={styles.switchContainer}><Text style={{ color: colors.text }}>Product Restock?</Text><Switch value={formData.productRestock} onValueChange={val => setFormData({...formData, productRestock: val})} /></View>
           {formData.productRestock && (
             <TextInput
-              style={styles.input}
+              {...inputCommonProps}
+              style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]}
               value={formData.productRestockDescription}
               onChangeText={text => setFormData({...formData, productRestockDescription: text})}
               placeholder="Restock Description"
             />
           )}
           <View style={styles.buttonContainer}>
-            <PrimaryButton title={modalType === 'add' ? 'Add' : 'Update'} onPress={handleFormSubmit} />
-            <SecondaryButton title="Cancel" onPress={() => setIsModalVisible(false)} />
+            <PrimaryButton title={modalType === 'add' ? t('add') : t('update')} onPress={handleFormSubmit} />
+            <SecondaryButton title={t('cancel')} onPress={() => setIsModalVisible(false)} />
           </View>
         </View>
       </ScrollView>
@@ -425,31 +441,31 @@ export default function QuickSalesReportScreen() {
   const renderAMReviewModal = () => (
     <Modal visible={isAMReviewModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAMReviewModalVisible(false)}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>QR Review by AM</Text>
-          <Text style={styles.sectionTitle}>Personnel Information</Text>
-          <Text>Assigned to BA: {selectedReport?.assignedToBA || '-'} </Text>
-          <Text>Assigned to TL: {selectedReport?.assignedToTL || '-'} </Text>
-          <Text style={styles.sectionTitle}>Outlet / Venue Details</Text>
-          <Text>Outlet ID: {selectedReport?.outletId || '-'} </Text>
-          <Text style={styles.itemTitle}>{selectedReport?.outletName} - {selectedReport?.guardDate?.toDate ? selectedReport.guardDate.toDate().toLocaleDateString() : '-'}</Text>
-          <Text>Province: {selectedReport?.outletProvince || '-'} </Text>
-          <Text>City: {selectedReport?.outletCity || '-'} </Text>
-          <Text>Outlet Tier: {selectedReport?.outletTier || '-'} </Text>
-          <Text style={styles.sectionTitle}>Guinness Selling Data</Text>
-          <Text>KEGS (330ml) glass: {selectedReport?.salesKegs330 || '-'}</Text>
-          <Text>KEGS (500ml) glass: {selectedReport?.salesKegs500 || '-'}</Text>
-          <Text>MD (500ml) can: {selectedReport?.salesMd500 || '-'}</Text>
-          <Text>GDIC (400ml) can: {selectedReport?.salesGdic400 || '-'}</Text>
-          <Text>SMOOTH PINT 330ml: {selectedReport?.salesSmoothPint330 || '-'}</Text>
-          <Text>SMOOTH CAN 330ml: {selectedReport?.salesSmoothCan330 || '-'}</Text>
-          <Text>GFES PINT 330ml: {selectedReport?.salesGfesPint330 || '-'}</Text>
-          <Text>GFES CAN 330ml: {selectedReport?.salesGfesCan330 || '-'}</Text>
-          <Text>GFES QUART 620ml: {selectedReport?.salesGfesQuart620 || '-'}</Text>
-          <Text>GFES CANBIG 500ml: {selectedReport?.salesGfesCanbig500 || '-'}</Text>
-          <Text style={styles.sectionTitle}>Restock Information</Text>
-          <Text>Product Restock: {selectedReport?.productRestock ? 'Yes' : 'No'}</Text>
-          <Text>Restock Description: {selectedReport?.productRestockDescription || '-'}</Text>
+  <View style={[styles.modalContent, isDark ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border } : undefined]}>
+          <Text style={[styles.title, { color: colors.text }]}>QR Review by AM</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Personnel Information</Text>
+          <Text style={{ color: colors.text }}>Assigned to BA: {selectedReport?.assignedToBA || '-'} </Text>
+          <Text style={{ color: colors.text }}>Assigned to TL: {selectedReport?.assignedToTL || '-'} </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Outlet / Venue Details</Text>
+          <Text style={{ color: colors.text }}>Outlet ID: {selectedReport?.outletId || '-'} </Text>
+          <Text style={[styles.itemTitle, { color: colors.text }]}>{selectedReport?.outletName} - {selectedReport?.guardDate?.toDate ? selectedReport.guardDate.toDate().toLocaleDateString() : '-'}</Text>
+          <Text style={{ color: colors.text }}>Province: {selectedReport?.outletProvince || '-'} </Text>
+          <Text style={{ color: colors.text }}>City: {selectedReport?.outletCity || '-'} </Text>
+          <Text style={{ color: colors.text }}>Outlet Tier: {selectedReport?.outletTier || '-'} </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Guinness Selling Data</Text>
+          <Text style={{ color: colors.text }}>KEGS (330ml) glass: {selectedReport?.salesKegs330 || '-'}</Text>
+          <Text style={{ color: colors.text }}>KEGS (500ml) glass: {selectedReport?.salesKegs500 || '-'}</Text>
+          <Text style={{ color: colors.text }}>MD (500ml) can: {selectedReport?.salesMd500 || '-'}</Text>
+          <Text style={{ color: colors.text }}>GDIC (400ml) can: {selectedReport?.salesGdic400 || '-'}</Text>
+          <Text style={{ color: colors.text }}>SMOOTH PINT 330ml: {selectedReport?.salesSmoothPint330 || '-'}</Text>
+          <Text style={{ color: colors.text }}>SMOOTH CAN 330ml: {selectedReport?.salesSmoothCan330 || '-'}</Text>
+          <Text style={{ color: colors.text }}>GFES PINT 330ml: {selectedReport?.salesGfesPint330 || '-'}</Text>
+          <Text style={{ color: colors.text }}>GFES CAN 330ml: {selectedReport?.salesGfesCan330 || '-'}</Text>
+          <Text style={{ color: colors.text }}>GFES QUART 620ml: {selectedReport?.salesGfesQuart620 || '-'}</Text>
+          <Text style={{ color: colors.text }}>GFES CANBIG 500ml: {selectedReport?.salesGfesCanbig500 || '-'}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Restock Information</Text>
+          <Text style={{ color: colors.text }}>Product Restock: {selectedReport?.productRestock ? 'Yes' : 'No'}</Text>
+          <Text style={{ color: colors.text }}>Restock Description: {selectedReport?.productRestockDescription || '-'}</Text>
           <View style={{ marginTop: 20 }}>
             <View style={{ marginBottom: 12 }}>
   <PrimaryButton title="Confirm QR Review by AM" onPress={async () => {
@@ -476,7 +492,7 @@ export default function QuickSalesReportScreen() {
               }} />
             </View>
             <View>
-              <SecondaryButton title="Cancel" onPress={() => setIsAMReviewModalVisible(false)} />
+              <SecondaryButton title={t('cancel')} onPress={() => setIsAMReviewModalVisible(false)} />
             </View>
           </View>
         </View>
@@ -485,13 +501,13 @@ export default function QuickSalesReportScreen() {
   );
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, isDark ? { backgroundColor: colors.body } : undefined]}>
       <FilterHeader
-        title="Quick Sales Report"
+        title={t('quick_sales_report')}
         search={search}
         status={statusFilter}
         statusOptions={QR_STATUS_OPTIONS}
-        placeholder="Search outlet or ID"
+        placeholder={t('search_placeholder') || 'Search outlet or ID'}
         storageKey="filters:qr"
   sortAsc={sortAsc}
   onToggleSort={() => setSortAsc(prev => !prev)}
@@ -521,11 +537,11 @@ export default function QuickSalesReportScreen() {
       <QuickSalesReportDetailsModal
         visible={detailsVisible}
         item={detailsItem}
-        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildQuickSalesReportText(detailsItem, 'text')); Alert.alert('Copied to clipboard'); } : undefined}
+  onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildQuickSalesReportText(detailsItem, 'text')); Alert.alert('Copied to clipboard'); } : undefined}
         onClose={() => setDetailsVisible(false)}
       />
-      {renderModal()}
-      {renderAMReviewModal()}
+  {renderModal()}
+  {renderAMReviewModal()}
     </View>
   );
 }

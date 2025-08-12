@@ -6,6 +6,8 @@ import { PrimaryButton } from './PrimaryButton';
 import { SecondaryButton } from './SecondaryButton';
 import ModalSheet from './ModalSheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffectiveScheme } from '../ThemePreference';
+import { useI18n } from '../I18n';
 
 export type Option = { label: string; value: string };
 
@@ -22,7 +24,10 @@ interface Props {
   onClear: () => void;
 }
 
-export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOptions, placeholder = 'Search...', storageKey, sortAsc, onToggleSort, onApply, onClear }) => {
+export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOptions, placeholder, storageKey, sortAsc, onToggleSort, onApply, onClear }) => {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(search);
   const [localStatus, setLocalStatus] = useState(status);
@@ -75,39 +80,40 @@ export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOpt
 
   return (
     <View style={styles.headerRow}>
-      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      <Text style={[styles.title, isDark && { color: '#e5e7eb' }]} numberOfLines={1}>{title}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {typeof sortAsc === 'boolean' && onToggleSort && (
           <SecondaryButton
-            title={sortAsc ? 'Oldest' : 'Newest'}
+            title={sortAsc ? (t('oldest') || 'Oldest') : (t('newest') || 'Newest')}
             onPress={onToggleSort}
             style={[styles.filterBtn, { marginRight: spacing(2) }]}
           />
         )}
         {active && (
-          <TouchableOpacity onPress={handleClear} style={styles.resetChip} accessibilityLabel="Reset filters">
-            <Text style={styles.resetChipText}>Reset</Text>
+          <TouchableOpacity onPress={handleClear} style={[styles.resetChip, isDark && { backgroundColor: '#0f172a' }]} accessibilityLabel="Reset filters">
+            <Text style={[styles.resetChipText, isDark && { color: '#e5e7eb' }]}>{t('reset') || 'Reset'}</Text>
           </TouchableOpacity>
         )}
         <SecondaryButton
-          title={active ? 'Filters • On' : 'Filters'}
+          title={active ? (t('filters_on') || 'Filters • On') : (t('filters') || 'Filters')}
           onPress={handleOpen}
           style={styles.filterBtn}
         />
       </View>
       <ModalSheet visible={open} onClose={() => setOpen(false)} maxHeightPct={0.6} scroll>
-        <Text style={styles.sheetTitle}>Filters</Text>
-        <Text style={styles.label}>Search</Text>
+        <Text style={[styles.sheetTitle, isDark && { color: '#e5e7eb' }]}>{t('filters') || 'Filters'}</Text>
+        <Text style={[styles.label, isDark && { color: '#94a3b8' }]}>{t('search') || 'Search'}</Text>
         <TextInput
           value={localSearch}
           onChangeText={setLocalSearch}
-          placeholder={placeholder}
-          style={styles.input}
+          placeholder={placeholder || t('search') || 'Search...'}
+          placeholderTextColor={isDark ? '#64748b' : undefined}
+          style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]}
         />
         {statusOptions && statusOptions.length > 0 && (
           <>
-            <Text style={[styles.label, { marginTop: spacing(3) }]}>Status</Text>
-            <View style={[styles.input, { padding: 0 }]}> 
+            <Text style={[styles.label, { marginTop: spacing(3) }, isDark && { color: '#94a3b8' }]}>{t('status') || 'Status'}</Text>
+            <View style={[styles.input, { padding: 0 }, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}> 
               <Picker selectedValue={localStatus} onValueChange={(v) => setLocalStatus(String(v))} style={{ height: 40 }}>
                 {statusOptions.map(opt => (
                   <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
@@ -117,8 +123,8 @@ export const FilterHeader: React.FC<Props> = ({ title, search, status, statusOpt
           </>
         )}
         <View style={{ flexDirection: 'row', marginTop: spacing(4) }}>
-          <PrimaryButton title="Apply" onPress={handleApply} style={{ marginRight: spacing(3) }} />
-          <SecondaryButton title="Clear" onPress={handleClear} />
+          <PrimaryButton title={t('apply') || 'Apply'} onPress={handleApply} style={{ marginRight: spacing(3) }} />
+          <SecondaryButton title={t('clear') || 'Clear'} onPress={handleClear} />
         </View>
       </ModalSheet>
     </View>

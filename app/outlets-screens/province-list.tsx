@@ -6,12 +6,27 @@ import { addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { provinces as provinceData } from '../../data/indonesian-regions';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useEffectiveScheme } from '@/components/ThemePreference';
+import { useI18n } from '@/components/I18n';
 import { compareByStringKey } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function ProvinceListScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    body: isDark ? '#0b1220' : palette.bg,
+    surface: isDark ? '#111827' : palette.surface,
+    surfaceAlt: isDark ? '#0f172a' : palette.surfaceAlt,
+    border: isDark ? '#1f2937' : palette.border,
+    text: isDark ? '#e5e7eb' : palette.text,
+    muted: isDark ? '#94a3b8' : palette.textMuted,
+    placeholder: isDark ? '#64748b' : '#9ca3af',
+  };
+  const inputCommonProps = isDark ? { placeholderTextColor: colors.placeholder as any } : {};
   // Add Province modal state
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [newProvinceName, setNewProvinceName] = useState('');
@@ -116,9 +131,9 @@ export default function ProvinceListScreen() {
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.body }]}>
       <FilterHeader
-        title="Indonesian Provinces"
+        title={t('provinces')}
         search={search}
         status={''}
         statusOptions={[]}
@@ -129,14 +144,14 @@ export default function ProvinceListScreen() {
         onClear={() => setSearch('')}
       />
       {isAdmin && (
-        <PrimaryButton title="Add Province" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />
+        <PrimaryButton title={`${t('add')} ${t('provinces')}`} onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />
       )}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { shadowOpacity: 0 } : {}]}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
           </View>
         )}
         contentContainerStyle={{ paddingBottom: spacing(30) }}
@@ -154,18 +169,19 @@ export default function ProvinceListScreen() {
 
       <Modal visible={isAddModalVisible} transparent animationType="fade" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Add Province</Text>
+          <View style={[styles.modalSheet, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('add')} {t('provinces')}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={newProvinceName}
               onChangeText={setNewProvinceName}
-              placeholder="Province Name"
+        placeholder={t('province')}
+              {...inputCommonProps}
             />
             <View style={styles.modalActions}>
-              <PrimaryButton title="Add" style={styles.flexBtn} onPress={async () => {
+        <PrimaryButton title={t('add')} style={styles.flexBtn} onPress={async () => {
                 if (newProvinceName.trim() === '') {
-                  Alert.alert('Invalid Name', 'Province name cannot be empty.');
+          Alert.alert('Invalid Name', `${t('province')} cannot be empty.`);
                   return;
                 }
                 try {
@@ -178,7 +194,7 @@ export default function ProvinceListScreen() {
                   Alert.alert('Error', 'Failed to add province.');
                 }
               }} />
-              <SecondaryButton title="Cancel" style={styles.flexBtn} onPress={() => { setIsAddModalVisible(false); setNewProvinceName(''); }} />
+  <SecondaryButton title={t('cancel')} style={styles.flexBtn} onPress={() => { setIsAddModalVisible(false); setNewProvinceName(''); }} />
             </View>
           </View>
         </ScrollView>

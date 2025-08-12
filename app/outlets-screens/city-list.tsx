@@ -6,12 +6,25 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { Picker } from '@react-native-picker/picker';
 import { provinces as provinceData, citiesAndRegencies } from '../../data/indonesian-regions';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useEffectiveScheme } from '@/components/ThemePreference';
+import { useI18n } from '@/components/I18n';
 import { compareByStringKey } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function CityListScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    body: isDark ? '#0b1220' : palette.bg,
+    surface: isDark ? '#111827' : palette.surface,
+    surfaceAlt: isDark ? '#0f172a' : palette.surfaceAlt,
+    border: isDark ? '#1f2937' : palette.border,
+    text: isDark ? '#e5e7eb' : palette.text,
+    muted: isDark ? '#94a3b8' : palette.textMuted,
+  };
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [cities, setCities] = useState<any[]>([]);
@@ -146,9 +159,9 @@ export default function CityListScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.body }]}>
       <FilterHeader
-        title="Indonesian Cities & Regencies"
+        title={t('cities')}
         search={search}
         status={''}
         statusOptions={[]}
@@ -158,12 +171,12 @@ export default function CityListScreen() {
         onApply={({ search: s }) => setSearch(s)}
         onClear={() => setSearch('')}
       />
-      <View style={styles.pickerWrapper}>
+  <View style={[styles.pickerWrapper, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { shadowOpacity: 0 } : {}]}>
         <Picker
           selectedValue={selectedProvince}
           onValueChange={(itemValue) => handleProvinceChange(itemValue)}
         >
-          <Picker.Item label="Select a Province" value={null} />
+          <Picker.Item label={t('province')} value={null} />
           {provinces.map(province => (
             <Picker.Item key={province.id} label={province.name} value={province.id} />
           ))}
@@ -171,8 +184,8 @@ export default function CityListScreen() {
       </View>
       {isAdmin && (
         <View style={styles.actionsRow}>
-          <SecondaryButton title="Populate Cities" onPress={handlePopulateCities} style={styles.flexBtn} />
-          <SecondaryButton title="Clear All" onPress={handleClearCities} style={styles.flexBtn} />
+          <SecondaryButton title={`${t('add')} ${t('cities')}`} onPress={handlePopulateCities} style={styles.flexBtn} />
+          <SecondaryButton title={t('clear') || 'Clear'} onPress={handleClearCities} style={styles.flexBtn} />
         </View>
       )}
     {loadingCities ? (
@@ -182,8 +195,8 @@ export default function CityListScreen() {
       data={visibleCities}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{item.name}</Text>
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { shadowOpacity: 0 } : {}]}>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
             </View>
           )}
           contentContainerStyle={{ paddingBottom: spacing(30) }}
@@ -199,7 +212,7 @@ export default function CityListScreen() {
           }
         />
       ) : (
-        <Text style={styles.infoText}>
+        <Text style={[styles.infoText, { color: colors.muted }]}>
           {selectedProvince ? 'No cities found for this province.' : 'Please select a province to view the list of cities.'}
         </Text>
       )}

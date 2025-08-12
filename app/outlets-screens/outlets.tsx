@@ -7,6 +7,8 @@ import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useEffectiveScheme } from '@/components/ThemePreference';
+import { useI18n } from '@/components/I18n';
 import { compareCreatedAt } from '../../utils/sort';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
@@ -14,6 +16,19 @@ import StatusPill from '../../components/ui/StatusPill';
 import FilterHeader from '../../components/ui/FilterHeader';
 
 export default function OutletsScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    body: isDark ? '#0b1220' : palette.bg,
+    surface: isDark ? '#111827' : palette.surface,
+    surfaceAlt: isDark ? '#0f172a' : palette.surfaceAlt,
+    border: isDark ? '#1f2937' : palette.border,
+    text: isDark ? '#e5e7eb' : palette.text,
+    muted: isDark ? '#94a3b8' : palette.textMuted,
+    placeholder: isDark ? '#64748b' : '#9ca3af',
+  };
+  const inputCommonProps = isDark ? { placeholderTextColor: colors.placeholder as any } : {};
   const router = useRouter();
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
@@ -268,23 +283,23 @@ export default function OutletsScreen() {
   };
 
   const renderOutlet = ({ item }: { item: any }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { shadowOpacity: 0 } : {}]}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.outletName}</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{item.outletName}</Text>
       </View>
       <View style={styles.metaRow}>
         {!!item.outletChannel && <StatusPill label={item.outletChannel} tone={channelTone(item.outletChannel)} style={styles.pill} />}
         {!!item.outletTier && <StatusPill label={item.outletTier} tone="warning" style={styles.pill} />}
       </View>
-      <Text style={styles.metaText}>Province: <Text style={styles.metaStrong}>{item.provinceName || '-'}</Text></Text>
-      <Text style={styles.metaText}>Address: <Text style={styles.metaStrong}>{item.outletCompleteAddress || '-'}, {item.cityName || '-'}, {item.provinceName || '-'}</Text></Text>
-      <Text style={styles.metaText}>Contact: <Text style={styles.metaStrong}>{item.outletContactNo || '-'}</Text></Text>
-      <Text style={styles.metaText}>PIC: <Text style={styles.metaStrong}>{item.outletPicName || '-'} ({item.outletPicContactNumber || '-'})</Text></Text>
-      {!!item.outletSocialMedia && <Text style={styles.metaText}>Social: <Text style={styles.metaStrong}>{item.outletSocialMedia}</Text></Text>}
-      <Text style={styles.coords}>Coords: {item.latitude}, {item.longitude}</Text>
+      <Text style={[styles.metaText, { color: colors.muted }]}>Province: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.provinceName || '-'}</Text></Text>
+      <Text style={[styles.metaText, { color: colors.muted }]}>Address: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletCompleteAddress || '-'}, {item.cityName || '-'}, {item.provinceName || '-'}</Text></Text>
+      <Text style={[styles.metaText, { color: colors.muted }]}>Contact: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletContactNo || '-'}</Text></Text>
+      <Text style={[styles.metaText, { color: colors.muted }]}>PIC: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletPicName || '-'} ({item.outletPicContactNumber || '-'})</Text></Text>
+      {!!item.outletSocialMedia && <Text style={[styles.metaText, { color: colors.muted }]}>Social: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletSocialMedia}</Text></Text>}
+      <Text style={[styles.coords, { color: colors.muted }]}>Coords: {item.latitude}, {item.longitude}</Text>
       <View style={styles.actionsRow}>
         <SecondaryButton
-          title="History"
+          title={t('history')}
           onPress={() => {
             const url = `/outlets-screens/outlet-history?outletId=${encodeURIComponent(item.id)}&outletName=${encodeURIComponent(item.outletName || '')}`;
             router.push(url as any);
@@ -297,10 +312,10 @@ export default function OutletsScreen() {
           />
         )}
         {canCreateOrEdit && (
-          <SecondaryButton title="Edit" onPress={() => handleEditOutlet(item)} />
+          <SecondaryButton title={t('edit')} onPress={() => handleEditOutlet(item)} />
         )}
   {canDeleteOutlet && (
-          <SecondaryButton title="Delete" onPress={() => handleDeleteOutlet(item.id)} style={styles.dangerBtn} />
+          <SecondaryButton title={t('delete')} onPress={() => handleDeleteOutlet(item.id)} style={styles.dangerBtn} />
         )}
       </View>
     </View>
@@ -310,7 +325,7 @@ export default function OutletsScreen() {
   
   const renderModalFields = () => (
     <>
-      <TextInput style={styles.input} value={formData.outletName} onChangeText={(text) => setFormData({...formData, outletName: text})} placeholder="Outlet Name" />
+      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletName} onChangeText={(text) => setFormData({...formData, outletName: text})} placeholder="Outlet Name" {...inputCommonProps} />
       <Picker
         selectedValue={formData.outletProvince}
         onValueChange={(itemValue) => setFormData({...formData, outletProvince: itemValue, outletCity: ''})}
@@ -321,7 +336,7 @@ export default function OutletsScreen() {
         ))}
       </Picker>
       {/* Province display (read-only, based on selected province) */}
-      <Text style={styles.input}>
+  <Text style={[styles.input, { backgroundColor: 'transparent', borderColor: 'transparent', color: colors.text }]}>
         Province: {(() => {
           const selectedProvince = provinces.find(p => p.id === formData.outletProvince);
           return selectedProvince?.name || '-';
@@ -362,24 +377,24 @@ export default function OutletsScreen() {
         <Picker.Item label="4 (smooth&gfes)" value="4(smooth&gfes)" />
       </Picker>
 
-      <TextInput style={styles.input} value={formData.outletCompleteAddress} onChangeText={(text) => setFormData({...formData, outletCompleteAddress: text})} placeholder="Complete Address" />
-      <TextInput style={styles.input} value={formData.outletContactNo} onChangeText={(text) => setFormData({...formData, outletContactNo: text})} placeholder="Contact Number" />
-      <TextInput style={styles.input} value={formData.outletPicName} onChangeText={(text) => setFormData({...formData, outletPicName: text})} placeholder="PIC Name" />
-      <TextInput style={styles.input} value={formData.outletPicContactNumber} onChangeText={(text) => setFormData({...formData, outletPicContactNumber: text})} placeholder="PIC Contact Number" />
-      <TextInput style={styles.input} value={formData.outletSocialMedia} onChangeText={(text) => setFormData({...formData, outletSocialMedia: text})} placeholder="Social Media" />
-      <TextInput style={styles.input} value={formData.outletCapacity} onChangeText={(text) => setFormData({...formData, outletCapacity: text})} placeholder="Capacity (Person)" keyboardType='numeric' />
-      <TextInput style={styles.input} value={formData.outletNoOfTableAVailable} onChangeText={(text) => setFormData({...formData, outletNoOfTableAVailable: text})} placeholder="No. of Tables Available (tables)" keyboardType='numeric'/>
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletCompleteAddress} onChangeText={(text) => setFormData({...formData, outletCompleteAddress: text})} placeholder="Complete Address" {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletContactNo} onChangeText={(text) => setFormData({...formData, outletContactNo: text})} placeholder="Contact Number" {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletPicName} onChangeText={(text) => setFormData({...formData, outletPicName: text})} placeholder="PIC Name" {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletPicContactNumber} onChangeText={(text) => setFormData({...formData, outletPicContactNumber: text})} placeholder="PIC Contact Number" {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletSocialMedia} onChangeText={(text) => setFormData({...formData, outletSocialMedia: text})} placeholder="Social Media" {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletCapacity} onChangeText={(text) => setFormData({...formData, outletCapacity: text})} placeholder="Capacity (Person)" keyboardType='numeric' {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletNoOfTableAVailable} onChangeText={(text) => setFormData({...formData, outletNoOfTableAVailable: text})} placeholder="No. of Tables Available (tables)" keyboardType='numeric' {...inputCommonProps}/>
 
   <SecondaryButton title="Get Current Location" onPress={getLocation} />
-      <TextInput style={styles.input} value={formData.latitude} onChangeText={(text) => setFormData({...formData, latitude: text})} placeholder="Latitude" />
-      <TextInput style={styles.input} value={formData.longitude} onChangeText={(text) => setFormData({...formData, longitude: text})} placeholder="Longitude" />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.latitude} onChangeText={(text) => setFormData({...formData, latitude: text})} placeholder="Latitude" {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.longitude} onChangeText={(text) => setFormData({...formData, longitude: text})} placeholder="Longitude" {...inputCommonProps} />
     </>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.body }]}>
       <FilterHeader
-        title="Outlets"
+        title={t('outlets')}
         search={search}
         status={status}
         statusOptions={[]}
@@ -390,7 +405,7 @@ export default function OutletsScreen() {
         onClear={() => { setSearch(''); setStatus(''); }}
       />
       {canCreateOrEdit && (
-        <PrimaryButton title="Add New Outlet" onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />
+        <PrimaryButton title={`${t('add')} ${t('outlets')}`} onPress={() => setIsAddModalVisible(true)} style={styles.addBtn} />
       )}
       <FlatList
         data={filteredOutlets}
@@ -412,12 +427,12 @@ export default function OutletsScreen() {
       {/* Add Modal */}
       <Modal visible={isAddModalVisible} transparent animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Add New Outlet</Text>
+          <View style={[styles.modalSheet, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('add')} {t('outlets')}</Text>
             {renderModalFields()}
             <View style={styles.modalActions}>
-              <PrimaryButton title="Add" onPress={handleAddOutlet} style={styles.flexBtn} />
-              <SecondaryButton title="Cancel" onPress={() => setIsAddModalVisible(false)} style={styles.flexBtn} />
+              <PrimaryButton title={t('add')} onPress={handleAddOutlet} style={styles.flexBtn} />
+              <SecondaryButton title={t('cancel')} onPress={() => setIsAddModalVisible(false)} style={styles.flexBtn} />
             </View>
           </View>
         </ScrollView>
@@ -426,12 +441,12 @@ export default function OutletsScreen() {
       {/* Edit Modal */}
       <Modal visible={isEditModalVisible} transparent animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Edit Outlet</Text>
+          <View style={[styles.modalSheet, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('edit')} {t('outlets')}</Text>
             {renderModalFields()}
             <View style={styles.modalActions}>
-              <PrimaryButton title="Update" onPress={handleUpdateOutlet} style={styles.flexBtn} />
-              <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.flexBtn} />
+              <PrimaryButton title={t('update')} onPress={handleUpdateOutlet} style={styles.flexBtn} />
+              <SecondaryButton title={t('cancel')} onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.flexBtn} />
             </View>
           </View>
         </ScrollView>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, StyleSheet, ViewStyle, TouchableWithoutFeedback, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { palette, radius, spacing, shadow } from '../../constants/Design';
+import { useEffectiveScheme } from '../ThemePreference';
 
 interface Props {
   visible: boolean;
@@ -11,13 +12,15 @@ interface Props {
 }
 
 export const ModalSheet: React.FC<Props> = ({ visible, onClose, children, maxHeightPct = 0.8, scroll }) => {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.backdrop} />
       </TouchableWithoutFeedback>
   <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <View style={[styles.sheet, { maxHeight: `${maxHeightPct * 100}%` }]}>          
+        <View style={[styles.sheet, { maxHeight: `${maxHeightPct * 100}%` }, isDark && { backgroundColor: '#111827', borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }]}>          
           {scroll ? (
             <ScrollView contentContainerStyle={{ paddingBottom: spacing(4) }} showsVerticalScrollIndicator={false}>
               {children}

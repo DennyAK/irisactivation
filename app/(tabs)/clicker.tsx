@@ -13,6 +13,8 @@ import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flat
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { trackEvent } from '../../components/analytics';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 
 type ClickVar = { id: string; name: string; count: number };
 
@@ -44,6 +46,9 @@ const defaults: ClickVar[] = [
 ];
 
 export default function ClickerScreen() {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const [items, setItems] = useState<ClickVar[]>(defaults);
   const [newName, setNewName] = useState('');
   const [hydrated, setHydrated] = useState(false);
@@ -427,10 +432,10 @@ export default function ClickerScreen() {
 
   const footer = (
     <View style={{ paddingTop: spacing(1), paddingBottom: Math.max(insets.bottom, spacing(6)) }}>
-      <View style={[styles.settingsCard, { padding: spacing(3) }]}> 
-        <Text style={[styles.settingsTitle, { marginBottom: spacing(2) }]}>Clicker Setting</Text>
+      <View style={[styles.settingsCard, { padding: spacing(3) }, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}> 
+        <Text style={[styles.settingsTitle, { marginBottom: spacing(2) }, isDark && { color: '#e5e7eb' }]}>{t('clicker_settings') || 'Clicker Setting'}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(1.5) }}>
-          <Text style={{ color: palette.text, fontWeight: '600' }}>Haptics</Text>
+          <Text style={{ color: isDark ? '#cbd5e1' : palette.text, fontWeight: '600' }}>{t('haptics') || 'Haptics'}</Text>
           <Switch
             value={hapticsOn}
             onValueChange={setHapticsOn}
@@ -439,7 +444,7 @@ export default function ClickerScreen() {
           />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(1.5) }}>
-          <Text style={{ color: palette.text, fontWeight: '600' }}>Step</Text>
+          <Text style={{ color: isDark ? '#cbd5e1' : palette.text, fontWeight: '600' }}>{t('step') || 'Step'}</Text>
           <View style={{ flexDirection: 'row', gap: spacing(1) as any }}>
             <TouchableOpacity onPress={() => setStepSize(1)} style={[styles.stepChip, stepSize === 1 && styles.stepChipActive]}>
               <Text style={[styles.stepChipText, stepSize === 1 && styles.stepChipTextActive]}>x1</Text>
@@ -454,20 +459,20 @@ export default function ClickerScreen() {
         </View>
         <View style={{ flexDirection: 'row', gap: spacing(1) as any, marginBottom: spacing(1.5), alignItems: 'stretch' }}>
           <View style={{ flex: 1 }}>
-            <SecondaryButton compact title="Share" onPress={shareSummary} />
+            <SecondaryButton compact title={t('share') || 'Share'} onPress={shareSummary} />
           </View>
           <View style={{ flex: 2, flexDirection: 'row', justifyContent: 'flex-end', gap: spacing(1) as any }}>
-            <SecondaryButton compact title="Import" onPress={importClickerFromClipboard} />
-            <SecondaryButton compact title="Export" onPress={exportClickerJSON} />
-            <SecondaryButton compact title="Copy" onPress={copySummary} />
+            <SecondaryButton compact title={t('import') || 'Import'} onPress={importClickerFromClipboard} />
+            <SecondaryButton compact title={t('export') || 'Export'} onPress={exportClickerJSON} />
+            <SecondaryButton compact title={t('copy') || 'Copy'} onPress={copySummary} />
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: spacing(1) as any }}>
           <View style={{ flex: 1 }}>
-            <SecondaryButton title="Clear" onPress={clearCounts} />
+            <SecondaryButton title={t('clear') || 'Clear'} onPress={clearCounts} />
           </View>
           <View style={{ flex: 2 }}>
-            <PrimaryButton title="Reset" onPress={resetAll} />
+            <PrimaryButton title={t('reset') || 'Reset'} onPress={resetAll} />
           </View>
         </View>
       </View>
@@ -475,15 +480,15 @@ export default function ClickerScreen() {
   );
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <GestureHandlerRootView style={[styles.container, { backgroundColor: isDark ? '#0b1220' : palette.bg }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Clicker</Text>
+        <Text style={[styles.header, isDark && { color: '#e5e7eb' }]}>{t('clicker') || 'Clicker'}</Text>
         <TextInput
-          placeholder="New variable..."
-          placeholderTextColor={palette.textMuted}
+          placeholder={t('new_variable') || 'New variable...'}
+          placeholderTextColor={isDark ? '#64748b' : palette.textMuted}
           value={newName}
           onChangeText={setNewName}
-          style={[styles.input, styles.headerInput]}
+          style={[styles.input, styles.headerInput, isDark && { backgroundColor: '#111827', borderColor: '#1f2937', color: '#e5e7eb' }]}
         />
         <TouchableOpacity
           onPress={addItem}
@@ -508,14 +513,14 @@ export default function ClickerScreen() {
       />
 
       <ModalSheet visible={!!renameFor} onClose={() => setRenameFor(null)}>
-        <Text style={styles.renameTitle}>Rename variable</Text>
+        <Text style={[styles.renameTitle, isDark && { color: '#e5e7eb' }]}>{t('rename_variable') || 'Rename variable'}</Text>
         <TextInput
           ref={renameInputRef}
           value={renameText}
           onChangeText={setRenameText}
-          placeholder="New name"
-          placeholderTextColor={palette.textMuted}
-          style={[styles.input, { marginBottom: spacing(2) }]}
+          placeholder={t('new_name') || 'New name'}
+          placeholderTextColor={isDark ? '#64748b' : palette.textMuted}
+          style={[styles.input, { marginBottom: spacing(2) }, isDark && { backgroundColor: '#111827', borderColor: '#1f2937', color: '#e5e7eb' }]}
           autoFocus
           onFocus={() => {
             // Select all once on initial focus; do not force selection on every render
@@ -531,11 +536,11 @@ export default function ClickerScreen() {
           onSubmitEditing={applyRename}
         />
         <View style={{ flexDirection: 'row', gap: spacing(2) as any }}>
-          <TouchableOpacity style={[styles.smallBtn, { backgroundColor: palette.surface }]} onPress={() => setRenameFor(null)}>
-            <Text style={{ color: palette.text }}>Cancel</Text>
+          <TouchableOpacity style={[styles.smallBtn, { backgroundColor: isDark ? '#111827' : palette.surface }]} onPress={() => setRenameFor(null)}>
+            <Text style={{ color: isDark ? '#e5e7eb' : palette.text }}>{t('cancel') || 'Cancel'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.smallBtn, { backgroundColor: palette.primary }]} onPress={applyRename}>
-            <Text style={{ color: '#fff' }}>Save</Text>
+            <Text style={{ color: '#fff' }}>{t('save') || 'Save'}</Text>
           </TouchableOpacity>
         </View>
       </ModalSheet>

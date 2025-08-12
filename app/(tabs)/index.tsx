@@ -15,8 +15,13 @@ import { FormField } from '../../components/ui/FormField';
 import { AvatarPicker } from '../../components/ui/AvatarPicker';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { InfoRow } from '../../components/ui/InfoRow';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 
 export default function TabOneScreen() {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const router = useRouter();
   const [latestRoleRequest, setLatestRoleRequest] = useState<any>(null);
   const [isRoleRequestModalVisible, setIsRoleRequestModalVisible] = useState(false);
@@ -124,15 +129,15 @@ export default function TabOneScreen() {
 
   if (!user) {
     return (
-      <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#f5f7fa', padding: 24}}>
-        <Text style={{color:'#555', marginBottom: 12}}>Please log in to see your profile.</Text>
-        <PrimaryButton title="Go to Login" onPress={() => router.replace('/login')} />
+      <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor: isDark ? '#0b1220' : palette.bg, padding: 24}}>
+        <Text style={{color: isDark ? '#cbd5e1' : '#555', marginBottom: 12}}>{t('login_required') || 'Please log in to see your profile.'}</Text>
+        <PrimaryButton title={t('go_to_login') || 'Go to Login'} onPress={() => router.replace('/login')} />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.bg} contentContainerStyle={{ paddingBottom: spacing(20) }}>
+  <ScrollView style={[styles.bg, { backgroundColor: isDark ? '#0b1220' : palette.bg }]} contentContainerStyle={{ paddingBottom: spacing(20) }}>
       <Ionicons
         name="information-circle-outline"
         size={30}
@@ -140,66 +145,66 @@ export default function TabOneScreen() {
         style={styles.infoIcon}
         onPress={() => router.push('/modal')}
       />
-      <View style={styles.profileCard}>
+  <View style={[styles.profileCard, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }] }>
         <View style={styles.avatarWrapper}>
           <AvatarPicker uri={image} onChange={handleAvatarChange} />
         </View>
-        <Text style={styles.profileName}>
+  <Text style={[styles.profileName, isDark && { color: '#e5e7eb' }]}>
           {(formData.firstName || '').trim() || 'First Name'} {(formData.lastName || '').trim()}
         </Text>
-        <Text style={styles.profileEmail}>{user.email}</Text>
+  <Text style={[styles.profileEmail, isDark && { color: '#94a3b8' }]}>{user.email}</Text>
         <View style={styles.roleRow}>
           <StatusPill label={user.role} tone={user.role === 'guest' ? 'neutral' : 'primary'} />
           {user.role === 'guest' && (
             <TouchableOpacity style={styles.roleRequestBtn} onPress={() => setIsRoleRequestModalVisible(true)}>
               <Ionicons name="add-circle-outline" size={16} color={palette.primary} />
-              <Text style={styles.roleRequestBtnText}>Request Role</Text>
+              <Text style={[styles.roleRequestBtnText, isDark && { color: palette.primary }]}>{t('request_role') || 'Request Role'}</Text>
             </TouchableOpacity>
           )}
         </View>
         {latestRoleRequest && (
-          <View style={styles.statusCard}>
+          <View style={[styles.statusCard, isDark && { backgroundColor: '#0b1220' }] }>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing(2) }}>
-              <Text style={styles.statusTitle}>Role Request</Text>
+              <Text style={[styles.statusTitle, isDark && { color: '#93c5fd' }]}>{t('role_request') || 'Role Request'}</Text>
               <StatusPill
                 label={latestRoleRequest.status}
                 tone={latestRoleRequest.status === 'approved' ? 'success' : latestRoleRequest.status === 'rejected' ? 'danger' : 'info'}
                 style={{ marginLeft: spacing(2) }}
               />
             </View>
-            <Text style={styles.statusText}>Requested: {latestRoleRequest.requestedRole}</Text>
+            <Text style={[styles.statusText, isDark && { color: '#cbd5e1' }]}>{(t('requested') || 'Requested') + ': '} {latestRoleRequest.requestedRole}</Text>
             {latestRoleRequest.reason ? (
-              <Text style={styles.statusText}>Reason: {latestRoleRequest.reason}</Text>
+              <Text style={[styles.statusText, isDark && { color: '#cbd5e1' }]}>{(t('reason') || 'Reason') + ': '} {latestRoleRequest.reason}</Text>
             ) : null}
           </View>
         )}
         <TouchableOpacity style={styles.editBtn} onPress={() => setIsModalVisible(true)}>
           <Ionicons name="create-outline" size={18} color="#fff" />
-          <Text style={styles.editBtnText}>Edit Profile</Text>
+          <Text style={styles.editBtnText}>{t('edit_profile') || 'Edit Profile'}</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>Personal Info</Text>
-        <InfoRow label="First Name" value={formData.firstName} />
-        <InfoRow label="Last Name" value={formData.lastName} />
-        <InfoRow label="Phone" value={formData.phone} />
-        <InfoRow label="Province" value={formData.province} />
-        <InfoRow label="City" value={formData.city} />
-        <InfoRow label="Email" value={user.email} />
+      <View style={[styles.infoSection, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }] }>
+        <Text style={[styles.sectionTitle, isDark && { color: '#e5e7eb' }]}>{t('personal_info') || 'Personal Info'}</Text>
+        <InfoRow label={t('first_name') || 'First Name'} value={formData.firstName} />
+        <InfoRow label={t('last_name') || 'Last Name'} value={formData.lastName} />
+        <InfoRow label={t('phone') || 'Phone'} value={formData.phone} />
+        <InfoRow label={t('province') || 'Province'} value={formData.province} />
+        <InfoRow label={t('city') || 'City'} value={formData.city} />
+        <InfoRow label={t('email') || 'Email'} value={user.email} />
       </View>
 
       {/* Role Request Sheet */}
       <ModalSheet visible={isRoleRequestModalVisible} onClose={() => setIsRoleRequestModalVisible(false)} scroll>
-        <Text style={styles.sheetTitle}>Request New Role</Text>
-        <Text style={styles.sheetLabel}>Select Role</Text>
+        <Text style={[styles.sheetTitle, isDark && { color: '#e5e7eb' }]}>{t('request_new_role') || 'Request New Role'}</Text>
+        <Text style={[styles.sheetLabel, isDark && { color: '#cbd5e1' }]}>{t('select_role') || 'Select Role'}</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={requestedRole}
             onValueChange={(itemValue) => setRequestedRole(itemValue)}
             style={{ height: 50 }}
           >
-            <Picker.Item label="Select a role..." value="" />
+            <Picker.Item label={t('select_role_placeholder') || 'Select a role...'} value="" />
             <Picker.Item label="admin" value="admin" />
             <Picker.Item label="area manager" value="area manager" />
             <Picker.Item label="Iris - TL" value="Iris - TL" />
@@ -207,22 +212,22 @@ export default function TabOneScreen() {
             <Picker.Item label="guest" value="guest" />
           </Picker>
         </View>
-        <Text style={styles.sheetLabel}>Reason</Text>
+        <Text style={[styles.sheetLabel, isDark && { color: '#cbd5e1' }]}>{t('reason') || 'Reason'}</Text>
         <TextInput
           style={[styles.multiInput]}
           value={roleReason}
           onChangeText={setRoleReason}
-          placeholder="Why do you need this role?"
+          placeholder={t('role_reason_placeholder') || 'Why do you need this role?'}
           multiline
           numberOfLines={4}
           textAlignVertical="top"
         />
         <View style={styles.sheetButtons}>
           <PrimaryButton
-            title="Submit"
+            title={t('submit') || 'Submit'}
             onPress={async () => {
               if (!requestedRole) {
-                Alert.alert('Error', 'Please select a role to request.');
+                Alert.alert(t('error') || 'Error', t('select_role_error') || 'Please select a role to request.');
                 return;
               }
               try {
@@ -238,24 +243,24 @@ export default function TabOneScreen() {
                 const { db } = await import('../../firebaseConfig');
                 const { collection, addDoc } = await import('firebase/firestore');
                 await addDoc(collection(db, 'role_requests'), roleRequestDoc);
-                Alert.alert('Request Sent', 'Your request for a new role has been submitted.');
+                Alert.alert(t('request_sent') || 'Request Sent', t('request_submitted') || 'Your request for a new role has been submitted.');
                 setIsRoleRequestModalVisible(false);
                 setRequestedRole('');
                 setRoleReason('');
               } catch (error: any) {
-                Alert.alert('Error', error.message);
+                Alert.alert(t('error') || 'Error', error.message);
               }
             }}
           />
-          <SecondaryButton title="Cancel" onPress={() => setIsRoleRequestModalVisible(false)} />
+          <SecondaryButton title={t('cancel') || 'Cancel'} onPress={() => setIsRoleRequestModalVisible(false)} />
         </View>
       </ModalSheet>
       {/* Edit Profile Sheet */}
       <ModalSheet visible={isModalVisible} onClose={() => setIsModalVisible(false)} scroll>
-        <Text style={styles.sheetTitle}>Edit Profile</Text>
-        <FormField label="First Name" value={formData.firstName} setValue={(v)=> setFormData({...formData, firstName: v})} placeholder="First Name" icon="person-outline" />
-        <FormField label="Last Name" value={formData.lastName} setValue={(v)=> setFormData({...formData, lastName: v})} placeholder="Last Name" icon="person-outline" />
-        <Text style={styles.sheetLabel}>Phone (Indonesia)</Text>
+        <Text style={[styles.sheetTitle, isDark && { color: '#e5e7eb' }]}>{t('edit_profile') || 'Edit Profile'}</Text>
+        <FormField label={t('first_name') || 'First Name'} value={formData.firstName} setValue={(v)=> setFormData({...formData, firstName: v})} placeholder={t('first_name') || 'First Name'} icon="person-outline" />
+        <FormField label={t('last_name') || 'Last Name'} value={formData.lastName} setValue={(v)=> setFormData({...formData, lastName: v})} placeholder={t('last_name') || 'Last Name'} icon="person-outline" />
+        <Text style={[styles.sheetLabel, isDark && { color: '#cbd5e1' }]}>{t('phone_id') || 'Phone (Indonesia)'}</Text>
         <View style={styles.phoneWrapper}>
           <Text style={styles.phonePrefix}>+62</Text>
           <TextInput
@@ -270,22 +275,22 @@ export default function TabOneScreen() {
             maxLength={13}
           />
         </View>
-        <Text style={styles.helper}>Format: +6281234567890 (Indonesia)</Text>
-        <FormField label="Province" value={formData.province} setValue={(v)=> setFormData({...formData, province: v})} placeholder="Province" icon="earth-outline" />
-        <FormField label="City" value={formData.city} setValue={(v)=> setFormData({...formData, city: v})} placeholder="City" icon="map-outline" />
+        <Text style={[styles.helper, isDark && { color: '#94a3b8' }]}>Format: +6281234567890 (Indonesia)</Text>
+        <FormField label={t('province') || 'Province'} value={formData.province} setValue={(v)=> setFormData({...formData, province: v})} placeholder={t('province') || 'Province'} icon="earth-outline" />
+        <FormField label={t('city') || 'City'} value={formData.city} setValue={(v)=> setFormData({...formData, city: v})} placeholder={t('city') || 'City'} icon="map-outline" />
         <View style={styles.sheetButtons}>
-          <PrimaryButton title="Update" onPress={() => {
+          <PrimaryButton title={t('update') || 'Update'} onPress={() => {
             let phone = formData.phone;
             if (phone.startsWith('0')) { phone = '+62' + phone.slice(1); }
             else if (!phone.startsWith('+62')) { phone = '+62' + phone.replace(/^\+?/, ''); }
             if (!/^\+62\d{9,13}$/.test(phone)) {
-              Alert.alert('Invalid Phone', 'Please enter a valid Indonesian phone number, e.g. 81234567890');
+              Alert.alert(t('invalid_phone') || 'Invalid Phone', t('invalid_phone_msg') || 'Please enter a valid Indonesian phone number, e.g. 81234567890');
               return;
             }
             setFormData({ ...formData, phone });
             setTimeout(() => handleUpdate(), 0);
           }} />
-          <SecondaryButton title="Cancel" onPress={() => setIsModalVisible(false)} />
+          <SecondaryButton title={t('cancel') || 'Cancel'} onPress={() => setIsModalVisible(false)} />
         </View>
       </ModalSheet>
     </ScrollView>
@@ -295,7 +300,7 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: palette.bg },
   infoIcon: { position: 'absolute', top: spacing(4.5), right: spacing(5), zIndex: 20 },
-  profileCard: { backgroundColor: palette.surface, marginHorizontal: spacing(5), marginTop: spacing(14), borderRadius: radius.lg, padding: spacing(6), alignItems: 'center', ...shadow.card },
+  profileCard: { backgroundColor: palette.surface, marginHorizontal: spacing(5), marginTop: spacing(14), borderRadius: radius.lg, padding: spacing(6), alignItems: 'center', borderWidth: 1, borderColor: palette.border, ...shadow.card },
   avatarWrapper: { marginBottom: spacing(2.5) },
   profileName: { fontSize: 22, fontWeight: '700', color: palette.text, marginTop: spacing(1.5) },
   profileEmail: { color: palette.textMuted, marginBottom: spacing(2), fontSize: 14 },
@@ -307,7 +312,7 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 12, color: palette.text },
   editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: palette.primary, paddingHorizontal: spacing(5), paddingVertical: spacing(2.5), borderRadius: 22, marginTop: spacing(3.5) },
   editBtnText: { color: '#fff', fontWeight: '600', marginLeft: spacing(2), fontSize: 14 },
-  infoSection: { backgroundColor: palette.surface, marginTop: spacing(5), marginHorizontal: spacing(5), borderRadius: radius.lg, padding: spacing(5), ...shadow.card },
+  infoSection: { backgroundColor: palette.surface, marginTop: spacing(5), marginHorizontal: spacing(5), borderRadius: radius.lg, padding: spacing(5), borderWidth: 1, borderColor: palette.border, ...shadow.card },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: palette.text, marginBottom: spacing(3) },
   sheetTitle: { ...typography.h2, color: palette.text, textAlign: 'center', marginBottom: spacing(5) },
   sheetLabel: { ...typography.label, color: palette.text, marginBottom: spacing(2) },

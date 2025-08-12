@@ -8,6 +8,8 @@ import { palette, radius, shadow, spacing, typography } from '../../constants/De
 import FilterHeader from '../../components/ui/FilterHeader';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import GiftedBarChart from '@/components/ui/GiftedBarChart';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 
 type Doc = { id: string; createdAt?: any; [key: string]: any };
 
@@ -39,6 +41,9 @@ function groupMonthly(docs: Doc[], monthsBack = 6) {
 }
 
 export default function OutletHistoryScreen() {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const params = useLocalSearchParams<{ outletId?: string; outletName?: string }>();
   const outletId = params.outletId || '';
   const outletName = params.outletName || '';
@@ -328,16 +333,16 @@ export default function OutletHistoryScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.screen, { justifyContent: 'center', alignItems: 'center' }]}> 
+      <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }, { justifyContent: 'center', alignItems: 'center' }]}> 
         <ActivityIndicator />
       </View>
     );
   }
 
-  const title = outletName ? `History • ${String(outletName)}` : 'Outlet History';
+  const title = outletName ? `${t('history') || 'History'} • ${String(outletName)}` : (t('outlet_history') || 'Outlet History');
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }]}>
       <FilterHeader
         title={title}
         search={search}
@@ -349,30 +354,30 @@ export default function OutletHistoryScreen() {
         onClear={() => setSearch('')}
       />
       <View style={styles.filtersRow}>
-        <Text style={styles.filtersLabel}>Timeframe</Text>
-        <View style={styles.pickerWrapper}>
+        <Text style={[styles.filtersLabel, isDark && { color: '#94a3b8' }]}>{t('timeframe') || 'Timeframe'}</Text>
+        <View style={[styles.pickerWrapper, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}>
           <Picker selectedValue={monthsBack} onValueChange={(v) => setMonthsBack(Number(v))}>
-            <Picker.Item label="Last 3 months" value={3} />
-            <Picker.Item label="Last 6 months" value={6} />
-            <Picker.Item label="Last 12 months" value={12} />
+            <Picker.Item label={t('last_3_months') || 'Last 3 months'} value={3} />
+            <Picker.Item label={t('last_6_months') || 'Last 6 months'} value={6} />
+            <Picker.Item label={t('last_12_months') || 'Last 12 months'} value={12} />
           </Picker>
         </View>
       </View>
       <View style={styles.segmentRow}>
-        <SecondaryButton title="QR" onPress={() => setActive('QR')} style={[styles.segmentBtn, active === 'QR' ? styles.segmentActive : undefined].filter(Boolean) as any} />
-        <SecondaryButton title="SRD" onPress={() => setActive('SRD')} style={[styles.segmentBtn, active === 'SRD' ? styles.segmentActive : undefined].filter(Boolean) as any} />
-        <SecondaryButton title="Assessment" onPress={() => setActive('EA')} style={[styles.segmentBtn, active === 'EA' ? styles.segmentActive : undefined].filter(Boolean) as any} />
-        <SecondaryButton title="Attendance" onPress={() => setActive('ATT')} style={[styles.segmentBtn, active === 'ATT' ? styles.segmentActive : undefined].filter(Boolean) as any} />
+        <SecondaryButton title={t('qr') || 'QR'} onPress={() => setActive('QR')} style={[styles.segmentBtn, active === 'QR' ? styles.segmentActive : undefined].filter(Boolean) as any} />
+        <SecondaryButton title={t('srd') || 'SRD'} onPress={() => setActive('SRD')} style={[styles.segmentBtn, active === 'SRD' ? styles.segmentActive : undefined].filter(Boolean) as any} />
+        <SecondaryButton title={t('assessment') || 'Assessment'} onPress={() => setActive('EA')} style={[styles.segmentBtn, active === 'EA' ? styles.segmentActive : undefined].filter(Boolean) as any} />
+        <SecondaryButton title={t('attendance') || 'Attendance'} onPress={() => setActive('ATT')} style={[styles.segmentBtn, active === 'ATT' ? styles.segmentActive : undefined].filter(Boolean) as any} />
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing(12) }}>
         {active === 'QR' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Quick Sales Report (Monthly)</Text>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
+            <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{t('quick_sales_report_monthly') || 'Quick Sales Report (Monthly)'}</Text>
             <GiftedBarChart data={qrMonthly} color={palette.primary} />
-            <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{qrMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
-            <View style={styles.divider} />
-            <Text style={styles.cardTitle}>Guinness Selling</Text>
-            <View style={styles.pickerWrapper}>
+            <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('total') || 'Total') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{qrMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
+            <View style={[styles.divider, isDark && { backgroundColor: '#1f2937' }]} />
+            <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{t('guinness_selling') || 'Guinness Selling'}</Text>
+            <View style={[styles.pickerWrapper, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}>
               <Picker selectedValue={qrVar} onValueChange={(v) => setQrVar(String(v))}>
                 {QR_VAR_OPTIONS.map(opt => (
                   <Picker.Item key={opt.key} label={opt.label} value={opt.key} />
@@ -385,28 +390,28 @@ export default function OutletHistoryScreen() {
               return (
                 <>
                   <GiftedBarChart data={m} color={palette.primary} />
-                  <Text style={styles.meta}>Total {qrVar}: <Text style={styles.metaStrong}>{Math.round(s.total)}</Text> • Avg per report: <Text style={styles.metaStrong}>{s.avg.toFixed(2)}</Text></Text>
+      <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('total') || 'Total') + ' ' + qrVar}: <Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{Math.round(s.total)}</Text> • {(t('avg_per_report') || 'Avg per report') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{s.avg.toFixed(2)}</Text></Text>
                 </>
               );
             })()}
           </View>
         )}
         {active === 'SRD' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Sales Report Detail (Monthly)</Text>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
+    <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{t('sales_report_detail_monthly') || 'Sales Report Detail (Monthly)'}</Text>
             <GiftedBarChart data={srdMonthly} color={palette.info} />
-            <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{srdMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
-            <View style={styles.divider} />
-            <Text style={styles.cardTitle}>SRD Group</Text>
-            <View style={styles.pickerWrapper}>
+    <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('total') || 'Total') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{srdMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
+            <View style={[styles.divider, isDark && { backgroundColor: '#1f2937' }]} />
+    <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{t('srd_group') || 'SRD Group'}</Text>
+            <View style={[styles.pickerWrapper, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}>
               <Picker selectedValue={srdGroup} onValueChange={(v) => setSrdGroup(v)}>
                 {SRD_GROUPS.map(g => (
                   <Picker.Item key={g.key} label={g.label} value={g.key} />
                 ))}
               </Picker>
             </View>
-            <Text style={[styles.cardTitle, { marginTop: spacing(2) }]}>Metric</Text>
-            <View style={styles.pickerWrapper}>
+            <Text style={[styles.cardTitle, { marginTop: spacing(2) }, isDark && { color: '#e5e7eb' }]}>{t('metric') || 'Metric'}</Text>
+            <View style={[styles.pickerWrapper, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}>
               <Picker selectedValue={srdVarIndex} onValueChange={(v) => setSrdVarIndex(Number(v))}>
                 {currentSrdOptions.map((opt, idx) => (
                   <Picker.Item key={(opt.key || (opt.keys || []).join('+')) + ':' + idx} label={opt.label} value={idx} />
@@ -423,7 +428,7 @@ export default function OutletHistoryScreen() {
                 return (
                   <>
                     <GiftedBarChart data={m} color={color} />
-                    <Text style={styles.meta}>Total {opt.label}: <Text style={styles.metaStrong}>{Math.round(s.total)}</Text> • Avg per report: <Text style={styles.metaStrong}>{s.avg.toFixed(2)}</Text></Text>
+        <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('total') || 'Total') + ' ' + opt.label}: <Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{Math.round(s.total)}</Text> • {(t('avg_per_report') || 'Avg per report') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{s.avg.toFixed(2)}</Text></Text>
                   </>
                 );
               } else if (opt.key) {
@@ -432,7 +437,7 @@ export default function OutletHistoryScreen() {
                 return (
                   <>
                     <GiftedBarChart data={m} color={color} />
-                    <Text style={styles.meta}>Total {opt.label}: <Text style={styles.metaStrong}>{Math.round(s.total)}</Text> • Avg per report: <Text style={styles.metaStrong}>{s.avg.toFixed(2)}</Text></Text>
+        <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('total') || 'Total') + ' ' + opt.label}: <Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{Math.round(s.total)}</Text> • {(t('avg_per_report') || 'Avg per report') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{s.avg.toFixed(2)}</Text></Text>
                   </>
                 );
               }
@@ -441,13 +446,13 @@ export default function OutletHistoryScreen() {
           </View>
         )}
         {active === 'EA' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Early Assessment (Monthly)</Text>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
+      <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{t('early_assessment_monthly') || 'Early Assessment (Monthly)'}</Text>
             <GiftedBarChart data={eaMonthly} color={palette.warning} />
-            <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{eaMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
-            <View style={styles.divider} />
-            <Text style={styles.cardTitle}>Stocks</Text>
-            <View style={styles.pickerWrapper}>
+      <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('total') || 'Total') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{eaMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
+            <View style={[styles.divider, isDark && { backgroundColor: '#1f2937' }]} />
+      <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{t('stocks') || 'Stocks'}</Text>
+            <View style={[styles.pickerWrapper, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}>
               <Picker selectedValue={eaVar} onValueChange={(v) => setEaVar(String(v))}>
                 {EA_VAR_OPTIONS.map(opt => (
                   <Picker.Item key={opt.key} label={opt.label} value={opt.key} />
@@ -460,17 +465,17 @@ export default function OutletHistoryScreen() {
               return (
                 <>
                   <GiftedBarChart data={m} color={palette.warning} />
-                  <Text style={styles.meta}>Total {eaVar}: <Text style={styles.metaStrong}>{Math.round(s.total)}</Text> • Avg per report: <Text style={styles.metaStrong}>{s.avg.toFixed(2)}</Text></Text>
+      <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('total') || 'Total') + ' ' + eaVar}: <Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{Math.round(s.total)}</Text> • {(t('avg_per_report') || 'Avg per report') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{s.avg.toFixed(2)}</Text></Text>
                 </>
               );
             })()}
           </View>
         )}
         {active === 'ATT' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Attendance (Monthly)</Text>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
+    <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{t('attendance_monthly') || 'Attendance (Monthly)'}</Text>
             <GiftedBarChart data={attMonthly} color={palette.success} />
-            <Text style={styles.meta}>Total: <Text style={styles.metaStrong}>{attMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
+    <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('total') || 'Total') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{attMonthly.reduce((a, b) => a + (b.value || 0), 0)}</Text></Text>
           </View>
         )}
       </ScrollView>

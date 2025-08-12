@@ -6,6 +6,8 @@ import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity, Button } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useI18n } from '@/components/I18n';
+import { useEffectiveScheme } from '@/components/ThemePreference';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
@@ -25,6 +27,19 @@ import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 
 export default function TaskEarlyAssessmentScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    body: isDark ? '#0b1220' : palette.bg,
+    surface: isDark ? '#111827' : palette.surface,
+    surfaceAlt: isDark ? '#0f172a' : palette.surfaceAlt,
+    border: isDark ? '#1f2937' : palette.border,
+    text: isDark ? '#e5e7eb' : palette.text,
+    muted: isDark ? '#94a3b8' : palette.textMuted,
+    placeholder: isDark ? '#64748b' : '#9ca3af',
+  };
+  const inputCommonProps = isDark ? { placeholderTextColor: colors.placeholder as any } : {};
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   type AssessmentItem = {
@@ -434,25 +449,25 @@ export default function TaskEarlyAssessmentScreen() {
   const tone = getToneForEAStatus(status) as any;
     const isExpanded = !!expanded[item.id];
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1, shadowOpacity: 0 } : {}]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{item.outletName || 'Outlet'}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{item.outletName || 'Outlet'}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <StatusPill label={status} tone={tone as any} />
           </View>
         </View>
-        <Text style={styles.meta}>Assigned BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
-        <Text style={styles.meta}>Assigned TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
-        <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
-        <Text style={styles.meta}>Task ID: <Text style={styles.metaValue}>{item.tasksId || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Assigned BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Assigned TL: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToTL || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Created: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Task ID: <Text style={[styles.metaValue, { color: colors.text }]}>{item.tasksId || '-'}</Text></Text>
         {isExpanded && (
           <View style={{ marginTop: spacing(3) }}>
-            <Text style={styles.meta}>KEGS Avail: <Text style={styles.metaValue}>{item.kegsAvailable ? 'Yes' : 'No'}</Text></Text>
-            <Text style={styles.meta}>GDIC Avail: <Text style={styles.metaValue}>{item.gdicAvailable ? 'Yes' : 'No'}</Text></Text>
-            <Text style={styles.meta}>Smooth Avail: <Text style={styles.metaValue}>{item.smoothAvailable ? 'Yes' : 'No'}</Text></Text>
-            <Text style={styles.meta}>GFES Avail: <Text style={styles.metaValue}>{item.gfesAvailable ? 'Yes' : 'No'}</Text></Text>
-            <Text style={styles.meta}>POSM Avail: <Text style={styles.metaValue}>{item.posmAvailable ? 'Yes' : 'No'}</Text></Text>
-            <Text style={styles.meta}>Merchandise Avail: <Text style={styles.metaValue}>{item.merchandiseAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>KEGS Avail: <Text style={[styles.metaValue, { color: colors.text }]}>{item.kegsAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>GDIC Avail: <Text style={[styles.metaValue, { color: colors.text }]}>{item.gdicAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>Smooth Avail: <Text style={[styles.metaValue, { color: colors.text }]}>{item.smoothAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>GFES Avail: <Text style={[styles.metaValue, { color: colors.text }]}>{item.gfesAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>POSM Avail: <Text style={[styles.metaValue, { color: colors.text }]}>{item.posmAvailable ? 'Yes' : 'No'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>Merchandise Avail: <Text style={[styles.metaValue, { color: colors.text }]}>{item.merchandiseAvailable ? 'Yes' : 'No'}</Text></Text>
           </View>
         )}
   <View style={styles.actionsRow}>
@@ -471,20 +486,20 @@ export default function TaskEarlyAssessmentScreen() {
           {isAreaManager && stateMachine.canTransition('EA', Roles.AreaManager, status || EAStatus.Empty, EAStatus.AssessByAM) && (
             <PrimaryButton title="Assess AM" onPress={() => { setSelectedAssessment(item); setIsReviewModalVisible(true); }} style={styles.actionBtn} />
           )}
-          <View style={styles.iconActions}>
+      <View style={styles.iconActions}>
             <TouchableOpacity
               onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-              style={styles.iconButton}
+        style={[styles.iconButton, isDark ? { backgroundColor: '#1f2937' } : {}]}
               accessibilityLabel={isExpanded ? 'Collapse row' : 'Expand row'}
             >
-              <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
+        <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color={isDark ? '#9CA3AF' : '#333'} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
-              style={styles.iconButton}
+        style={[styles.iconButton, isDark ? { backgroundColor: '#1f2937' } : {}]}
               accessibilityLabel="Open details"
             >
-              <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
+        <Ionicons name="newspaper-outline" size={20} color={isDark ? '#60A5FA' : '#007AFF'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -498,8 +513,8 @@ export default function TaskEarlyAssessmentScreen() {
     return (
       <Modal visible={isReviewModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsReviewModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Assess by Area Manager</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
+            <Text style={[styles.title, { color: colors.text }]}>Assess by Area Manager</Text>
             <Text style={styles.sectionTitle}>Personnel Information</Text>
             <Text>Assigned to BA ID: {item.assignedToBA}</Text>
             <Text>Assigned to TL : {item.assignedToTL}</Text>
@@ -647,12 +662,12 @@ export default function TaskEarlyAssessmentScreen() {
   const renderModal = () => (
     <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>{modalType === 'add' ? 'Add' : 'Edit'} Assessment</Text>
+        <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
+          <Text style={[styles.title, { color: colors.text }]}>{modalType === 'add' ? 'Add' : 'Edit'} Assessment</Text>
           {(userRole === Roles.Admin || userRole === Roles.Superadmin) && selectedAssessment && (
             <View style={{ marginBottom: spacing(4) }}>
-              <Text style={styles.sectionTitle}>Admin: Next Status</Text>
-              <View style={{ borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surfaceAlt }}>
+              <Text style={[styles.sectionTitle, { color: colors.text, borderTopColor: colors.border }]}>Admin: Next Status</Text>
+              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surfaceAlt }}>
                 <Picker
                   selectedValue={adminNextStatus}
                   onValueChange={(v) => setAdminNextStatus(String(v))}
@@ -679,19 +694,20 @@ export default function TaskEarlyAssessmentScreen() {
           <Text>Outlet Name: {outletDetails?.outletName || '-'}</Text>
           <Text>Tier Outlet: {outletDetails?.outletTier || '-'}</Text>
 
-          <Text style={styles.sectionTitle}>Product Availabilty / Stock / Expiry Date</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text, borderTopColor: colors.border }]}>Product Availabilty / Stock / Expiry Date</Text>
 
           <View style={styles.switchContainer}><Text>KEGS Available</Text><Switch value={formData.kegsAvailable} onValueChange={val => setFormData({...formData, kegsAvailable: val})} /></View>
           <Text style={styles.switchLabel}>Stock - Kegs</Text>
-          <TextInput style={styles.input} value={formData.stockKegs} onChangeText={text => setFormData({...formData, stockKegs: text})} placeholder="KEGS Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockKegs} onChangeText={text => setFormData({...formData, stockKegs: text})} placeholder="KEGS Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - Kegs</Text>
           <TouchableOpacity onPress={() => setShowExpiryKegsPicker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expiryKegs}
               placeholder="KEGS Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpiryKegsPicker && (
@@ -710,15 +726,16 @@ export default function TaskEarlyAssessmentScreen() {
 
           <View style={styles.switchContainer}><Text>Microdraught Available</Text><Switch value={formData.microdraughtAvailable} onValueChange={val => setFormData({...formData, microdraughtAvailable: val})} /></View>
           <Text style={styles.switchLabel}>Stock - Microdraught</Text>
-          <TextInput style={styles.input} value={formData.stockMicrodraught} onChangeText={text => setFormData({...formData, stockMicrodraught: text})} placeholder="Microdraught Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockMicrodraught} onChangeText={text => setFormData({...formData, stockMicrodraught: text})} placeholder="Microdraught Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - Microdraught</Text>
           <TouchableOpacity onPress={() => setShowExpiryMicrodraughtPicker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expiryMicrodraught}
               placeholder="Microdraught Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpiryMicrodraughtPicker && (
@@ -737,15 +754,16 @@ export default function TaskEarlyAssessmentScreen() {
 
           <View style={styles.switchContainer}><Text>Guinness GDIC Available</Text><Switch value={formData.gdicAvailable} onValueChange={val => setFormData({...formData, gdicAvailable: val})} /></View>
           <Text style={styles.switchLabel}>Stock - GDIC</Text>
-          <TextInput style={styles.input} value={formData.stockGdic} onChangeText={text => setFormData({...formData, stockGdic: text})} placeholder="GDIC Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockGdic} onChangeText={text => setFormData({...formData, stockGdic: text})} placeholder="GDIC Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - GDIC</Text>
           <TouchableOpacity onPress={() => setShowExpiryGdicPicker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expiryGdic}
               placeholder="GDIC Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpiryGdicPicker && (
@@ -764,15 +782,16 @@ export default function TaskEarlyAssessmentScreen() {
           
           <View style={styles.switchContainer}><Text>Guinness Smooth Available</Text><Switch value={formData.smoothAvailable} onValueChange={val => setFormData({...formData, smoothAvailable: val})} /></View>
           <Text style={styles.switchLabel}>Stock - Smooth Pint 330ml</Text>
-          <TextInput style={styles.input} value={formData.stockSmoothPint330} onChangeText={text => setFormData({...formData, stockSmoothPint330: text})} placeholder="Smooth Pint 330ml Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockSmoothPint330} onChangeText={text => setFormData({...formData, stockSmoothPint330: text})} placeholder="Smooth Pint 330ml Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - Smooth Pint 330ml</Text>
           <TouchableOpacity onPress={() => setShowExpirySmoothPintPicker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expirySmoothPint330}
               placeholder="Smooth Pint 330ml Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpirySmoothPintPicker && (
@@ -789,15 +808,16 @@ export default function TaskEarlyAssessmentScreen() {
             />
           )}
           <Text style={styles.switchLabel}>Stock - Smooth Can 330ml</Text>
-          <TextInput style={styles.input} value={formData.stockSmoothCan330} onChangeText={text => setFormData({...formData, stockSmoothCan330: text})} placeholder="Smooth Can 330ml Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockSmoothCan330} onChangeText={text => setFormData({...formData, stockSmoothCan330: text})} placeholder="Smooth Can 330ml Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - Smooth Can 330ml</Text>
           <TouchableOpacity onPress={() => setShowExpirySmoothCanPicker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expirySmoothCan330}
               placeholder="Smooth Can 330ml Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpirySmoothCanPicker && (
@@ -816,15 +836,16 @@ export default function TaskEarlyAssessmentScreen() {
 
           <View style={styles.switchContainer}><Text>Guinness GFES Available</Text><Switch value={formData.gfesAvailable} onValueChange={val => setFormData({...formData, gfesAvailable: val})} /></View>
           <Text style={styles.switchLabel}>Stock - GFES Pint 330ml</Text>
-          <TextInput style={styles.input} value={formData.stockGfesPint330} onChangeText={text => setFormData({...formData, stockGfesPint330: text})} placeholder="GFES Pint 330ml Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockGfesPint330} onChangeText={text => setFormData({...formData, stockGfesPint330: text})} placeholder="GFES Pint 330ml Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - GFES Pint 330ml</Text>
           <TouchableOpacity onPress={() => setShowExpiryGfesPintPicker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expiryGfesPint330}
               placeholder="GFES Pint 330ml Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpiryGfesPintPicker && (
@@ -841,15 +862,16 @@ export default function TaskEarlyAssessmentScreen() {
             />
           )}
           <Text style={styles.switchLabel}>Stock - GFES Can 330ml</Text>
-          <TextInput style={styles.input} value={formData.stockGfesCan330} onChangeText={text => setFormData({...formData, stockGfesCan330: text})} placeholder="GFES Can 330ml Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockGfesCan330} onChangeText={text => setFormData({...formData, stockGfesCan330: text})} placeholder="GFES Can 330ml Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - GFES Can 330ml</Text>
           <TouchableOpacity onPress={() => setShowExpiryGfesCanPicker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expiryGfesCan330}
               placeholder="GFES Can 330ml Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpiryGfesCanPicker && (
@@ -866,15 +888,16 @@ export default function TaskEarlyAssessmentScreen() {
             />
           )}
           <Text style={styles.switchLabel}>Stock - GFES 620ml</Text>
-          <TextInput style={styles.input} value={formData.stockGfes620} onChangeText={text => setFormData({...formData, stockGfes620: text})} placeholder="GFES 620ml Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockGfes620} onChangeText={text => setFormData({...formData, stockGfes620: text})} placeholder="GFES 620ml Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - GFES 620ml</Text>
           <TouchableOpacity onPress={() => setShowExpiryGfes620Picker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expiryGfes620}
               placeholder="GFES 620ml Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpiryGfes620Picker && (
@@ -891,15 +914,16 @@ export default function TaskEarlyAssessmentScreen() {
             />
           )}
           <Text style={styles.switchLabel}>Stock - GFES Can Big 500ml</Text>
-          <TextInput style={styles.input} value={formData.stockGfesCanBig500} onChangeText={text => setFormData({...formData, stockGfesCanBig500: text})} placeholder="GFES Can Big 500ml Stock" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockGfesCanBig500} onChangeText={text => setFormData({...formData, stockGfesCanBig500: text})} placeholder="GFES Can Big 500ml Stock" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Expired Date - GFES Can Big 500ml</Text>
           <TouchableOpacity onPress={() => setShowExpiryGfesCanBig500Picker(true)}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={formData.expiryGfesCanBig500}
               placeholder="GFES Can Big 500ml Expiry (YYYY-MM-DD)"
               editable={false}
               pointerEvents="none"
+              {...inputCommonProps}
             />
           </TouchableOpacity>
           {showExpiryGfesCanBig500Picker && (
@@ -922,13 +946,14 @@ export default function TaskEarlyAssessmentScreen() {
               <Text style={styles.switchLabel}>Activity Stoutie</Text>
               <View style={styles.switchContainer}><Text>Activity Stoutie Running</Text><Switch value={formData.activityStoutieRunning} onValueChange={val => setFormData({...formData, activityStoutieRunning: val})} /></View>
               <Text style={styles.switchLabel}>Activity Stoutie result</Text>
-              <TextInput style={styles.input} value={formData.activityStoutieResult} onChangeText={text => setFormData({...formData, activityStoutieResult: text})} placeholder="Activity Stoutie Result" />
+              <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.activityStoutieResult} onChangeText={text => setFormData({...formData, activityStoutieResult: text})} placeholder="Activity Stoutie Result" {...inputCommonProps} />
               <Text style={styles.switchLabel}>Activity Stoutie Issue/Notes/Remarks</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
                 value={formData.activityStoutieRemarks}
                 onChangeText={text => setFormData({ ...formData, activityStoutieRemarks: text })}
                 placeholder="Activity Stoutie Issue/Notes/Remarks"
+                {...inputCommonProps}
               />
               <View style={{ marginBottom: 12 }}>
                 <Text style={styles.switchLabel}>Activity Stoutie Photos</Text>
@@ -1095,7 +1120,7 @@ export default function TaskEarlyAssessmentScreen() {
           <Text style={styles.switchLabel}>Promotions Available</Text>
           <View style={styles.switchContainer}><Text>Guinness Promotions Available</Text><Switch value={formData.guinnessPromotionsAvailable} onValueChange={val => setFormData({...formData, guinnessPromotionsAvailable: val})} /></View>
           <Text style={styles.switchLabel}>Promotions Description</Text>
-          <TextInput style={styles.input} value={formData.promotionDescription} onChangeText={text => setFormData({...formData, promotionDescription: text})} placeholder="Promotion Description" />
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.promotionDescription} onChangeText={text => setFormData({...formData, promotionDescription: text})} placeholder="Promotion Description" {...inputCommonProps} />
           <Text style={styles.switchLabel}>Promotions Displayed</Text>
           <View style={styles.switchContainer}>
             <Text>Guinness Promotion Displayed</Text>
@@ -1106,10 +1131,11 @@ export default function TaskEarlyAssessmentScreen() {
           </View>
           <Text style={styles.switchLabel}>Guinness Promotion Displayed Description</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
             value={formData.guinnessPromotionDisplayedDescription}
             onChangeText={text => setFormData({ ...formData, guinnessPromotionDisplayedDescription: text })}
             placeholder="Guinness Promotion Displayed Description"
+            {...inputCommonProps}
           />
           <View style={{ marginBottom: 12 }}>
             <Text style={styles.switchLabel}>Promotion Displayed Description Photo</Text>
@@ -1146,10 +1172,11 @@ export default function TaskEarlyAssessmentScreen() {
           </View>
           <Text style={styles.switchLabel}>Digital Activity Engagement Description</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
             value={formData.digitalActivityEngagementDescription}
             onChangeText={text => setFormData({ ...formData, digitalActivityEngagementDescription: text })}
             placeholder="Digital Activity Engagement Description"
+            {...inputCommonProps}
           />
           <View style={{ marginBottom: 12 }}>
             <Text style={styles.switchLabel}>Digital Activity Engagement Photo</Text>
@@ -1179,8 +1206,8 @@ export default function TaskEarlyAssessmentScreen() {
           )}
 
 
-          <Text style={styles.sectionTitle}>Issue/Notes/Request/Input - catatan kecil/permintaan outlet/masukan/masalah</Text>
-          <TextInput style={styles.input} value={formData.issuesNotes} onChangeText={text => setFormData({...formData, issuesNotes: text})} placeholder="Issues, Notes, etc." />
+          <Text style={[styles.sectionTitle, { color: colors.text, borderTopColor: colors.border }]}>Issue/Notes/Request/Input - catatan kecil/permintaan outlet/masukan/masalah</Text>
+          <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.issuesNotes} onChangeText={text => setFormData({...formData, issuesNotes: text})} placeholder="Issues, Notes, etc." {...inputCommonProps} />
 
           <View style={styles.buttonContainer}>
             <PrimaryButton title={modalType === 'add' ? 'Add' : 'Update'} onPress={handleFormSubmit} />
@@ -1192,13 +1219,13 @@ export default function TaskEarlyAssessmentScreen() {
   );
 
   return (
-    <View style={styles.screen}>
+  <View style={[styles.screen, { backgroundColor: colors.body }]}>
       <FilterHeader
-        title="Task Early Assessment"
+        title={t('assessment')}
         search={search}
         status={statusFilter}
         statusOptions={EA_STATUS_OPTIONS}
-        placeholder="Search outlet or ID"
+        placeholder={t('search_outlet_or_id')}
         storageKey="filters:ea"
         sortAsc={sortAsc}
         onToggleSort={() => setSortAsc(prev => !prev)}
@@ -1206,7 +1233,7 @@ export default function TaskEarlyAssessmentScreen() {
         onClear={() => { setSearch(''); setStatusFilter(''); }}
       />
       {userRole === 'superadmin' && (
-        <PrimaryButton title="Add Assessment" onPress={() => handleOpenModal('add')} style={{ marginBottom: spacing(5) }} />
+        <PrimaryButton title={`${t('add')} ${t('assessment')}`} onPress={() => handleOpenModal('add')} style={{ marginBottom: spacing(5) }} />
       )}
       
       {filteredAssessments.length === 0 ? (

@@ -5,6 +5,8 @@ import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, limit, orderBy, query, where, Timestamp, startAfter, doc, getDoc } from 'firebase/firestore';
 import * as Clipboard from 'expo-clipboard';
 import { palette, spacing, typography, radius, shadow } from '../../constants/Design';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { ModalSheet } from '../../components/ui/ModalSheet';
@@ -53,6 +55,9 @@ function toDate(ts?: AuditLog['timestamp']): Date | null {
 }
 
 export default function AuditLogsScreen() {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const params = useLocalSearchParams<{ collection?: string; docId?: string }>();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<AuditLog[]>([]);
@@ -230,15 +235,15 @@ export default function AuditLogsScreen() {
 
   if (!canView) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.denied}>Admins only. Your role: {userRole || 'unknown'}</Text>
+      <View style={[styles.center, isDark && { backgroundColor: '#0b1220' }]}>
+        <Text style={[styles.denied, isDark && { color: '#e5e7eb' }]}>{(t('admins_only') || 'Admins only.') + ' ' + (t('your_role') || 'Your role') + `: ${userRole || (t('unknown') || 'unknown')}`}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Audit Logs</Text>
+    <View style={[styles.container, isDark && { backgroundColor: '#0b1220' }]}>
+      <Text style={[styles.header, isDark && { color: '#e5e7eb' }]}>{t('audit_logs') || 'Audit Logs'}</Text>
 
       <View style={styles.filters}>
         <View style={styles.rangeRow}>
@@ -246,20 +251,22 @@ export default function AuditLogsScreen() {
             <TouchableOpacity
               key={p.key}
               onPress={() => setRangeKey(p.key as any)}
-              style={[styles.rangeBtn, rangeKey === p.key && styles.rangeBtnActive]}
+              style={[styles.rangeBtn, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }, rangeKey === p.key && (isDark ? styles.rangeBtnActiveDark : styles.rangeBtnActive)]}
             >
-              <Text style={[styles.rangeBtnText, rangeKey === p.key && styles.rangeBtnTextActive]}>{p.label}</Text>
+              <Text style={[styles.rangeBtnText, isDark && { color: '#e5e7eb' }, rangeKey === p.key && (isDark ? styles.rangeBtnTextActiveDark : styles.rangeBtnTextActive)]}>
+                {p.key === '7d' ? (t('last_7_days') || p.label) : p.key === '30d' ? (t('last_30_days') || p.label) : (t('last_90_days') || p.label)}
+              </Text>
             </TouchableOpacity>
           ))}
           <View style={{ flex: 1 }} />
-          <SecondaryButton title="Reset" onPress={() => { setCollectionFilter(''); setDocIdFilter(''); setActionFilter(''); setActorIdFilter(''); setRangeKey('7d'); }} />
-          <PrimaryButton title="Refresh" onPress={() => load(true)} style={{ marginLeft: spacing(2) }} />
-          <SecondaryButton title="Copy CSV" onPress={copyCsv} style={{ marginLeft: spacing(2) }} />
+          <SecondaryButton title={t('reset') || 'Reset'} onPress={() => { setCollectionFilter(''); setDocIdFilter(''); setActionFilter(''); setActorIdFilter(''); setRangeKey('7d'); }} />
+          <PrimaryButton title={t('refresh') || 'Refresh'} onPress={() => load(true)} style={{ marginLeft: spacing(2) }} />
+          <SecondaryButton title={t('copy_csv') || 'Copy CSV'} onPress={copyCsv} style={{ marginLeft: spacing(2) }} />
         </View>
 
         <View style={styles.pillsRow}>
           <ScrollPills
-            items={[{ label: 'All', value: '' }, ...COLLECTIONS.map(c => ({ label: c, value: c }))]}
+            items={[{ label: t('all') || 'All', value: '' }, ...COLLECTIONS.map(c => ({ label: c, value: c }))]}
             value={collectionFilter}
             onChange={setCollectionFilter}
           />
@@ -268,7 +275,7 @@ export default function AuditLogsScreen() {
         <View style={styles.pillsRow}>
           <ScrollPills
             items={[
-              { label: 'All actions', value: '' },
+              { label: t('all_actions') || 'All actions', value: '' },
               { label: 'create', value: 'create' },
               { label: 'update', value: 'update' },
               { label: 'delete', value: 'delete' },
@@ -280,18 +287,18 @@ export default function AuditLogsScreen() {
 
         <View style={styles.actorRow}>
           <TextInput
-            placeholder="Filter by actor (id, name, or email)"
-            placeholderTextColor={palette.textMuted}
+            placeholder={t('filter_by_actor') || 'Filter by actor (id, name, or email)'}
+            placeholderTextColor={isDark ? '#64748b' : palette.textMuted}
             value={actorIdFilter}
             onChangeText={setActorIdFilter}
-            style={styles.actorInput}
+            style={[styles.actorInput, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]}
           />
           <TextInput
-            placeholder="Filter by docId"
-            placeholderTextColor={palette.textMuted}
+            placeholder={t('filter_by_docid') || 'Filter by docId'}
+            placeholderTextColor={isDark ? '#64748b' : palette.textMuted}
             value={docIdFilter}
             onChangeText={setDocIdFilter}
-            style={[styles.actorInput, { marginTop: spacing(2) }]}
+            style={[styles.actorInput, { marginTop: spacing(2) }, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]}
           />
         </View>
 
@@ -305,7 +312,7 @@ export default function AuditLogsScreen() {
       {loading ? (
         <ActivityIndicator />
       ) : error ? (
-        <Text style={styles.error}>{error}</Text>
+  <Text style={[styles.error, isDark && { color: palette.danger }]}>{error}</Text>
       ) : (
         <FlatList
           data={filtered}
@@ -317,14 +324,14 @@ export default function AuditLogsScreen() {
             const fields = (item.changedFields || []).join(', ');
       const actorLabel = item.actorName || item.actorEmail || (item.actorId ? (actorMap[item.actorId]?.name || actorMap[item.actorId]?.email || item.actorId) : 'unknown');
             return (
-              <TouchableOpacity style={styles.card} onPress={() => setDetail(item)}>
+        <TouchableOpacity style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]} onPress={() => setDetail(item)}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing(1) }}>
                   <ActionPill action={item.action} />
-                  <Text style={styles.cardTitle}>{item.collection}/{item.docId}</Text>
+          <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{item.collection}/{item.docId}</Text>
                 </View>
-        <Text style={styles.meta}>By {actorLabel} • {when}</Text>
+    <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('by') || 'By') + ' '}{actorLabel} • {when}</Text>
                 {item.action === 'update' && fields ? (
-                  <Text style={styles.fields}>Changed: {fields}</Text>
+          <Text style={[styles.fields, isDark && { color: '#e5e7eb' }]}>{(t('changed') || 'Changed') + ': '}{fields}</Text>
                 ) : null}
               </TouchableOpacity>
             );
@@ -334,7 +341,7 @@ export default function AuditLogsScreen() {
               {loadingMore ? (
                 <ActivityIndicator />
               ) : (
-                <SecondaryButton title="Load more" onPress={() => load(false)} />
+                <SecondaryButton title={t('load_more') || 'Load more'} onPress={() => load(false)} />
               )}
             </View>
           ) : null}
@@ -344,24 +351,24 @@ export default function AuditLogsScreen() {
       <ModalSheet visible={!!detail} onClose={() => setDetail(null)} scroll>
         {detail && (
           <View>
-            <Text style={styles.sheetTitle}>{detail.collection}/{detail.docId}</Text>
+            <Text style={[styles.sheetTitle, isDark && { color: '#e5e7eb' }]}>{detail.collection}/{detail.docId}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing(2) }}>
               <ActionPill action={detail.action} />
-              <Text style={[styles.meta, { marginLeft: spacing(2) }]}>By {detail.actorName || detail.actorEmail || detail.actorId || 'unknown'}</Text>
+              <Text style={[styles.meta, { marginLeft: spacing(2) }, isDark && { color: '#94a3b8' }]}>{(t('by') || 'By') + ' '}{detail.actorName || detail.actorEmail || detail.actorId || (t('unknown') || 'unknown')}</Text>
             </View>
             {detail.changedFields && detail.changedFields.length > 0 && (
-              <Text style={styles.fields}>Changed: {detail.changedFields.join(', ')}</Text>
+              <Text style={[styles.fields, isDark && { color: '#e5e7eb' }]}>{(t('changed') || 'Changed') + ': '}{detail.changedFields.join(', ')}</Text>
             )}
             {detail.before ? (
-              <View style={styles.jsonBlock}>
-                <Text style={styles.jsonTitle}>Before</Text>
-                <Text style={styles.jsonText}>{pretty(detail.before)}</Text>
+              <View style={[styles.jsonBlock, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}>
+                <Text style={[styles.jsonTitle, isDark && { color: '#e5e7eb' }]}>Before</Text>
+                <Text style={[styles.jsonText, isDark && { color: '#e5e7eb' }]}>{pretty(detail.before)}</Text>
               </View>
             ) : null}
             {detail.after ? (
-              <View style={styles.jsonBlock}>
-                <Text style={styles.jsonTitle}>After</Text>
-                <Text style={styles.jsonText}>{pretty(detail.after)}</Text>
+              <View style={[styles.jsonBlock, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937' }]}>
+                <Text style={[styles.jsonTitle, isDark && { color: '#e5e7eb' }]}>After</Text>
+                <Text style={[styles.jsonText, isDark && { color: '#e5e7eb' }]}>{pretty(detail.after)}</Text>
               </View>
             ) : null}
           </View>
@@ -384,11 +391,14 @@ function pretty(obj: any) {
 }
 
 function ActionPill({ action }: { action?: string }) {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
   const color = action === 'create' ? palette.success : action === 'delete' ? palette.danger : palette.info;
-  const bg = action === 'create' ? '#ecfdf5' : action === 'delete' ? '#fef2f2' : '#eff6ff';
+  const bgLight = action === 'create' ? '#ecfdf5' : action === 'delete' ? '#fef2f2' : '#eff6ff';
+  const bgDark = action === 'create' ? '#064e3b' : action === 'delete' ? '#7f1d1d' : '#0c4a6e';
   return (
-    <View style={{ backgroundColor: bg, paddingHorizontal: spacing(2), paddingVertical: spacing(1), borderRadius: 999, marginRight: spacing(2) }}>
-      <Text style={{ color, fontWeight: '700', fontSize: 12 }}>{(action || '').toUpperCase()}</Text>
+    <View style={{ backgroundColor: isDark ? bgDark : bgLight, paddingHorizontal: spacing(2), paddingVertical: spacing(1), borderRadius: 999, marginRight: spacing(2) }}>
+      <Text style={{ color: isDark ? '#fff' : color, fontWeight: '700', fontSize: 12 }}>{(action || '').toUpperCase()}</Text>
     </View>
   );
 }
@@ -416,8 +426,10 @@ const styles = StyleSheet.create({
   rangeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing(2) },
   rangeBtn: { backgroundColor: palette.surface, borderRadius: radius.md, paddingHorizontal: spacing(3), paddingVertical: spacing(1.5), marginRight: spacing(2), borderWidth: 1, borderColor: '#e5e7eb' },
   rangeBtnActive: { backgroundColor: '#111827' },
+  rangeBtnActiveDark: { backgroundColor: '#1f2937', borderColor: '#374151' },
   rangeBtnText: { fontSize: 12, color: palette.text },
   rangeBtnTextActive: { color: '#fff', fontWeight: '700' },
+  rangeBtnTextActiveDark: { color: '#fff', fontWeight: '700' },
   pillsRow: { flexDirection: 'row' },
   pill: { backgroundColor: palette.surface, paddingHorizontal: spacing(3), paddingVertical: spacing(1.5), borderRadius: 999, marginRight: spacing(2), borderWidth: 1, borderColor: '#e5e7eb' },
   pillActive: { backgroundColor: '#111827' },

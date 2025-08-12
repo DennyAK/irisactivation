@@ -1,3 +1,5 @@
+import { useI18n } from '@/components/I18n';
+import { useEffectiveScheme } from '@/components/ThemePreference';
 import { useState, useEffect, useMemo } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl, TouchableOpacity, TextInput } from 'react-native';
@@ -21,6 +23,17 @@ import { Roles, isAdminRole, isBAish, isTLish } from '../../constants/roles';
 
 
 export default function SalesReportDetailScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    body: isDark ? '#0b1220' : '#f1f5f9',
+    surface: isDark ? '#111827' : '#FFFFFF',
+    surfaceAlt: isDark ? '#0f172a' : '#f8fafc',
+    border: isDark ? '#1f2937' : '#E5E7EB',
+    text: isDark ? '#e5e7eb' : '#111827',
+    muted: isDark ? '#94a3b8' : '#6B7280',
+  };
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   type ReportItem = {
@@ -352,35 +365,35 @@ export default function SalesReportDetailScreen() {
 
     const isExpanded = !!expanded[item.id];
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { shadowOpacity: 0 } : undefined]}>
         <TouchableOpacity onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
+            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
               {item.outletName || '-'}
             </Text>
             <StatusPill label={status || '—'} tone={statusTone as any} />
           </View>
-          <Text style={styles.cardSubtitle} numberOfLines={1}>
+          <Text style={[styles.cardSubtitle, { color: colors.muted }]} numberOfLines={1}>
             {(item.outletCity || '-') + (item.outletProvince ? `, ${item.outletProvince}` : '')} • {item.channel || '-'} • {item.tier || '-'}
           </Text>
-          <Text style={styles.metaText}>
+          <Text style={[styles.metaText, { color: colors.muted }]}>
             {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : '-'}
           </Text>
           {isExpanded && (
             <View style={styles.detailsContainer}>
-              <Text>Outlet ID: {item.outletId || '-'}</Text>
-              <Text>Outlet Name: {item.outletName || '-'}</Text>
-              <Text>Province: {item.outletProvince || '-'}</Text>
-              <Text>City: {item.outletCity || '-'}</Text>
-              <Text>Activity Name: {item.activityName || '-'}</Text>
-              <Text>Channel: {item.channel || '-'}</Text>
-              <Text>Tier: {item.tier || '-'}</Text>
-              <Text>Assigned to BA: {item.assignedToBA || '-'}</Text>
-              <Text>Assigned to TL: {item.assignedToTL || '-'}</Text>
-              <Text>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
-              <Text>Created By: {item.createdBy || '-'}</Text>
-              <Text>Task ID: {item.tasksId || '-'}</Text>
-              <Text>Task Sales Report Detail Status: {item.salesReportDetailStatus || '-'}</Text>
+              <Text style={{ color: colors.text }}>Outlet ID: {item.outletId || '-'}</Text>
+              <Text style={{ color: colors.text }}>Outlet Name: {item.outletName || '-'}</Text>
+              <Text style={{ color: colors.text }}>Province: {item.outletProvince || '-'}</Text>
+              <Text style={{ color: colors.text }}>City: {item.outletCity || '-'}</Text>
+              <Text style={{ color: colors.text }}>Activity Name: {item.activityName || '-'}</Text>
+              <Text style={{ color: colors.text }}>Channel: {item.channel || '-'}</Text>
+              <Text style={{ color: colors.text }}>Tier: {item.tier || '-'}</Text>
+              <Text style={{ color: colors.text }}>Assigned to BA: {item.assignedToBA || '-'}</Text>
+              <Text style={{ color: colors.text }}>Assigned to TL: {item.assignedToTL || '-'}</Text>
+              <Text style={{ color: colors.text }}>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
+              <Text style={{ color: colors.text }}>Created By: {item.createdBy || '-'}</Text>
+              <Text style={{ color: colors.text }}>Task ID: {item.tasksId || '-'}</Text>
+              <Text style={{ color: colors.text }}>Task Sales Report Detail Status: {item.salesReportDetailStatus || '-'}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -393,7 +406,7 @@ export default function SalesReportDetailScreen() {
               <PrimaryButton title="SRD by TL" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
             )}
             {userRole === Roles.IrisTL && stateMachine.canTransition('SRD', Roles.IrisTL, item.salesReportDetailStatus || SRDStatus.Empty, SRDStatus.ReviewBackToBA) && (
-              <SecondaryButton title="Review back to BA" onPress={async () => {
+              <SecondaryButton title={t('edit')} onPress={async () => {
                 try {
                   const ref = doc(db, 'sales_report_detail', item.id);
   await updateDoc(ref, { salesReportDetailStatus: SRDStatus.ReviewBackToBA, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
@@ -410,23 +423,23 @@ export default function SalesReportDetailScreen() {
               <SecondaryButton title="Edit" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
             )}
             {canRemove && (
-              <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={styles.actionBtnDanger} />
+              <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={[styles.actionBtnDanger, isDark ? { backgroundColor: '#3f1d1d', borderColor: '#7f1d1d' } : {}]} />
             )}
           </View>
           <View style={styles.iconActions}>
               <TouchableOpacity
               onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-              style={styles.iconButton}
+              style={[styles.iconButton, isDark ? { backgroundColor: '#1f2937' } : {}]}
               accessibilityLabel={isExpanded ? 'Collapse row' : 'Expand row'}
             >
-              <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
+              <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color={isDark ? '#9CA3AF' : '#333'} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { setDescriptionItem(item); setDetailsMode('description'); setDetailsVisible(true); }}
-              style={styles.iconButton}
+              style={[styles.iconButton, isDark ? { backgroundColor: '#1f2937' } : {}]}
               accessibilityLabel="Open details"
             >
-              <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
+              <Ionicons name="newspaper-outline" size={20} color={isDark ? '#60A5FA' : '#007AFF'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -440,9 +453,9 @@ export default function SalesReportDetailScreen() {
   
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark ? { backgroundColor: colors.body } : {}]}>
       <FilterHeader
-        title="Sales Report Detail"
+  title={t('sales_detail')}
         search={search}
         status={statusFilter}
         statusOptions={SRD_STATUS_OPTIONS}

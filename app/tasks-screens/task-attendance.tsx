@@ -7,6 +7,8 @@ import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, 
 import { Picker } from '@react-native-picker/picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
+import { useI18n } from '@/components/I18n';
+import { useEffectiveScheme } from '@/components/ThemePreference';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
@@ -26,6 +28,19 @@ import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 
 export default function TaskAttendanceScreen() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    body: isDark ? '#0b1220' : palette.bg,
+    surface: isDark ? '#111827' : palette.surface,
+    surfaceAlt: isDark ? '#0f172a' : palette.surfaceAlt,
+    border: isDark ? '#1f2937' : palette.border,
+    text: isDark ? '#e5e7eb' : palette.text,
+    muted: isDark ? '#94a3b8' : palette.textMuted,
+    placeholder: isDark ? '#64748b' : '#9ca3af',
+  };
+  const inputCommonProps = isDark ? { placeholderTextColor: colors.placeholder as any } : {};
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   type AttendanceItem = {
@@ -392,25 +407,25 @@ export default function TaskAttendanceScreen() {
     const outletName = (() => { const outlet = outlets.find(o => o.id === item.outletId); return outlet?.outletName || item.outletId || '-'; })();
     const isExpanded = !!expanded[item.id];
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { shadowOpacity: 0 } : undefined]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{outletName}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{outletName}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <StatusPill label={status} tone={statusTone as any} />
           </View>
         </View>
-        <Text style={styles.meta}>BA: <Text style={styles.metaValue}>{item.assignedToBA || '-'}</Text></Text>
-        <Text style={styles.meta}>TL: <Text style={styles.metaValue}>{item.assignedToTL || '-'}</Text></Text>
-        <Text style={styles.meta}>Check-in: <Text style={styles.metaValue}>{item.checkIn?.toDate ? item.checkIn.toDate().toLocaleString() : '-'}</Text></Text>
-        <Text style={styles.meta}>Check-out: <Text style={styles.metaValue}>{item.checkOut?.toDate ? item.checkOut.toDate().toLocaleString() : '-'}</Text></Text>
-        <Text style={styles.meta}>Created: <Text style={styles.metaValue}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
-        {item.selfieUrl ? <Image source={{ uri: item.selfieUrl }} style={styles.thumbnail} /> : <Text style={styles.meta}>No Selfie</Text>}
+        <Text style={[styles.meta, { color: colors.muted }]}>BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>TL: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToTL || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Check-in: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkIn?.toDate ? item.checkIn.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Check-out: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkOut?.toDate ? item.checkOut.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Created: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        {item.selfieUrl ? <Image source={{ uri: item.selfieUrl }} style={styles.thumbnail} /> : <Text style={[styles.meta, { color: colors.muted }]}>No Selfie</Text>}
         {isExpanded && (
           <View style={{ marginTop: spacing(3) }}>
-            <Text style={styles.meta}>Check-in Lat: <Text style={styles.metaValue}>{item.checkInLatitude || '-'}</Text></Text>
-            <Text style={styles.meta}>Check-in Lng: <Text style={styles.metaValue}>{item.checkInLongitude || '-'}</Text></Text>
-            <Text style={styles.meta}>Check-out Lat: <Text style={styles.metaValue}>{item.checkOutLatitude || '-'}</Text></Text>
-            <Text style={styles.meta}>Check-out Lng: <Text style={styles.metaValue}>{item.checkOutLongitude || '-'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>Check-in Lat: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkInLatitude || '-'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>Check-in Lng: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkInLongitude || '-'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>Check-out Lat: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkOutLatitude || '-'}</Text></Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>Check-out Lng: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkOutLongitude || '-'}</Text></Text>
           </View>
         )}
         {canReadUpdate && (
@@ -505,20 +520,20 @@ export default function TaskAttendanceScreen() {
             {userRole === Roles.AreaManager && stateMachine.canTransition('Attendance', Roles.AreaManager, status || AttendanceStatus.Empty, AttendanceStatus.ApprovedByAM) && (
               <PrimaryButton title="Approve AM" onPress={() => handleApproveByAM(item.id)} style={styles.actionBtn} />
             )}
-            <View style={styles.iconActions}>
+      <View style={styles.iconActions}>
               <TouchableOpacity
                 onPress={() => setExpanded(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-                style={styles.iconButton}
+        style={[styles.iconButton, isDark ? { backgroundColor: '#1f2937' } : {}]}
                 accessibilityLabel={isExpanded ? 'Collapse row' : 'Expand row'}
               >
-                <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color="#333" />
+                <Ionicons name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'} size={20} color={scheme === 'dark' ? '#9CA3AF' : '#333'} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => { setDetailsItem(item); setDetailsVisible(true); }}
-                style={styles.iconButton}
+        style={[styles.iconButton, isDark ? { backgroundColor: '#1f2937' } : {}]}
                 accessibilityLabel="Open details"
               >
-                <Ionicons name="newspaper-outline" size={20} color="#007AFF" />
+        <Ionicons name="newspaper-outline" size={20} color={isDark ? '#60A5FA' : '#007AFF'} />
               </TouchableOpacity>
             </View>
           </View>
@@ -564,13 +579,13 @@ export default function TaskAttendanceScreen() {
   );
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.body }]}>
       <FilterHeader
-        title="Task Attendance"
+        title={t('attendance')}
         search={search}
         status={statusFilter}
         statusOptions={ATTENDANCE_STATUS_OPTIONS}
-        placeholder="Search outlet or ID"
+        placeholder={t('search_outlet_or_id')}
         storageKey="filters:attendance"
   sortAsc={sortAsc}
   onToggleSort={() => setSortAsc(prev => !prev)}
@@ -603,25 +618,25 @@ export default function TaskAttendanceScreen() {
       />
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Add Attendance</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
+            <Text style={[styles.title, { color: colors.text }]}>{t('add')} {t('attendance')}</Text>
             {renderModalFields()}
             <View style={styles.buttonContainer}>
-              <PrimaryButton title="Add" onPress={handleAddAttendance} />
-              <SecondaryButton title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
+              <PrimaryButton title={t('add')} onPress={handleAddAttendance} />
+              <SecondaryButton title={t('cancel')} onPress={() => { setIsAddModalVisible(false); resetFormData(); }} />
             </View>
           </View>
         </ScrollView>
       </Modal>
       <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Edit Attendance</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
+            <Text style={[styles.title, { color: colors.text }]}>{t('edit')} {t('attendance')}</Text>
             {renderModalFields()}
             {(userRole === Roles.Admin || userRole === Roles.Superadmin) && selectedAttendance && (
               <View style={{ marginBottom: spacing(4) }}>
-                <Text style={styles.input}>Admin: Next Status</Text>
-                <View style={{ borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surfaceAlt }}>
+                <Text style={[styles.input, { color: colors.text, borderColor: 'transparent', backgroundColor: 'transparent' }]}>Admin: Next Status</Text>
+                <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surfaceAlt }}>
                   <Picker
                     selectedValue={adminNextStatus}
                     onValueChange={(v) => setAdminNextStatus(String(v))}
@@ -637,8 +652,8 @@ export default function TaskAttendanceScreen() {
               </View>
             )}
             <View style={styles.buttonContainer}>
-              <PrimaryButton title="Update" onPress={handleUpdateAttendance} />
-              <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
+              <PrimaryButton title={t('update')} onPress={handleUpdateAttendance} />
+              <SecondaryButton title={t('cancel')} onPress={() => { setIsEditModalVisible(false); resetFormData(); }} />
             </View>
           </View>
         </ScrollView>

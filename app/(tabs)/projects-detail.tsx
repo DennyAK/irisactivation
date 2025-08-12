@@ -9,8 +9,13 @@ import { doc, getDoc } from 'firebase/firestore';
 import { Roles, isAdminRole } from '../../constants/roles';
 import { MenuGrid } from '../../components/ui/MenuCard';
 import { palette, spacing, typography } from '../../constants/Design';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 
 export default function ProjectDetailMenu() {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const [role, setRole] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
@@ -24,15 +29,15 @@ export default function ProjectDetailMenu() {
 
   const menuItems = [
     {
-      label: 'Project Overview',
+      label: t('projects_list') || 'Project Overview',
       icon: 'briefcase-outline',
-      subtitle: 'View project details and status',
+      subtitle: t('projects_overview_subtitle') || 'View project details and status',
       href: '/projects-screens/projects' as const,
     },
     {
-      label: 'Activation',
+      label: t('activation') || 'Activation',
       icon: 'flash-outline',
-      subtitle: 'View and manage activation requests',
+      subtitle: t('activation_subtitle') || 'View and manage activation requests',
       href: '/projects-screens/activation' as const,
     },
   // Audit links removed per request
@@ -40,8 +45,8 @@ export default function ProjectDetailMenu() {
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Projects</Text>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0b1220' : palette.bg }]}>
+      <Text style={[styles.header, isDark && { color: '#e5e7eb' }]}>{t('projects') || 'Projects'}</Text>
       <MenuGrid items={menuItems} />
     </View>
   );

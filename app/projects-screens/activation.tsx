@@ -9,9 +9,14 @@ import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import FilterHeader from '../../components/ui/FilterHeader';
 import { useRouter } from 'expo-router';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 
 export default function ActivationScreen() {
   const router = useRouter();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const [activations, setActivations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -83,7 +88,7 @@ export default function ActivationScreen() {
       }));
       setActivations(withNames as any[]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch activations.');
+  Alert.alert(t('error') || 'Error', t('failed_to_fetch_activations') || 'Failed to fetch activations.');
     } finally {
       setLoading(false);
     }
@@ -102,7 +107,7 @@ export default function ActivationScreen() {
 
   const handleAddOrUpdate = async () => {
     if (!formData.activationId || !formData.activationName) {
-      Alert.alert('Validation', 'Activation ID and Name are required.');
+      Alert.alert(t('validation') || 'Validation', t('activation_id_and_name_required') || 'Activation ID and Name are required.');
       return;
     }
     try {
@@ -116,7 +121,7 @@ export default function ActivationScreen() {
       setSelectedActivation(null);
       fetchActivations();
     } catch (error) {
-      Alert.alert('Error', 'Failed to save activation.');
+      Alert.alert(t('error') || 'Error', t('failed_to_save_activation') || 'Failed to save activation.');
     }
   };
 
@@ -135,7 +140,7 @@ export default function ActivationScreen() {
       await deleteDoc(doc(db, 'activations', id));
       fetchActivations();
     } catch (error) {
-      Alert.alert('Error', 'Failed to delete activation.');
+      Alert.alert(t('error') || 'Error', t('failed_to_delete_activation') || 'Failed to delete activation.');
     }
   };
 
@@ -145,9 +150,9 @@ export default function ActivationScreen() {
   const canEdit = isAdmin || userRole === 'area manager';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && { backgroundColor: '#0b1220' }]}>
       <FilterHeader
-        title="Activations"
+        title={t('activations') || 'Activations'}
         search={search}
         status={''}
         statusOptions={[]}
@@ -158,30 +163,30 @@ export default function ActivationScreen() {
         onClear={() => setSearch('')}
       />
       {isAdmin && (
-        <PrimaryButton title="Add Activation" onPress={() => { setFormData({ activationId: '', activationName: '', activationDetail: '' }); setSelectedActivation(null); setIsModalVisible(true); }} style={{ marginBottom: spacing(3) }} />
+        <PrimaryButton title={t('add_activation') || 'Add Activation'} onPress={() => { setFormData({ activationId: '', activationName: '', activationDetail: '' }); setSelectedActivation(null); setIsModalVisible(true); }} style={{ marginBottom: spacing(3) }} />
       )}
       <FlatList
         data={filtered}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.activationName}</Text>
+              <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{item.activationName}</Text>
             </View>
-            <Text style={styles.meta}>ID: <Text style={styles.metaStrong}>{item.activationId}</Text></Text>
-            {!!item.activationDetail && <Text style={styles.meta}>Detail: <Text style={styles.metaStrong}>{item.activationDetail}</Text></Text>}
-            {!!item.updatedBy && <Text style={styles.meta}>Last updated by: <Text style={styles.metaStrong}>{item.updatedByName || 'Unknown User'}</Text></Text>}
-            {!!item.createdByName && <Text style={styles.meta}>Creator: <Text style={styles.metaStrong}>{item.createdByName}</Text></Text>}
+      <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('id') || 'ID') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{item.activationId}</Text></Text>
+      {!!item.activationDetail && <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('detail') || 'Detail') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{item.activationDetail}</Text></Text>}
+      {!!item.updatedBy && <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('last_updated_by') || 'Last updated by') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{item.updatedByName || t('unknown_user') || 'Unknown User'}</Text></Text>}
+      {!!item.createdByName && <Text style={[styles.meta, isDark && { color: '#94a3b8' }]}>{(t('creator') || 'Creator') + ': '}<Text style={[styles.metaStrong, isDark && { color: '#e5e7eb' }]}>{item.createdByName}</Text></Text>}
             <View style={styles.actionsRow}>
               {isAdmin && (
                 <SecondaryButton
-                  title="View Audit"
+          title={t('view_audit') || 'View Audit'}
                   onPress={() => router.push({ pathname: '/audit-screens/audit-logs' as any, params: { collection: 'activations', docId: item.id } })}
                   style={styles.flexBtn}
                 />
               )}
-              {canEdit && <SecondaryButton title="Edit" onPress={() => handleEdit(item)} style={styles.flexBtn} />}
-              {isSuperadmin && <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
+        {canEdit && <SecondaryButton title={t('edit') || 'Edit'} onPress={() => handleEdit(item)} style={styles.flexBtn} />}
+        {isSuperadmin && <SecondaryButton title={t('delete') || 'Delete'} onPress={() => handleDelete(item.id)} style={[styles.flexBtn, styles.deleteBtn]} />}
             </View>
           </View>
         )}
@@ -198,14 +203,14 @@ export default function ActivationScreen() {
       />
       <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
         <View style={styles.modalContainer}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>{selectedActivation ? 'Edit' : 'Add'} Activation</Text>
-            <TextInput style={styles.input} value={formData.activationId} onChangeText={text => setFormData({ ...formData, activationId: text })} placeholder="Activation ID" />
-            <TextInput style={styles.input} value={formData.activationName} onChangeText={text => setFormData({ ...formData, activationName: text })} placeholder="Activation Name" />
-            <TextInput style={styles.input} value={formData.activationDetail} onChangeText={text => setFormData({ ...formData, activationDetail: text })} placeholder="Activation Detail" />
+          <View style={[styles.modalSheet, isDark && { backgroundColor: '#111827' }]}>
+            <Text style={[styles.modalTitle, isDark && { color: '#e5e7eb' }]}>{`${selectedActivation ? (t('edit') || 'Edit') : (t('add') || 'Add')} ${t('activation') || 'Activation'}`}</Text>
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.activationId} onChangeText={text => setFormData({ ...formData, activationId: text })} placeholder={t('activation_id') || 'Activation ID'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.activationName} onChangeText={text => setFormData({ ...formData, activationName: text })} placeholder={t('activation_name') || 'Activation Name'} placeholderTextColor={isDark ? '#64748b' : undefined} />
+            <TextInput style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]} value={formData.activationDetail} onChangeText={text => setFormData({ ...formData, activationDetail: text })} placeholder={t('activation_detail') || 'Activation Detail'} placeholderTextColor={isDark ? '#64748b' : undefined} />
             <View style={styles.modalActions}>
-              <PrimaryButton title={selectedActivation ? 'Update' : 'Add'} onPress={handleAddOrUpdate} style={styles.flexBtn} />
-              <SecondaryButton title="Cancel" onPress={() => setIsModalVisible(false)} style={styles.flexBtn} />
+              <PrimaryButton title={selectedActivation ? (t('update') || 'Update') : (t('add') || 'Add')} onPress={handleAddOrUpdate} style={styles.flexBtn} />
+              <SecondaryButton title={t('cancel') || 'Cancel'} onPress={() => setIsModalVisible(false)} style={styles.flexBtn} />
             </View>
           </View>
         </View>

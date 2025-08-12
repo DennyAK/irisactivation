@@ -9,8 +9,13 @@ import { doc, getDoc } from 'firebase/firestore';
 // import { isAdminRole } from '../../constants/roles';
 import { MenuGrid } from '../../components/ui/MenuCard';
 import { palette, spacing, typography } from '../../constants/Design';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 
 export default function OutletDetailMenu() {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const [role, setRole] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
@@ -29,28 +34,28 @@ export default function OutletDetailMenu() {
     href: '/outlets-screens/outlets' | '/outlets-screens/province-list' | '/outlets-screens/city-list';
   }[] = [
     {
-      label: 'Outlet Detail',
+      label: t('outlets') || 'Outlet Detail',
       icon: 'storefront-outline',
-      subtitle: 'View outlet details and status',
+      subtitle: t('outlets_subtitle') || 'View outlet details and status',
       href: '/outlets-screens/outlets',
     },
     {
-      label: 'Province',
+      label: t('provinces') || 'Province',
       icon: 'earth-outline',
-      subtitle: 'View and manage province list',
+      subtitle: t('provinces_subtitle') || 'View and manage province list',
       href: '/outlets-screens/province-list',
     },
     {
-      label: 'City',
+      label: t('cities') || 'City',
       icon: 'map-outline',
-      subtitle: 'View and manage city list',
+      subtitle: t('cities_subtitle') || 'View and manage city list',
       href: '/outlets-screens/city-list',
   },
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Outlets</Text>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0b1220' : palette.bg }]}>
+      <Text style={[styles.header, isDark && { color: '#e5e7eb' }]}>{t('outlets') || 'Outlets'}</Text>
       <MenuGrid items={menuItems} />
     </View>
   );
