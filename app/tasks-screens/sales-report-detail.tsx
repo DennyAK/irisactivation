@@ -17,7 +17,7 @@ import stateMachine from '../../constants/stateMachine';
 import FilterHeader from '../../components/ui/FilterHeader';
 import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
-import { Roles, isAdminRole } from '../../constants/roles';
+import { Roles, isAdminRole, isBAish, isTLish } from '../../constants/roles';
 
 
 export default function SalesReportDetailScreen() {
@@ -268,9 +268,9 @@ export default function SalesReportDetailScreen() {
       const reportsRef = collection(db, 'sales_report_detail');
       const uid = auth.currentUser?.uid || '';
       let qRef: any;
-      if (userRole === 'Iris - BA' && uid) {
+  if (isBAish(userRole as any) && uid) {
         qRef = query(reportsRef, where('assignedToBA', '==', uid));
-      } else if (userRole === 'Iris - TL' && uid) {
+  } else if (isTLish(userRole as any) && uid) {
         qRef = query(reportsRef, where('assignedToTL', '==', uid));
       } else {
         qRef = query(reportsRef);

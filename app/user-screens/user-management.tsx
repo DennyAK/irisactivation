@@ -113,7 +113,7 @@ export default function UserManagementScreen() {
   };
 
   const canManage = userRole === 'admin' || userRole === 'superadmin';
-  const canEdit = userRole === 'admin' || userRole === 'superadmin' || userRole === 'area manager';
+  const canEdit = canManage; // restrict edits to admin/superadmin
 
   const filteredUsers = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -131,6 +131,16 @@ export default function UserManagementScreen() {
 
   if (loading) {
     return <ActivityIndicator />;
+  }
+
+  // Hard guard: only admin/superadmin may access this screen
+  if (!(userRole === 'admin' || userRole === 'superadmin')) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 16, fontWeight: '600' }}>Access denied</Text>
+        <Text>You don't have permission to view this page.</Text>
+      </View>
+    );
   }
 
   return (
@@ -193,6 +203,7 @@ export default function UserManagementScreen() {
                   <Picker.Item label="Iris - TL" value="Iris - TL" />
                   <Picker.Item label="Iris" value="Iris" />
                   <Picker.Item label="Dima" value="Dima" />
+                  <Picker.Item label="Diageo" value="Diageo" />
                   {userRole === 'superadmin' && <Picker.Item label="admin" value="admin" />}
                 </Picker>
               </View>

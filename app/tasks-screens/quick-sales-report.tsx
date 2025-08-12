@@ -13,7 +13,7 @@ import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc
 import { onAuthStateChanged } from 'firebase/auth';
 import QuickSalesReportDetailsModal, { buildQuickSalesReportText } from '@/components/QuickSalesReportDetailsModal';
 import * as Clipboard from 'expo-clipboard';
-import { Roles, isAdminRole } from '../../constants/roles';
+import { Roles, isAdminRole, isBAish, isTLish } from '../../constants/roles';
 import { QRStatus, getToneForQRStatus, nextStatusOnSubmitQR, QR_STATUS_OPTIONS } from '../../constants/status';
 import stateMachine from '../../constants/stateMachine';
 import FilterHeader from '../../components/ui/FilterHeader';
@@ -120,9 +120,9 @@ export default function QuickSalesReportScreen() {
       const uid = auth.currentUser?.uid || '';
       let base = collectionRef;
       let qRef: any;
-      if (userRole === Roles.IrisBA && uid) {
+  if (isBAish(userRole as any) && uid) {
         qRef = query(base, where('assignedToBA', '==', uid));
-      } else if (userRole === Roles.IrisTL && uid) {
+  } else if (isTLish(userRole as any) && uid) {
         qRef = query(base, where('assignedToTL', '==', uid));
       } else {
         qRef = query(base);

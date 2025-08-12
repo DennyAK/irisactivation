@@ -17,7 +17,7 @@ import TaskEarlyAssessmentDetailsModal, { buildTaskEarlyAssessmentText } from '@
 import * as Clipboard from 'expo-clipboard';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Platform } from 'react-native';
-import { Roles } from '../../constants/roles';
+import { Roles, isBAish, isTLish } from '../../constants/roles';
 import { EAStatus, getToneForEAStatus, nextStatusOnSubmitEA, EA_STATUS_OPTIONS } from '../../constants/status';
 import stateMachine from '../../constants/stateMachine';
 import FilterHeader from '../../components/ui/FilterHeader';
@@ -272,11 +272,11 @@ export default function TaskEarlyAssessmentScreen() {
       const snapshot = await getDocs(collectionRef);
       let list = snapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
       // Filter for BA role: only show records assigned to current user
-  if (userRole === Roles.IrisBA && auth.currentUser?.uid) {
+  if (isBAish(userRole as any) && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
       }
       // Filter for TL role: only show records assigned to current TL
-  if (userRole === Roles.IrisTL && auth.currentUser?.uid) {
+  if (isTLish(userRole as any) && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
       // Sort by createdAt asc/desc when available

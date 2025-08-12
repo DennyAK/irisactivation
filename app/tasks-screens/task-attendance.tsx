@@ -18,7 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import TaskAttendanceDetailsModal, { buildTaskAttendanceText } from '@/components/TaskAttendanceDetailsModal';
 import * as Clipboard from 'expo-clipboard';
-import { Roles } from '../../constants/roles';
+import { Roles, isBAish, isTLish } from '../../constants/roles';
 import { AttendanceStatus, getToneForAttendanceStatus, ATTENDANCE_STATUS_OPTIONS } from '../../constants/status';
 import stateMachine from '../../constants/stateMachine';
 import FilterHeader from '../../components/ui/FilterHeader';
@@ -131,15 +131,15 @@ export default function TaskAttendanceScreen() {
         const data = doc.data();
         return { id: doc.id, assignedToBA: data.assignedToBA, createdAt: data.createdAt, ...data } as AttendanceItem;
       });
-      // Filter for BA role: only show records assigned to current user
-  if (userRole === Roles.IrisBA && auth.currentUser?.uid) {
+      // Filter for BA-ish role: only show records assigned to current BA
+      if (isBAish(userRole as any) && auth.currentUser?.uid) {
         attendanceList = attendanceList.filter(a => a?.assignedToBA === auth.currentUser?.uid);
       }
-      // Filter for TL role: only show records assigned to current TL
-  if (userRole === Roles.IrisTL && auth.currentUser?.uid) {
+      // Filter for TL-ish role: only show records assigned to current TL
+      if (isTLish(userRole as any) && auth.currentUser?.uid) {
         attendanceList = attendanceList.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
-      // Sort by createdAt asc/desc
+
       attendanceList.sort((a, b) => {
         let aTime = 0;
         let bTime = 0;

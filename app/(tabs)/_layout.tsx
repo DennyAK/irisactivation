@@ -40,7 +40,7 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
   // Show a limited set of tabs for guests; full set for authenticated
   let filteredRoutes = state.routes;
   if (userRole === 'guest') {
-    const allowed = new Set(['index', 'clicker']);
+    const allowed = new Set(['index', 'clicker', 'about']);
     filteredRoutes = state.routes.filter(route => allowed.has(route.name));
   } else {
     filteredRoutes = state.routes.filter(route => {
@@ -69,7 +69,10 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
           const isFocused = state.index === state.routes.findIndex(r => r.key === route.key);
 
           const onPress = () => {
-            if (userRole === 'guest' && route.name !== 'index') return;
+            if (userRole === 'guest') {
+              const allowed = new Set(['index', 'clicker', 'about']);
+              if (!allowed.has(route.name)) return;
+            }
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -82,7 +85,10 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
           };
 
           const onLongPress = () => {
-            if (userRole === 'guest' && route.name !== 'index') return;
+            if (userRole === 'guest') {
+              const allowed = new Set(['index', 'clicker', 'about']);
+              if (!allowed.has(route.name)) return;
+            }
             navigation.emit({
               type: 'tabLongPress',
               target: route.key,
@@ -151,7 +157,13 @@ export default function TabLayout() {
     return <Redirect href="/login" />;
   }
 
-  if (userRole === 'guest' || userRole == null) {
+  // Unknown/unassigned roles (e.g., '', 'user', 'User') are restricted to login/signup
+  const knownRoles = new Set(['guest','admin','superadmin','area manager','Iris - BA','Iris - TL','Dima','Diageo']);
+  if (userRole && !knownRoles.has(userRole)) {
+    return <Redirect href="/login" />;
+  }
+
+  if (userRole === 'guest') {
     return (
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} userRole={userRole} />}
@@ -199,9 +211,29 @@ export default function TabLayout() {
                 </Pressable>
               </Link>
             ),
-            href: '/clicker',
           }}
         />
+          <Tabs.Screen
+            name="about"
+            options={{
+              title: 'About',
+              tabBarIcon: ({ color }) => <TabBarIcon name="info-circle" color={color} />, 
+              headerRight: () => (
+                <Link href="/modal" asChild>
+                  <Pressable>
+                    {({ pressed }) => (
+                      <FontAwesome
+                        name="ellipsis-h"
+                        size={25}
+                        color={Colors[colorScheme ?? 'light'].text}
+                        style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                      />
+                    )}
+                  </Pressable>
+                </Link>
+              ),
+            }}
+          />
       </Tabs>
     );
   }
@@ -235,7 +267,7 @@ export default function TabLayout() {
         }}
       />
       {/* Clicker: visible to all logged-in users, placed beside Profile */}
-      <Tabs.Screen name="clicker" options={{
+  <Tabs.Screen name="clicker" options={{
         title: 'Clicker',
         tabBarIcon: ({ color }) => <TabBarIcon name="plus" color={color} />, 
         headerRight: () => (
@@ -252,11 +284,28 @@ export default function TabLayout() {
             </Pressable>
           </Link>
         ),
-        href: '/clicker',
+      }} />
+      <Tabs.Screen name="about" options={{
+        title: 'About',
+        tabBarIcon: ({ color }) => <TabBarIcon name="info-circle" color={color} />, 
+        headerRight: () => (
+          <Link href="/modal" asChild>
+            <Pressable>
+              {({ pressed }) => (
+                <FontAwesome
+                  name="ellipsis-h"
+                  size={25}
+                  color={Colors[colorScheme ?? 'light'].text}
+                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                />
+              )}
+            </Pressable>
+          </Link>
+  ),
       }} />
       {/* All other tabs for non-guests */}
       
-      <Tabs.Screen name="user-manager" options={{
+  <Tabs.Screen name="user-manager" options={{
         title: 'Users Manager',
         tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />, 
         headerRight: () => (
@@ -274,7 +323,7 @@ export default function TabLayout() {
           </Link>
         ),
         href: '/user-manager',
-      }} />
+  }} />
       <Tabs.Screen name="projects-detail" options={{
         title: 'Projects',
         tabBarIcon: ({ color }) => <TabBarIcon name="briefcase" color={color} />, 

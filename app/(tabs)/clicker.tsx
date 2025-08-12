@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, Vibration, Switch, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, Vibration, Switch, Animated, Share } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { palette, spacing, radius, shadow, typography, hitSlop } from '../../constants/Design';
 import PrimaryButton from '../../components/ui/PrimaryButton';
@@ -12,6 +12,7 @@ import { ModalSheet } from '../../components/ui/ModalSheet';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { trackEvent } from '../../components/analytics';
 
 type ClickVar = { id: string; name: string; count: number };
 
@@ -56,7 +57,7 @@ export default function ClickerScreen() {
   const renameInputRef = useRef<TextInput | null>(null);
   const [didSelectAll, setDidSelectAll] = useState(false);
   const [hapticsOn, setHapticsOn] = useState(true);
-  const [stepSize, setStepSize] = useState<1 | 5>(1);
+  const [stepSize, setStepSize] = useState<1 | 5 | 10>(1);
   const scaleRefs = useRef<Record<string, Animated.Value>>({});
   const incDelayRefs = useRef<Record<string, any>>({});
   const incIntervalRefs = useRef<Record<string, any>>({});
@@ -93,7 +94,7 @@ export default function ClickerScreen() {
         const sRaw = await AsyncStorage.getItem('clicker:settings:step');
         if (!cancelled && sRaw != null) {
           const val = parseInt(sRaw, 10);
-          setStepSize(val === 5 ? 5 : 1);
+          setStepSize(val === 10 ? 10 : val === 5 ? 5 : 1);
         }
       } catch {}
       if (!cancelled) setHydrated(true);
@@ -134,6 +135,7 @@ export default function ClickerScreen() {
     setItems(prev => [...prev, { id, name, count: 0 }]);
     setNewName('');
     buzz(10);
+  try { trackEvent('clicker_add', { id, name }); } catch {}
   }, [newName, items, buzz]);
 
   const changeCount = useCallback((id: string, delta: number, doBuzz: boolean) => {
@@ -145,11 +147,13 @@ export default function ClickerScreen() {
 
   const increment = useCallback((id: string) => {
     changeCount(id, 1, true);
-  }, [changeCount]);
+    try { trackEvent('clicker_increment', { id, step: stepSize }); } catch {}
+  }, [changeCount, stepSize]);
 
   const decrement = useCallback((id: string) => {
     changeCount(id, -1, true);
-  }, [changeCount]);
+    try { trackEvent('clicker_decrement', { id, step: stepSize }); } catch {}
+  }, [changeCount, stepSize]);
 
   // Press-and-hold handlers
   const startAutoInc = useCallback((id: string) => {
@@ -181,6 +185,7 @@ export default function ClickerScreen() {
       { text: 'Reset', style: 'destructive', onPress: async () => {
         setItems(defaults.map(d => ({ ...d })));
         try { await AsyncStorage.removeItem(storageKey); } catch {}
+  try { trackEvent('clicker_reset_all'); } catch {}
       } },
     ]);
   };
@@ -191,6 +196,7 @@ export default function ClickerScreen() {
       { text: 'Delete', style: 'destructive', onPress: () => {
     setItems(prev => prev.filter(i => i.id !== id));
     buzz(12);
+  try { trackEvent('clicker_remove', { id, name }); } catch {}
       }},
     ]);
   }, [buzz]);
@@ -213,6 +219,7 @@ export default function ClickerScreen() {
     setItems(prev => prev.map(i => i.id === renameFor.id ? { ...i, name: next } : i));
     setRenameFor(null);
     buzz(8);
+  try { trackEvent('clicker_rename', { id: renameFor.id, from: renameFor.name, to: next }); } catch {}
   }, [renameText, renameFor, items, buzz]);
 
   // Persist on changes
@@ -316,6 +323,7 @@ export default function ClickerScreen() {
                   setItems(prev => prev.map(i => i.id === item.id ? { ...i, count: 0 } : i));
                   bump(item.id);
                   buzz(10);
+                  try { trackEvent('clicker_reset_item', { id: item.id, name: item.name }); } catch {}
                 } },
               ]);
             }}
@@ -347,7 +355,7 @@ export default function ClickerScreen() {
   const clearCounts = () => {
     Alert.alert('Clear counts', 'Set all counts to zero? Your variables will be kept.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: () => setItems(prev => prev.map(i => ({ ...i, count: 0 }))) },
+  { text: 'Clear', style: 'destructive', onPress: () => { setItems(prev => prev.map(i => ({ ...i, count: 0 }))); try { trackEvent('clicker_clear_counts'); } catch {} } },
     ]);
   };
 
@@ -357,16 +365,71 @@ export default function ClickerScreen() {
       const text = lines.join('\n');
       await Clipboard.setStringAsync(text);
       Alert.alert('Copied', 'Current counters copied to clipboard.');
+      try { trackEvent('clicker_copy_summary', { items: items.length }); } catch {}
     } catch (e) {
       Alert.alert('Copy failed', 'Unable to copy to clipboard.');
     }
   };
 
+  const shareSummary = async () => {
+    try {
+      const lines = items.map(i => `${i.name}: ${i.count}`);
+      const text = lines.join('\n');
+      await Share.share({ message: text });
+      try { trackEvent('clicker_share_summary', { items: items.length }); } catch {}
+    } catch (e) {
+      // user cancelled or share failed; ignore
+    }
+  };
+
+  const exportClickerJSON = async () => {
+    try {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        items: items.map(i => ({ id: i.id, name: i.name, count: i.count })),
+        settings: { hapticsOn, stepSize },
+      };
+      const json = JSON.stringify(payload, null, 2);
+      await Clipboard.setStringAsync(json);
+      Alert.alert('Exported', 'Clicker data copied to clipboard as JSON.');
+      try { trackEvent('clicker_export_json', { items: items.length }); } catch {}
+    } catch (e) {
+      Alert.alert('Export failed', 'Unable to create export JSON.');
+    }
+  };
+
+  const importClickerFromClipboard = async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      const obj = JSON.parse(text);
+      if (!obj || typeof obj !== 'object' || !Array.isArray(obj.items)) throw new Error('invalid');
+      const nextItems: ClickVar[] = obj.items
+        .filter((x: any) => x && typeof x.name === 'string')
+        .map((x: any) => ({
+          id: typeof x.id === 'string' && x.id ? x.id : `${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+          name: String(x.name).trim(),
+          count: Math.max(0, Number.isFinite(x.count) ? Math.floor(x.count) : 0),
+        }))
+        .filter((x: ClickVar) => x.name.length > 0);
+      if (nextItems.length === 0) throw new Error('empty');
+      setItems(nextItems);
+      if (obj.settings && typeof obj.settings === 'object') {
+        if (typeof obj.settings.hapticsOn === 'boolean') setHapticsOn(!!obj.settings.hapticsOn);
+        if ([1,5,10].includes(obj.settings.stepSize)) setStepSize(obj.settings.stepSize as 1|5|10);
+      }
+      Alert.alert('Imported', `Loaded ${nextItems.length} variables from JSON.`);
+      try { trackEvent('clicker_import_json', { items: nextItems.length }); } catch {}
+    } catch (e) {
+      Alert.alert('Import failed', 'Clipboard does not contain valid Clicker JSON.');
+    }
+  };
+
   const footer = (
-    <View style={{ paddingTop: spacing(2), paddingBottom: Math.max(insets.bottom, spacing(8)) }}>
-      <View style={styles.settingsCard}>
-        <Text style={styles.settingsTitle}>Clicker Setting</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
+    <View style={{ paddingTop: spacing(1), paddingBottom: Math.max(insets.bottom, spacing(6)) }}>
+      <View style={[styles.settingsCard, { padding: spacing(3) }]}> 
+        <Text style={[styles.settingsTitle, { marginBottom: spacing(2) }]}>Clicker Setting</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(1.5) }}>
           <Text style={{ color: palette.text, fontWeight: '600' }}>Haptics</Text>
           <Switch
             value={hapticsOn}
@@ -375,7 +438,7 @@ export default function ClickerScreen() {
             trackColor={{ false: '#999', true: palette.primary }}
           />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(1.5) }}>
           <Text style={{ color: palette.text, fontWeight: '600' }}>Step</Text>
           <View style={{ flexDirection: 'row', gap: spacing(1) as any }}>
             <TouchableOpacity onPress={() => setStepSize(1)} style={[styles.stepChip, stepSize === 1 && styles.stepChipActive]}>
@@ -384,13 +447,29 @@ export default function ClickerScreen() {
             <TouchableOpacity onPress={() => setStepSize(5)} style={[styles.stepChip, stepSize === 5 && styles.stepChipActive]}>
               <Text style={[styles.stepChipText, stepSize === 5 && styles.stepChipTextActive]}>x5</Text>
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => setStepSize(10)} style={[styles.stepChip, stepSize === 10 && styles.stepChipActive]}>
+              <Text style={[styles.stepChipText, stepSize === 10 && styles.stepChipTextActive]}>x10</Text>
+            </TouchableOpacity>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', gap: spacing(2) as any, marginBottom: spacing(2), justifyContent: 'space-between' }}>
-          <SecondaryButton title="Clear Counts" onPress={clearCounts} />
-          <SecondaryButton title="Copy Summary" onPress={copySummary} />
+        <View style={{ flexDirection: 'row', gap: spacing(1) as any, marginBottom: spacing(1.5), alignItems: 'stretch' }}>
+          <View style={{ flex: 1 }}>
+            <SecondaryButton compact title="Share" onPress={shareSummary} />
+          </View>
+          <View style={{ flex: 2, flexDirection: 'row', justifyContent: 'flex-end', gap: spacing(1) as any }}>
+            <SecondaryButton compact title="Import" onPress={importClickerFromClipboard} />
+            <SecondaryButton compact title="Export" onPress={exportClickerJSON} />
+            <SecondaryButton compact title="Copy" onPress={copySummary} />
+          </View>
         </View>
-        <PrimaryButton title="Reset" onPress={resetAll} />
+        <View style={{ flexDirection: 'row', gap: spacing(1) as any }}>
+          <View style={{ flex: 1 }}>
+            <SecondaryButton title="Clear" onPress={clearCounts} />
+          </View>
+          <View style={{ flex: 2 }}>
+            <PrimaryButton title="Reset" onPress={resetAll} />
+          </View>
+        </View>
       </View>
     </View>
   );

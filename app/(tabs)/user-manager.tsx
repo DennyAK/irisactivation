@@ -30,7 +30,7 @@ export default function UserManagerMenu() {
       label: 'About',
       icon: 'information-circle-outline',
       subtitle: 'Version, channel, links, and OTA updates',
-      href: '/user-screens/about',
+      href: '/(tabs)/about',
     },
     
   ];
