@@ -51,6 +51,8 @@ export default function ClickerScreen() {
   const insets = useSafeAreaInsets();
   const [renameFor, setRenameFor] = useState<ClickVar | null>(null);
   const [renameText, setRenameText] = useState('');
+  const renameInputRef = useRef<TextInput | null>(null);
+  const [didSelectAll, setDidSelectAll] = useState(false);
 
   // Hydrate from storage on mount and when user changes
   useEffect(() => {
@@ -125,6 +127,7 @@ export default function ClickerScreen() {
   const openRename = useCallback((item: ClickVar) => {
     setRenameFor(item);
     setRenameText(item.name);
+    setDidSelectAll(false);
     try { Vibration.vibrate(8); } catch {}
   }, []);
 
@@ -243,25 +246,24 @@ export default function ClickerScreen() {
       <ModalSheet visible={!!renameFor} onClose={() => setRenameFor(null)}>
         <Text style={styles.renameTitle}>Rename variable</Text>
         <TextInput
+          ref={renameInputRef}
           value={renameText}
           onChangeText={setRenameText}
           placeholder="New name"
           placeholderTextColor={palette.textMuted}
           style={[styles.input, { marginBottom: spacing(2) }]}
           autoFocus
-          onFocus={(e) => {
-            // Select all text on focus for quick overwrite
-            try {
-              const len = renameText.length;
-              (e.nativeEvent as any);
-              // Delay one tick to ensure selection applies after focus
-              setTimeout(() => {
-                // selection prop can be set imperatively via setNativeProps
-                // but here we rely on controlled value + selection prop below if needed
-              }, 0);
-            } catch {}
+          onFocus={() => {
+            // Select all once on initial focus; do not force selection on every render
+            if (didSelectAll) return;
+            setTimeout(() => {
+              try {
+                const len = renameText.length;
+                renameInputRef.current?.setNativeProps?.({ selection: { start: 0, end: len } });
+                setDidSelectAll(true);
+              } catch {}
+            }, 0);
           }}
-          selection={{ start: 0, end: renameText.length }}
           onSubmitEditing={applyRename}
         />
         <View style={{ flexDirection: 'row', gap: spacing(2) as any }}>
