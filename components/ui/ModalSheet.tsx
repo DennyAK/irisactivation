@@ -16,7 +16,7 @@ export const ModalSheet: React.FC<Props> = ({ visible, onClose, children, maxHei
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.backdrop} />
       </TouchableWithoutFeedback>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+  <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <View style={[styles.sheet, { maxHeight: `${maxHeightPct * 100}%` }]}>          
           {scroll ? (
             <ScrollView contentContainerStyle={{ paddingBottom: spacing(4) }} showsVerticalScrollIndicator={false}>

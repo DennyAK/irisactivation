@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import { ModalSheet } from '../../components/ui/ModalSheet';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -225,28 +226,26 @@ export default function ClickerScreen() {
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, spacing(8)) }}
       />
 
-      {renameFor && (
-        <View style={styles.renameSheet}>
-          <Text style={styles.renameTitle}>Rename variable</Text>
-          <TextInput
-            value={renameText}
-            onChangeText={setRenameText}
-            placeholder="New name"
-            placeholderTextColor={palette.textMuted}
-            style={[styles.input, { marginBottom: spacing(2) }]}
-            autoFocus
-            onSubmitEditing={applyRename}
-          />
-          <View style={{ flexDirection: 'row', gap: spacing(2) as any }}>
-            <TouchableOpacity style={[styles.smallBtn, { backgroundColor: palette.surface }]} onPress={() => setRenameFor(null)}>
-              <Text style={{ color: palette.text }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.smallBtn, { backgroundColor: palette.primary }]} onPress={applyRename}>
-              <Text style={{ color: '#fff' }}>Save</Text>
-            </TouchableOpacity>
-          </View>
+      <ModalSheet visible={!!renameFor} onClose={() => setRenameFor(null)}>
+        <Text style={styles.renameTitle}>Rename variable</Text>
+        <TextInput
+          value={renameText}
+          onChangeText={setRenameText}
+          placeholder="New name"
+          placeholderTextColor={palette.textMuted}
+          style={[styles.input, { marginBottom: spacing(2) }]}
+          autoFocus
+          onSubmitEditing={applyRename}
+        />
+        <View style={{ flexDirection: 'row', gap: spacing(2) as any }}>
+          <TouchableOpacity style={[styles.smallBtn, { backgroundColor: palette.surface }]} onPress={() => setRenameFor(null)}>
+            <Text style={{ color: palette.text }}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.smallBtn, { backgroundColor: palette.primary }]} onPress={applyRename}>
+            <Text style={{ color: '#fff' }}>Save</Text>
+          </TouchableOpacity>
         </View>
-      )}
+      </ModalSheet>
     </GestureHandlerRootView>
   );
 }
@@ -297,18 +296,6 @@ const styles = StyleSheet.create({
   actionRight: { width: 100, marginLeft: spacing(2), alignSelf: 'flex-end' },
   actionText: { color: palette.text, fontWeight: '700' },
   dragActive: { opacity: 0.9, transform: [{ scale: 0.98 }] as any },
-  renameSheet: {
-    position: 'absolute',
-    left: spacing(4),
-    right: spacing(4),
-    bottom: spacing(6),
-    backgroundColor: palette.surface,
-    padding: spacing(4),
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
-    ...shadow.card,
-  },
   renameTitle: { fontWeight: '800', marginBottom: spacing(2), color: palette.text },
   smallBtn: { paddingVertical: spacing(2.5), paddingHorizontal: spacing(4), borderRadius: radius.md },
 });
