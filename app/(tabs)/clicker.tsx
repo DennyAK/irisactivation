@@ -273,7 +273,7 @@ export default function ClickerScreen() {
           }}
           activeOpacity={0.85}
         >
-          <Text style={styles.actionTextLight}>-1</Text>
+          <Text style={styles.actionTextLight}>-x{stepSize}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, styles.actionDanger]}
@@ -374,6 +374,17 @@ export default function ClickerScreen() {
             thumbColor={Platform.OS === 'android' ? (hapticsOn ? palette.primary : '#eee') : undefined}
             trackColor={{ false: '#999', true: palette.primary }}
           />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(2) }}>
+          <Text style={{ color: palette.text, fontWeight: '600' }}>Step</Text>
+          <View style={{ flexDirection: 'row', gap: spacing(1) as any }}>
+            <TouchableOpacity onPress={() => setStepSize(1)} style={[styles.stepChip, stepSize === 1 && styles.stepChipActive]}>
+              <Text style={[styles.stepChipText, stepSize === 1 && styles.stepChipTextActive]}>x1</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setStepSize(5)} style={[styles.stepChip, stepSize === 5 && styles.stepChipActive]}>
+              <Text style={[styles.stepChipText, stepSize === 5 && styles.stepChipTextActive]}>x5</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={{ flexDirection: 'row', gap: spacing(2) as any, marginBottom: spacing(2), justifyContent: 'space-between' }}>
           <SecondaryButton title="Clear Counts" onPress={clearCounts} />
