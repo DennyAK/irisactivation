@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform, Vibration } from 'react-native';
 import { palette, spacing, radius, shadow, typography, hitSlop } from '../../constants/Design';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -85,7 +85,7 @@ export default function ClickerScreen() {
 
   const canAdd = useMemo(() => newName.trim().length > 0 && !items.some(i => i.name.toLowerCase() === newName.trim().toLowerCase()), [newName, items]);
 
-  const addItem = () => {
+  const addItem = useCallback(() => {
     const name = newName.trim();
     if (!name) return;
     if (items.some(i => i.name.toLowerCase() === name.toLowerCase())) {
@@ -95,11 +95,12 @@ export default function ClickerScreen() {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
     setItems(prev => [...prev, { id, name, count: 0 }]);
     setNewName('');
-  };
+    try { Vibration.vibrate(10); } catch {}
+  }, [newName, items]);
 
-  const increment = (id: string) => {
+  const increment = useCallback((id: string) => {
     setItems(prev => prev.map(i => i.id === id ? { ...i, count: i.count + 1 } : i));
-  };
+  }, []);
 
   const resetAll = () => {
     Alert.alert('Reset counters', 'This will clear all variables and restore defaults. Continue?', [
@@ -111,21 +112,23 @@ export default function ClickerScreen() {
     ]);
   };
 
-  const confirmDelete = (id: string, name: string) => {
+  const confirmDelete = useCallback((id: string, name: string) => {
     Alert.alert('Delete variable', `Delete "${name}"?`, [
       { text: 'Cancel', style: 'cancel', onPress: () => swipeRefs.current[id]?.close?.() },
       { text: 'Delete', style: 'destructive', onPress: () => {
         setItems(prev => prev.filter(i => i.id !== id));
+    try { Vibration.vibrate(12); } catch {}
       }},
     ]);
-  };
+  }, []);
 
-  const openRename = (item: ClickVar) => {
+  const openRename = useCallback((item: ClickVar) => {
     setRenameFor(item);
     setRenameText(item.name);
-  };
+    try { Vibration.vibrate(8); } catch {}
+  }, []);
 
-  const applyRename = () => {
+  const applyRename = useCallback(() => {
     const next = renameText.trim();
     if (!renameFor) return;
     if (!next) { setRenameFor(null); return; }
@@ -135,7 +138,8 @@ export default function ClickerScreen() {
     }
     setItems(prev => prev.map(i => i.id === renameFor.id ? { ...i, name: next } : i));
     setRenameFor(null);
-  };
+    try { Vibration.vibrate(8); } catch {}
+  }, [renameText, renameFor, items]);
 
   // Persist on changes
   useEffect(() => {
@@ -148,7 +152,14 @@ export default function ClickerScreen() {
   const renderAction = (item: ClickVar, side: 'left' | 'right') => (
     <TouchableOpacity
       style={[styles.swipeAction, side === 'left' ? styles.actionLeft : styles.actionRight]}
-      onPress={() => side === 'left' ? openRename(item) : confirmDelete(item.id, item.name)}
+      onPress={() => {
+        if (side === 'left') {
+          openRename(item);
+        } else {
+          confirmDelete(item.id, item.name);
+        }
+        swipeRefs.current[item.id]?.close?.();
+      }}
       activeOpacity={0.8}
     >
       <Text style={styles.actionText}>{side === 'left' ? 'Rename' : 'Remove'}</Text>
@@ -180,6 +191,9 @@ export default function ClickerScreen() {
         ref={(ref) => { swipeRefs.current[item.id] = ref; }}
         renderLeftActions={() => renderAction(item, 'left')}
         renderRightActions={() => renderAction(item, 'right')}
+        leftThreshold={48}
+        rightThreshold={48}
+        friction={2}
         onSwipeableWillClose={() => { /* no-op */ }}
       >
         {content}
@@ -235,6 +249,19 @@ export default function ClickerScreen() {
           placeholderTextColor={palette.textMuted}
           style={[styles.input, { marginBottom: spacing(2) }]}
           autoFocus
+          onFocus={(e) => {
+            // Select all text on focus for quick overwrite
+            try {
+              const len = renameText.length;
+              (e.nativeEvent as any);
+              // Delay one tick to ensure selection applies after focus
+              setTimeout(() => {
+                // selection prop can be set imperatively via setNativeProps
+                // but here we rely on controlled value + selection prop below if needed
+              }, 0);
+            } catch {}
+          }}
+          selection={{ start: 0, end: renameText.length }}
           onSubmitEditing={applyRename}
         />
         <View style={{ flexDirection: 'row', gap: spacing(2) as any }}>
