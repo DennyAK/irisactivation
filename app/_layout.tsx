@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { LogBox } from 'react-native';
 import 'react-native-reanimated';
+import 'react-native-gesture-handler';
 
 // Sentry: dynamically require to avoid bundler resolution issues in dev
 let Sentry: any;
