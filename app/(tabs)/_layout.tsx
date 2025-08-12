@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
 });
 import React, { useState, useEffect } from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
+import { Link, Tabs, Redirect } from 'expo-router';
 import { Pressable, ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -146,7 +146,12 @@ export default function TabLayout() {
     );
   }
 
-  if (userRole === 'guest') {
+  // If not authenticated, send user to the login screen
+  if (!auth.currentUser) {
+    return <Redirect href="/login" />;
+  }
+
+  if (userRole === 'guest' || userRole == null) {
     return (
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} userRole={userRole} />}

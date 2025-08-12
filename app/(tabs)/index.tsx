@@ -124,8 +124,9 @@ export default function TabOneScreen() {
 
   if (!user) {
     return (
-      <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#f5f7fa'}}>
-        <Text style={{color:'#555'}}>Please log in to see your profile.</Text>
+      <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#f5f7fa', padding: 24}}>
+        <Text style={{color:'#555', marginBottom: 12}}>Please log in to see your profile.</Text>
+        <PrimaryButton title="Go to Login" onPress={() => router.replace('/login')} />
       </View>
     );
   }
