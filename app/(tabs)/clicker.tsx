@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
 import { palette, spacing, radius, shadow, typography, hitSlop } from '../../constants/Design';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -136,12 +136,31 @@ export default function ClickerScreen() {
   );
 
   const renderItem = ({ item, drag, isActive }: RenderItemParams<ClickVar>) => (
-    <Swipeable
-      ref={(ref) => { swipeRefs.current[item.id] = ref; }}
-      renderLeftActions={() => renderAction(item.id, item.name, 'left')}
-      renderRightActions={() => renderAction(item.id, item.name, 'right')}
-      onSwipeableOpen={() => confirmDelete(item.id, item.name)}
-    >
+    Platform.OS !== 'android' ? (
+      <Swipeable
+        ref={(ref) => { swipeRefs.current[item.id] = ref; }}
+        renderLeftActions={() => renderAction(item.id, item.name, 'left')}
+        renderRightActions={() => renderAction(item.id, item.name, 'right')}
+        onSwipeableOpen={() => confirmDelete(item.id, item.name)}
+      >
+        <TouchableOpacity
+          style={[styles.card, isActive ? styles.dragActive : undefined]}
+          onPress={() => increment(item.id)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.varName} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.counterRow}>
+            <TouchableOpacity onPress={() => increment(item.id)} style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="add-circle" size={28} color={palette.success} />
+            </TouchableOpacity>
+            <Text style={styles.countCentered}>{item.count}</Text>
+            <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Swipeable>
+    ) : (
       <TouchableOpacity
         style={[styles.card, isActive ? styles.dragActive : undefined]}
         onPress={() => increment(item.id)}
@@ -153,12 +172,17 @@ export default function ClickerScreen() {
             <Ionicons name="add-circle" size={28} color={palette.success} />
           </TouchableOpacity>
           <Text style={styles.countCentered}>{item.count}</Text>
-          <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => confirmDelete(item.id, item.name)} style={[styles.iconBtn, { marginLeft: spacing(1) }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="trash-outline" size={22} color="#E53935" />
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
-    </Swipeable>
+    )
   );
 
   const footer = (

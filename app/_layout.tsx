@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -6,7 +7,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { LogBox } from 'react-native';
 import 'react-native-reanimated';
-import 'react-native-gesture-handler';
 
 // Sentry: dynamically require to avoid bundler resolution issues in dev
 let Sentry: any;
