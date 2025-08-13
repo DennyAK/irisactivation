@@ -2,6 +2,7 @@
 // You can undo to this version if any crash happens today.
 
 import { useState, useEffect, useMemo } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -28,6 +29,7 @@ import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 
 export default function TaskAttendanceScreen() {
+  const params = useLocalSearchParams<{ attendanceId?: string }>();
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -136,6 +138,24 @@ export default function TaskAttendanceScreen() {
       fetchAttendances();
     }
   }, [userRole, isFocused, sortAsc]);
+
+  // Auto-open details when navigated with an attendanceId (AM review)
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    const shouldOpen = !!params?.attendanceId && !!userRole && isFocused && !autoOpened;
+    if (!shouldOpen) return;
+    (async () => {
+      try {
+        const id = String(params.attendanceId);
+        const snap = await getDoc(doc(db, 'task_attendance', id));
+        if (snap.exists()) {
+          setDetailsItem({ id: snap.id, ...snap.data() });
+          setDetailsVisible(true);
+        }
+      } catch {}
+      setAutoOpened(true);
+    })();
+  }, [params?.attendanceId, userRole, isFocused, autoOpened]);
 
   const fetchAttendances = async () => {
     setLoading(true);

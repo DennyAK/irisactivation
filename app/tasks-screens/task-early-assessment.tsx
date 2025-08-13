@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
@@ -27,6 +28,7 @@ import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 
 export default function TaskEarlyAssessmentScreen() {
+  const params = useLocalSearchParams<{ assessmentId?: string }>();
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -313,6 +315,24 @@ export default function TaskEarlyAssessmentScreen() {
     fetchAssessments();
     // Optionally, fetch user role here if needed
   }, [userRole, sortAsc]);
+
+  // Auto-open details when navigated with an assessmentId (AM review)
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    const shouldOpen = !!params?.assessmentId && !!userRole && !autoOpened;
+    if (!shouldOpen) return;
+    (async () => {
+      try {
+        const id = String(params.assessmentId);
+        const snap = await getDoc(doc(db, 'task_early_assessment', id));
+        if (snap.exists()) {
+          setDetailsItem({ id: snap.id, ...snap.data() });
+          setDetailsVisible(true);
+        }
+      } catch {}
+      setAutoOpened(true);
+    })();
+  }, [params?.assessmentId, userRole, autoOpened]);
 
   const handleOpenModal = (type: 'add' | 'edit', item?: any) => {
     setModalType(type);

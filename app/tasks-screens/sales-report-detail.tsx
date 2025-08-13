@@ -1,6 +1,7 @@
 import { useI18n } from '@/components/I18n';
 import { useEffectiveScheme } from '@/components/ThemePreference';
 import { useState, useEffect, useMemo } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl, TouchableOpacity, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -23,6 +24,7 @@ import { Roles, isAdminRole, isBAish, isTLish } from '../../constants/roles';
 
 
 export default function SalesReportDetailScreen() {
+  const params = useLocalSearchParams<{ detailId?: string }>();
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -261,6 +263,25 @@ export default function SalesReportDetailScreen() {
       fetchReports(true);
     }
   }, [userRole, isFocused, sortAsc]);
+
+  // Auto-open details when navigated with a detailId (AM review)
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    const shouldOpen = !!params?.detailId && !!userRole && isFocused && !autoOpened;
+    if (!shouldOpen) return;
+    (async () => {
+      try {
+        const id = String(params.detailId);
+        const snap = await getDoc(doc(db, 'sales_report_detail', id));
+        if (snap.exists()) {
+          setSelectedReport({ id: snap.id, ...snap.data() });
+          setDetailsMode('review');
+          setDetailsVisible(true);
+        }
+      } catch {}
+      setAutoOpened(true);
+    })();
+  }, [params?.detailId, userRole, isFocused, autoOpened]);
 
   // Pagination state
   const PAGE_SIZE = 20;

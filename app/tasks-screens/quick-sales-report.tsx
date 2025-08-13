@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -23,6 +24,7 @@ import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 
 export default function QuickSalesReportScreen() {
+  const params = useLocalSearchParams<{ reportId?: string }>();
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -114,6 +116,24 @@ export default function QuickSalesReportScreen() {
       fetchReports(true);
     }
   }, [userRole, isFocused, sortAsc]);
+
+  // Auto-open details when navigated with a reportId (AM review)
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    const shouldOpen = !!params?.reportId && !!userRole && isFocused && !autoOpened;
+    if (!shouldOpen) return;
+    (async () => {
+      try {
+        const id = String(params.reportId);
+        const snap = await getDoc(doc(db, 'sales_report_quick', id));
+        if (snap.exists()) {
+          setDetailsItem({ id: snap.id, ...snap.data() });
+          setDetailsVisible(true);
+        }
+      } catch {}
+      setAutoOpened(true);
+    })();
+  }, [params?.reportId, userRole, isFocused, autoOpened]);
 
   // Pagination state
   const PAGE_SIZE = 20;

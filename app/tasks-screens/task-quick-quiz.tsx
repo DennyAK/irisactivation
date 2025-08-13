@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
@@ -15,6 +16,7 @@ import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function TaskQuickQuizScreen() {
+  const params = useLocalSearchParams<{ quizId?: string }>();
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -109,6 +111,24 @@ export default function TaskQuickQuizScreen() {
       fetchQuizzes();
     }
   }, [userRole, isFocused]);
+
+  // Auto-focus doc when navigated with quizId (AM review or TL/BA action)
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    const shouldOpen = !!params?.quizId && !!userRole && isFocused && !autoOpened;
+    if (!shouldOpen) return;
+    (async () => {
+      try {
+        const id = String(params.quizId);
+        const snap = await getDoc(doc(db, 'task_quick_quiz', id));
+        if (snap.exists()) {
+          setSelectedQuiz({ id: snap.id, ...snap.data() });
+          setIsEditModalVisible(true); // open edit modal if role allows; for AM, they'll use details modal if present
+        }
+      } catch {}
+      setAutoOpened(true);
+    })();
+  }, [params?.quizId, userRole, isFocused, autoOpened]);
 
   // Fetch all quiz questions for CRUD
   const fetchAllQuestions = async () => {
