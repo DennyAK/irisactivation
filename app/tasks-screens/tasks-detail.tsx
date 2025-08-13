@@ -400,7 +400,7 @@ const fetchTLUsers = async () => {
         updatedFormData.task_quick_quizId = ref.id;
       }
 
-      if (formData.task_quick_sales_report === 'Yes' && !formData.task_quick_sales_reportId) {
+    if (formData.task_quick_sales_report === 'Yes' && !formData.task_quick_sales_reportId) {
         const ref = doc(collection(db, 'sales_report_quick'));
         batch.set(ref, {
           createdAt: serverTimestamp(),
@@ -409,11 +409,31 @@ const fetchTLUsers = async () => {
           assignedToTL: formData.assignedToUserTLID,
           tasksId: newTaskId,
           outletId: formData.outletId || '',
+      // Defaults to satisfy text validators
+      issuesNotesRequests: '',
+      learningPoints: '',
+      guinessPromoDescription: '',
+      guinessSmoothPromoDescription: '',
+      guinessSmoothPromoDescriptionType2: '',
+      guinessGfesPromoDescription: '',
+      guinessGfesPromoDescriptionType2: '',
+      guinessKegsPromoDescription: '',
+      guinessKegsPromoDescriptionType2: '',
+      guinessMdPromoDescription: '',
+      guinessMdPromoDescriptionType2: '',
+      guinessGdicPromoDescription: '',
+      guinessGdicPromoDescriptionType2: '',
+      merchandiseDescription1: '',
+      merchandiseDescription2: '',
+      merchandiseDescription3: '',
+      merchandiseDescription4: '',
+      merchandiseDescription5: '',
+      taskSalesReportQuickStatus: '',
         });
         updatedFormData.task_quick_sales_reportId = ref.id;
       }
 
-      if (formData.task_sales_report_detail === 'Yes' && !formData.task_sales_report_detailId) {
+    if (formData.task_sales_report_detail === 'Yes' && !formData.task_sales_report_detailId) {
         const ref = doc(collection(db, 'sales_report_detail'));
         batch.set(ref, {
           createdAt: serverTimestamp(),
@@ -422,6 +442,26 @@ const fetchTLUsers = async () => {
           assignedToTL: formData.assignedToUserTLID,
           tasksId: newTaskId,
           outletId: formData.outletId || '',
+      // Defaults to satisfy text validators
+      issuesNotesRequests: '',
+      learningPoints: '',
+      guinessPromoDescription: '',
+      guinessSmoothPromoDescription: '',
+      guinessSmoothPromoDescriptionType2: '',
+      guinessGfesPromoDescription: '',
+      guinessGfesPromoDescriptionType2: '',
+      guinessKegsPromoDescription: '',
+      guinessKegsPromoDescriptionType2: '',
+      guinessMdPromoDescription: '',
+      guinessMdPromoDescriptionType2: '',
+      guinessGdicPromoDescription: '',
+      guinessGdicPromoDescriptionType2: '',
+      merchandiseDescription1: '',
+      merchandiseDescription2: '',
+      merchandiseDescription3: '',
+      merchandiseDescription4: '',
+      merchandiseDescription5: '',
+      salesReportDetailStatus: '',
         });
         updatedFormData.task_sales_report_detailId = ref.id;
       }
