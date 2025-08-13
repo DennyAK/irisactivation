@@ -5,8 +5,13 @@ export const options = {
 import { View, Text, StyleSheet } from 'react-native';
 import { MenuGrid } from '../../components/ui/MenuCard';
 import { palette, spacing, typography } from '../../constants/Design';
+import { useI18n } from '@/components/I18n';
+import { useEffectiveScheme } from '@/components/ThemePreference';
 
 export default function TasksMenu() {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
   type MenuItem = {
     label: string;
     icon: string;
@@ -22,46 +27,46 @@ export default function TasksMenu() {
 
   const menuItems: MenuItem[] = [
     {
-      label: 'Task Detail',
+      label: t('task_detail') || 'Task Detail',
       icon: 'list-outline',
-      subtitle: 'View and manage task details',
+      subtitle: t('task_detail_subtitle') || 'View and manage task details',
       href: '/tasks-screens/tasks-detail',
     },
     {
-      label: 'Quick Quiz',
+      label: t('quick_quiz') || 'Quick Quiz',
       icon: 'help-circle-outline',
-      subtitle: 'Take or review quick quizzes',
+      subtitle: t('quick_quiz_subtitle') || 'Take or review quick quizzes',
       href: '/tasks-screens/task-quick-quiz',
     },
     {
-      label: 'Attendance',
+      label: t('attendance') || 'Attendance',
       icon: 'checkbox-outline',
-      subtitle: 'Check in/out and manage attendance',
+      subtitle: t('attendance_subtitle') || 'Check in/out and manage attendance',
       href: '/tasks-screens/task-attendance',
     },
     {
-      label: 'Early Assessment',
+      label: t('assessment') || 'Early Assessment',
       icon: 'clipboard-outline',
-      subtitle: 'Complete early assessment tasks',
+      subtitle: t('assessment_subtitle') || 'Complete early assessment tasks',
       href: '/tasks-screens/task-early-assessment',
     },
     {
-      label: 'Quick Sales Report',
+      label: t('quick_sales_report') || 'Quick Sales Report',
       icon: 'file-tray-outline',
-      subtitle: 'View and manage Sales Report',
+      subtitle: t('quick_sales_report_subtitle') || 'View and manage Sales Report',
       href: '/tasks-screens/quick-sales-report',
     },
     {
-      label: 'Sales Report Detail',
+      label: t('sales_detail') || 'Sales Report Detail',
       icon: 'file-tray-full-outline',
-      subtitle: 'View and manage Sales Report Detailed',
+      subtitle: t('sales_detail_subtitle') || 'View and manage Sales Report Detailed',
       href: '/tasks-screens/sales-report-detail',
     },
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Tasks</Text>
+    <View style={[styles.container, isDark && { backgroundColor: '#0b1220' }]}>
+      <Text style={[styles.header, isDark && { color: '#e5e7eb' }]}>{t('tasks') || 'Tasks'}</Text>
       <MenuGrid items={menuItems} />
     </View>
   );

@@ -133,7 +133,7 @@ export default function ClickerScreen() {
     const name = newName.trim();
     if (!name) return;
     if (items.some(i => i.name.toLowerCase() === name.toLowerCase())) {
-      Alert.alert('Duplicate', 'A variable with that name already exists.');
+      Alert.alert(t('duplicate') || 'Duplicate', t('var_exists') || 'A variable with that name already exists.');
       return;
     }
     const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -185,9 +185,9 @@ export default function ClickerScreen() {
   }, []);
 
   const resetAll = () => {
-    Alert.alert('Reset counters', 'This will clear all variables and restore defaults. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reset', style: 'destructive', onPress: async () => {
+    Alert.alert(t('reset_counters') || 'Reset counters', t('reset_counters_msg') || 'This will clear all variables and restore defaults. Continue?', [
+      { text: t('cancel') || 'Cancel', style: 'cancel' },
+      { text: t('reset') || 'Reset', style: 'destructive', onPress: async () => {
         setItems(defaults.map(d => ({ ...d })));
         try { await AsyncStorage.removeItem(storageKey); } catch {}
   try { trackEvent('clicker_reset_all'); } catch {}
@@ -196,9 +196,9 @@ export default function ClickerScreen() {
   };
 
   const confirmDelete = useCallback((id: string, name: string) => {
-    Alert.alert('Delete variable', `Delete "${name}"?`, [
-      { text: 'Cancel', style: 'cancel', onPress: () => swipeRefs.current[id]?.close?.() },
-      { text: 'Delete', style: 'destructive', onPress: () => {
+    Alert.alert(t('delete_variable') || 'Delete variable', `${t('delete') || 'Delete'} "${name}"?`, [
+      { text: t('cancel') || 'Cancel', style: 'cancel', onPress: () => swipeRefs.current[id]?.close?.() },
+      { text: t('delete') || 'Delete', style: 'destructive', onPress: () => {
     setItems(prev => prev.filter(i => i.id !== id));
     buzz(12);
   try { trackEvent('clicker_remove', { id, name }); } catch {}
@@ -218,7 +218,7 @@ export default function ClickerScreen() {
     if (!renameFor) return;
     if (!next) { setRenameFor(null); return; }
     if (items.some(i => i.id !== renameFor.id && i.name.toLowerCase() === next.toLowerCase())) {
-      Alert.alert('Duplicate', 'Another variable already has that name.');
+      Alert.alert(t('duplicate') || 'Duplicate', t('duplicate_name') || 'Another variable already has that name.');
       return;
     }
     setItems(prev => prev.map(i => i.id === renameFor.id ? { ...i, name: next } : i));
@@ -270,7 +270,7 @@ export default function ClickerScreen() {
           }}
           activeOpacity={0.8}
         >
-          <Text style={styles.actionText}>Rename</Text>
+          <Text style={styles.actionText}>{t('rename') || 'Rename'}</Text>
         </TouchableOpacity>
       );
     }
@@ -294,7 +294,7 @@ export default function ClickerScreen() {
           }}
           activeOpacity={0.85}
         >
-          <Text style={styles.actionTextLight}>Remove</Text>
+          <Text style={styles.actionTextLight}>{t('remove') || 'Remove'}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -303,11 +303,15 @@ export default function ClickerScreen() {
   const renderItem = ({ item, drag, isActive }: RenderItemParams<ClickVar>) => {
     const content = (
       <TouchableOpacity
-        style={[styles.card, isActive ? styles.dragActive : undefined]}
+        style={[
+          styles.card,
+          isDark && { backgroundColor: '#111827', borderColor: '#1f2937' },
+          isActive ? styles.dragActive : undefined,
+        ]}
         onPress={() => increment(item.id)}
         activeOpacity={0.85}
       >
-        <Text style={styles.varName} numberOfLines={1}>{item.name}</Text>
+        <Text style={[styles.varName, isDark && { color: '#e5e7eb' }]} numberOfLines={1}>{item.name}</Text>
         <View style={styles.counterRow}>
           <TouchableOpacity
             onPress={() => increment(item.id)}
@@ -315,16 +319,16 @@ export default function ClickerScreen() {
             onPressOut={() => stopAutoInc(item.id)}
             style={styles.iconBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityLabel="Increment"
+            accessibilityLabel={t('increment') || 'Increment'}
           >
             <Ionicons name="add-circle" size={28} color={palette.success} />
           </TouchableOpacity>
           <TouchableOpacity
             activeOpacity={1}
             onLongPress={() => {
-              Alert.alert('Reset counter', `Reset "${item.name}" to 0?`, [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Reset', style: 'destructive', onPress: () => {
+              Alert.alert(t('reset_counter') || 'Reset counter', `${t('reset_counter_msg_prefix') || 'Reset'} "${item.name}" to 0?`, [
+                { text: t('cancel') || 'Cancel', style: 'cancel' },
+                { text: t('reset') || 'Reset', style: 'destructive', onPress: () => {
                   setItems(prev => prev.map(i => i.id === item.id ? { ...i, count: 0 } : i));
                   bump(item.id);
                   buzz(10);
@@ -333,10 +337,10 @@ export default function ClickerScreen() {
               ]);
             }}
           >
-            <Animated.Text style={[styles.countCentered, { transform: [{ scale: getScale(item.id) }] }]}>{item.count}</Animated.Text>
+            <Animated.Text style={[styles.countCentered, isDark && { color: '#e5e7eb' }, { transform: [{ scale: getScale(item.id) }] }]}>{item.count}</Animated.Text>
           </TouchableOpacity>
-          <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Reorder">
-            <Ionicons name="reorder-three-outline" size={24} color={palette.textMuted} />
+          <TouchableOpacity onPressIn={drag} style={styles.dragHandle} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel={t('reorder') || 'Reorder'}>
+            <Ionicons name="reorder-three-outline" size={24} color={isDark ? '#94a3b8' : palette.textMuted} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -345,8 +349,12 @@ export default function ClickerScreen() {
     return (
       <Swipeable
         ref={(ref) => { swipeRefs.current[item.id] = ref; }}
-        renderLeftActions={() => renderAction(item, 'left')}
-        renderRightActions={() => renderAction(item, 'right')}
+        renderLeftActions={() => (
+          <View style={isDark ? { backgroundColor: '#0b1220' } : undefined}>{renderAction(item, 'left')}</View>
+        )}
+        renderRightActions={() => (
+          <View style={isDark ? { backgroundColor: '#0b1220' } : undefined}>{renderAction(item, 'right')}</View>
+        )}
         leftThreshold={48}
         rightThreshold={48}
         friction={2}
@@ -358,9 +366,9 @@ export default function ClickerScreen() {
   };
 
   const clearCounts = () => {
-    Alert.alert('Clear counts', 'Set all counts to zero? Your variables will be kept.', [
-      { text: 'Cancel', style: 'cancel' },
-  { text: 'Clear', style: 'destructive', onPress: () => { setItems(prev => prev.map(i => ({ ...i, count: 0 }))); try { trackEvent('clicker_clear_counts'); } catch {} } },
+    Alert.alert(t('clear_counts') || 'Clear counts', t('clear_counts_msg') || 'Set all counts to zero? Your variables will be kept.', [
+      { text: t('cancel') || 'Cancel', style: 'cancel' },
+  { text: t('clear') || 'Clear', style: 'destructive', onPress: () => { setItems(prev => prev.map(i => ({ ...i, count: 0 }))); try { trackEvent('clicker_clear_counts'); } catch {} } },
     ]);
   };
 
@@ -369,10 +377,10 @@ export default function ClickerScreen() {
       const lines = items.map(i => `${i.name}: ${i.count}`);
       const text = lines.join('\n');
       await Clipboard.setStringAsync(text);
-      Alert.alert('Copied', 'Current counters copied to clipboard.');
+  Alert.alert(t('copied') || 'Copied', t('copied_to_clipboard') || 'Current counters copied to clipboard.');
       try { trackEvent('clicker_copy_summary', { items: items.length }); } catch {}
     } catch (e) {
-      Alert.alert('Copy failed', 'Unable to copy to clipboard.');
+  Alert.alert(t('copy_failed') || 'Copy failed', 'Unable to copy to clipboard.');
     }
   };
 
@@ -397,10 +405,10 @@ export default function ClickerScreen() {
       };
       const json = JSON.stringify(payload, null, 2);
       await Clipboard.setStringAsync(json);
-      Alert.alert('Exported', 'Clicker data copied to clipboard as JSON.');
+  Alert.alert(t('exported') || 'Exported', t('export_json_copied') || 'Clicker data copied to clipboard as JSON.');
       try { trackEvent('clicker_export_json', { items: items.length }); } catch {}
     } catch (e) {
-      Alert.alert('Export failed', 'Unable to create export JSON.');
+  Alert.alert(t('export_failed') || 'Export failed', 'Unable to create export JSON.');
     }
   };
 
@@ -423,10 +431,10 @@ export default function ClickerScreen() {
         if (typeof obj.settings.hapticsOn === 'boolean') setHapticsOn(!!obj.settings.hapticsOn);
         if ([1,5,10].includes(obj.settings.stepSize)) setStepSize(obj.settings.stepSize as 1|5|10);
       }
-      Alert.alert('Imported', `Loaded ${nextItems.length} variables from JSON.`);
+  Alert.alert(t('imported') || 'Imported', `${t('loaded') || 'Loaded'} ${nextItems.length} ${t('variables') || 'variables'} ${t('from_json') || 'from JSON'}.`);
       try { trackEvent('clicker_import_json', { items: nextItems.length }); } catch {}
     } catch (e) {
-      Alert.alert('Import failed', 'Clipboard does not contain valid Clicker JSON.');
+  Alert.alert(t('import_failed') || 'Import failed', t('invalid_clicker_json') || 'Clipboard does not contain valid Clicker JSON.');
     }
   };
 
@@ -496,7 +504,7 @@ export default function ClickerScreen() {
           style={[styles.addIconBtn, !canAdd && { opacity: 0.4 }]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityRole="button"
-          accessibilityLabel="Add variable"
+          accessibilityLabel={t('add') || 'Add'}
         >
           <Ionicons name="add-circle" size={28} color={palette.primary} />
         </TouchableOpacity>

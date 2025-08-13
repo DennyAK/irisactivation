@@ -1,56 +1,73 @@
 import React from 'react';
 import { Modal, ScrollView, View, Text, Button, StyleSheet, Share, Alert, Image } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { useI18n } from './I18n';
+import { useEffectiveScheme } from './ThemePreference';
+import { palette } from '@/constants/Design';
 
 type Props = { visible: boolean; onClose: () => void; item: any | null; onCopyAll?: () => void };
 
-const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (<Text selectable>{label}: {formatValue(value)}</Text>);
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (<Text selectable style={styles.sectionTitle}>{children}</Text>);
-
 const TaskAttendanceDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll }) => {
-  const handleCopyMD = async () => { if (!item) return; await Clipboard.setStringAsync(buildTaskAttendanceText(item, 'markdown')); Alert.alert('Copied to clipboard'); };
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const textColor = { color: isDark ? '#e5e7eb' : '#111827' };
+  const sectionBorder = { borderTopColor: isDark ? '#334155' : '#ccc' };
+
+  const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (
+    <Text selectable style={textColor}>{label}: {formatValue(value)}</Text>
+  );
+  const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <Text selectable style={[styles.sectionTitle, sectionBorder, textColor]}>{children}</Text>
+  );
+
+  const handleCopyMD = async () => {
+    if (!item) return;
+    await Clipboard.setStringAsync(buildTaskAttendanceText(item, 'markdown'));
+    Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard');
+  };
   const handleShare = async () => { if (!item) return; try { await Share.share({ message: buildTaskAttendanceText(item, 'text') }); } catch {} };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text selectable style={styles.title}>Attendance</Text>
-          {!item ? <Text>No data</Text> : (
+        <View style={[styles.modalContent, { backgroundColor: isDark ? '#111827' : palette.surface }]}>
+          <Text selectable style={[styles.title, textColor]}>{t('attendance') || 'Attendance'}</Text>
+          {!item ? <Text style={textColor}>{t('no_data') || 'No data'}</Text> : (
             <>
-              <SectionTitle>Personnel</SectionTitle>
-              <Line label="Assigned BA" value={item.assignedToBA} />
-              <Line label="Assigned TL" value={item.assignedToTL} />
-              <Line label="Status" value={item.status} />
-              <Line label="Created" value={tsToLocale(item.createdAt)} />
+              <SectionTitle>{t('personnel') || 'Personnel'}</SectionTitle>
+              <Line label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
+              <Line label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
+              <Line label={t('status') || 'Status'} value={item.status} />
+              <Line label={t('created') || 'Created'} value={tsToLocale(item.createdAt)} />
 
-              <SectionTitle>Shift</SectionTitle>
-              <Line label="Date" value={dateOnly(item.shiftDate || item.date)} />
-              <Line label="Shift" value={item.shiftName || item.shift} />
-              <Line label="Check-in Time" value={tsToLocale(item.checkInAt)} />
-              <Line label="Check-out Time" value={tsToLocale(item.checkOutAt)} />
-              <Line label="Check-in Location" value={formatLatLng(item.checkInLat, item.checkInLng)} />
-              <Line label="Check-out Location" value={formatLatLng(item.checkOutLat, item.checkOutLng)} />
+              <SectionTitle>{t('shift') || 'Shift'}</SectionTitle>
+              <Line label={t('date') || 'Date'} value={dateOnly(item.shiftDate || item.date)} />
+              <Line label={t('shift') || 'Shift'} value={item.shiftName || item.shift} />
+              <Line label={t('check_in_time') || 'Check-in Time'} value={tsToLocale(item.checkInAt)} />
+              <Line label={t('check_out_time') || 'Check-out Time'} value={tsToLocale(item.checkOutAt)} />
+              <Line label={t('check_in_location') || 'Check-in Location'} value={formatLatLng(item.checkInLat, item.checkInLng)} />
+              <Line label={t('check_out_location') || 'Check-out Location'} value={formatLatLng(item.checkOutLat, item.checkOutLng)} />
 
-              <SectionTitle>Outlet</SectionTitle>
-              <Line label="Outlet ID" value={item.outletId} />
-              <Line label="Province" value={item.locationProvince} />
-              <Line label="City" value={item.locationCity} />
-              <Line label="Outlet" value={item.outletName} />
+              <SectionTitle>{t('outlet') || 'Outlet'}</SectionTitle>
+              <Line label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
+              <Line label={t('province') || 'Province'} value={item.locationProvince} />
+              <Line label={t('city') || 'City'} value={item.locationCity} />
+              <Line label={t('outlet') || 'Outlet'} value={item.outletName} />
 
-              <SectionTitle>Photos</SectionTitle>
-              {item.checkInPhotoUrl ? <Image source={{ uri: item.checkInPhotoUrl }} style={styles.photo} /> : <Line label="Check-in Photo" value="-" />}
-              {item.checkOutPhotoUrl ? <Image source={{ uri: item.checkOutPhotoUrl }} style={styles.photo} /> : <Line label="Check-out Photo" value="-" />}
+              <SectionTitle>{t('photos') || 'Photos'}</SectionTitle>
+              {item.checkInPhotoUrl ? <Image source={{ uri: item.checkInPhotoUrl }} style={styles.photo} /> : <Line label={t('check_in_photo') || 'Check-in Photo'} value="-" />}
+              {item.checkOutPhotoUrl ? <Image source={{ uri: item.checkOutPhotoUrl }} style={styles.photo} /> : <Line label={t('check_out_photo') || 'Check-out Photo'} value="-" />}
 
-              <SectionTitle>Notes</SectionTitle>
-              <Line label="Notes" value={item.notes || item.issuesNotes} />
+              <SectionTitle>{t('notes') || 'Notes'}</SectionTitle>
+              <Line label={t('notes') || 'Notes'} value={item.notes || item.issuesNotes} />
             </>
           )}
           <View style={styles.buttonRow}>
-            {onCopyAll && <Button title="Copy All" onPress={onCopyAll} />} 
-            {item && <Button title="Copy MD" onPress={handleCopyMD} />} 
-            {item && <Button title="Share" onPress={handleShare} />} 
-            <Button title="Close" onPress={onClose} />
+            {onCopyAll && <Button title={t('copy') || 'Copy All'} onPress={onCopyAll} />} 
+            {item && <Button title={t('copy_md') || 'Copy MD'} onPress={handleCopyMD} />} 
+            {item && <Button title={t('share') || 'Share'} onPress={handleShare} />} 
+            <Button title={t('close') || 'Close'} onPress={onClose} />
           </View>
         </View>
       </ScrollView>
@@ -62,7 +79,7 @@ const styles = StyleSheet.create({
   modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { width: '92%', backgroundColor: 'white', padding: 20, borderRadius: 10, marginVertical: 50 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: 14, marginBottom: 6, borderTopColor: '#ccc', borderTopWidth: 1, paddingTop: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: 14, marginBottom: 6, borderTopWidth: 1, paddingTop: 8 },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },
   photo: { width: '100%', height: 200, resizeMode: 'cover', borderRadius: 8, marginBottom: 8 }
 });

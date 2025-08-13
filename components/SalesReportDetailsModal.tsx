@@ -1,6 +1,9 @@
 import React from 'react';
 import { Modal, ScrollView, View, Text, Button, StyleSheet, Share, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { useI18n } from './I18n';
+import { useEffectiveScheme } from './ThemePreference';
+import { palette, radius, spacing } from '@/constants/Design';
 
 export type DetailsMode = 'review' | 'description';
 
@@ -15,14 +18,6 @@ type Props = {
   onReviewBackToTL?: () => void;
 };
 
-const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (
-  <Text selectable>{label}: {value ?? '-'}</Text>
-);
-
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Text selectable style={styles.sectionTitle}>{children}</Text>
-);
-
 const SalesReportDetailsModal: React.FC<Props> = ({
   visible,
   onClose,
@@ -33,11 +28,31 @@ const SalesReportDetailsModal: React.FC<Props> = ({
   onDoneByAM,
   onReviewBackToTL,
 }) => {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const colors = {
+    overlay: 'rgba(0,0,0,0.5)',
+    surface: isDark ? '#111827' : 'white',
+    border: isDark ? '#1f2937' : '#e5e7eb',
+    text: isDark ? '#e5e7eb' : '#111827',
+    muted: isDark ? '#94a3b8' : '#6b7280',
+  };
+
+  const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (
+    <Text selectable style={{ color: colors.text, marginBottom: 4 }}>
+      {label}: {value ?? '-'}
+    </Text>
+  );
+
+  const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <Text selectable style={[styles.sectionTitle, { color: colors.muted, borderTopColor: colors.border }]}>{children}</Text>
+  );
   const handleCopyMarkdown = async () => {
     if (!item) return;
     const md = buildSalesReportText(item, 'markdown');
     await Clipboard.setStringAsync(md);
-  Alert.alert('Copied to clipboard');
+    Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard');
   };
 
   const handleShare = async () => {
@@ -49,37 +64,37 @@ const SalesReportDetailsModal: React.FC<Props> = ({
   };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <ScrollView contentContainerStyle={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text selectable style={styles.title}>{mode === 'review' ? 'Review for Area Manager' : 'Description'}</Text>
+      <ScrollView contentContainerStyle={[styles.modalContainer, { backgroundColor: colors.overlay }]}>
+        <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+          <Text selectable style={[styles.title, { color: colors.text }]}>{mode === 'review' ? (t('review_for_area_manager') || 'Review for Area Manager') : (t('description') || 'Description')}</Text>
           {!item ? (
-            <Text>No data</Text>
+            <Text style={{ color: colors.muted }}>{t('no_data') || 'No data'}</Text>
           ) : (
             <>
-              <SectionTitle>Personnel Information</SectionTitle>
-              <Line label="Assigned to BA" value={item.assignedToBA} />
-              <Line label="Assigned to TL" value={item.assignedToTL} />
-              <Line label="BA Count" value={item.baCount} />
-              <Line label="Crew Canvasser Count" value={item.crewCanvasserCount} />
-              <Line label="Team Leader Name" value={item.teamLeaderName} />
-              <Line label="SPG Name" value={item.spgName} />
-              <Line label="Sales Report Detail Status" value={item.salesReportDetailStatus} />
-              <Line label="Created At" value={item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : item.createdAt} />
-              <Line label="Created By" value={item.createdBy} />
-              <Line label="Task ID" value={item.tasksId} />
+              <SectionTitle>{t('personnel_information') || 'Personnel Information'}</SectionTitle>
+              <Line label={t('assigned_to_ba') || 'Assigned to BA'} value={item.assignedToBA} />
+              <Line label={t('assigned_to_tl') || 'Assigned to TL'} value={item.assignedToTL} />
+              <Line label={t('ba_count') || 'BA Count'} value={item.baCount} />
+              <Line label={t('crew_canvasser_count') || 'Crew Canvasser Count'} value={item.crewCanvasserCount} />
+              <Line label={t('team_leader_name') || 'Team Leader Name'} value={item.teamLeaderName} />
+              <Line label={t('spg_name') || 'SPG Name'} value={item.spgName} />
+              <Line label={t('sales_report_detail_status') || 'Sales Report Detail Status'} value={item.salesReportDetailStatus} />
+              <Line label={t('created_at') || 'Created At'} value={item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : item.createdAt} />
+              <Line label={t('created_by') || 'Created By'} value={item.createdBy} />
+              <Line label={t('task_id') || 'Task ID'} value={item.tasksId} />
 
-              <SectionTitle>Outlet Information</SectionTitle>
-              <Line label="Outlet ID" value={item.outletId} />
-              <Line label="Outlet Name" value={item.outletName} />
-              <Line label="Province" value={item.outletProvince} />
-              <Line label="City" value={item.outletCity} />
-              <Line label="Activity Name" value={item.activityName} />
-              <Line label="Outlet Venue Name" value={item.outletVenueName} />
-              <Line label="Capacity" value={item.outletCapacity} />
-              <Line label="Outlet No. of Table Available" value={item.outletNoOfTableAVailable} />
-              <Line label="Outlet Event PIC" value={item.outletEventPic} />
+              <SectionTitle>{t('outlet_information') || 'Outlet Information'}</SectionTitle>
+              <Line label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
+              <Line label={t('outlet_name') || 'Outlet Name'} value={item.outletName} />
+              <Line label={t('province') || 'Province'} value={item.outletProvince} />
+              <Line label={t('city') || 'City'} value={item.outletCity} />
+              <Line label={t('activity_name') || 'Activity Name'} value={item.activityName} />
+              <Line label={t('outlet_venue_name') || 'Outlet Venue Name'} value={item.outletVenueName} />
+              <Line label={t('capacity') || 'Capacity'} value={item.outletCapacity} />
+              <Line label={t('tables_available') || 'Outlet No. of Table Available'} value={item.outletNoOfTableAVailable} />
+              <Line label={t('outlet_event_pic') || 'Outlet Event PIC'} value={item.outletEventPic} />
 
-              <SectionTitle>Guinness Selling Data</SectionTitle>
+              <SectionTitle>{t('guinness_selling_data') || 'Guinness Selling Data'}</SectionTitle>
               <Line label="Sales Kegs 330ml" value={item.salesKegs330} />
               <Line label="Sales Kegs 500ml" value={item.salesKegs500} />
               <Line label="Sales MD 500ml" value={item.salesMd500} />
@@ -91,8 +106,8 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Sales Gfes Quart 620ml" value={item.salesGfesQuart620} />
               <Line label="Sales Gfes Can Big 500ml" value={item.salesGfesCanbig500} />
 
-              <SectionTitle>Sampling Data</SectionTitle>
-              <Line label="Sampling available" value={item.samplingDataAvailable ?? item.samplingAvailable} />
+              <SectionTitle>{t('sampling_data') || 'Sampling Data'}</SectionTitle>
+              <Line label={t('sampling_available') || 'Sampling available'} value={(item.samplingDataAvailable ?? item.samplingAvailable) ? t('yes') || 'Yes' : t('no') || 'No'} />
               <Line label="Sampling Smooth Bottle" value={item.samplingSmoothBottle} />
               <Line label="Sampling Smooth On Lips" value={item.samplingSmoothOnLips} />
               <Line label="Sampling Smooth Bottle To Buy" value={item.samplingSmoothBottleToBuy} />
@@ -109,12 +124,12 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Sampling Gdic On Lips" value={item.samplingGdicOnLips} />
               <Line label="Sampling Gdic Bottle To Buy" value={item.samplingGdicBottleToBuy} />
 
-              <SectionTitle>Call and Customer Data</SectionTitle>
+              <SectionTitle>{t('call_and_customer_data') || 'Call and Customer Data'}</SectionTitle>
               <Line label="Calls Offers" value={item.callsOffers} />
               <Line label="Effective Calls" value={item.effectiveCalls} />
               <Line label="Calls vs Effective Percentage" value={item.callsVsEffectivePercentage} />
 
-              <SectionTitle>Selling Data (Aggregates)</SectionTitle>
+              <SectionTitle>{t('selling_data_aggregates') || 'Selling Data (Aggregates)'}</SectionTitle>
               <Line label="Sales Smooth Can" value={item.salesSmoothCan} />
               <Line label="Sales Smooth Bottle" value={item.salesSmoothBotol} />
               <Line label="Sales GFES Can" value={item.salesGfesCan} />
@@ -125,8 +140,8 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Sales Microdraught" value={item.salesMd} />
               <Line label="Sales GDIC" value={item.salesGdic} />
 
-              <SectionTitle>Guinness Promotional Activities</SectionTitle>
-              <Line label="Guinness Smooth Promotion Available" value={item.guinnessSmoothPromotionAvailable ? 'Yes' : 'No'} />
+              <SectionTitle>{t('guinness_promotional_activities') || 'Guinness Promotional Activities'}</SectionTitle>
+              <Line label="Guinness Smooth Promotion Available" value={item.guinnessSmoothPromotionAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Promo Smooth Description" value={item.promoSmoothDescription} />
               <Line label="Promo Smooth Sold" value={item.promoSmoothSold} />
               <Line label="Promo Smooth Repeat Orders" value={item.promoSmoothRepeatOrders ?? item.promoSmoothRepeatOrder} />
@@ -134,7 +149,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Promo Smooth Sold - Type 2" value={item.promoSmoothSoldType2} />
               <Line label="Promo Smooth Repeat Orders - Type 2" value={item.promoSmoothRepeatOrdersType2 ?? item.promoSmoothRepeatOrderType2} />
 
-              <Line label="Guinness Gfes Promotion Available" value={item.guinnessGfesPromotionAvailable ? 'Yes' : 'No'} />
+              <Line label="Guinness Gfes Promotion Available" value={item.guinnessGfesPromotionAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Promo Gfes Description" value={item.promoGfesDescription} />
               <Line label="Promo Gfes Sold" value={item.promoGfesSold} />
               <Line label="Promo Gfes Repeat Orders" value={item.promoGfesRepeatOrders ?? item.promoGfesRepeatOrder} />
@@ -142,7 +157,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Promo Gfes Sold - Type 2" value={item.promoGfesSoldType2} />
               <Line label="Promo Gfes Repeat Orders - Type 2" value={item.promoGfesRepeatOrdersType2 ?? item.promoGfesRepeatOrderType2} />
 
-              <Line label="Guinness Kegs Promotion Available" value={item.guinnessKegsPromotionAvailable ? 'Yes' : 'No'} />
+              <Line label="Guinness Kegs Promotion Available" value={item.guinnessKegsPromotionAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Promo Kegs Description" value={item.promoKegsDescription} />
               <Line label="Promo Kegs Sold" value={item.promoKegsSold} />
               <Line label="Promo Kegs Repeat Orders" value={item.promoKegsRepeatOrders ?? item.promoKegsRepeatOrder} />
@@ -150,7 +165,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Promo Kegs Sold - Type 2" value={item.promoKegsSoldType2} />
               <Line label="Promo Kegs Repeat Orders - Type 2" value={item.promoKegsRepeatOrdersType2 ?? item.promoKegsRepeatOrderType2} />
 
-              <Line label="Guinness Microdraught Promotion Available" value={item.guinnessMicroDraughtPromotionAvailable ? 'Yes' : 'No'} />
+              <Line label="Guinness Microdraught Promotion Available" value={item.guinnessMicroDraughtPromotionAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Promo Microdraught Description" value={item.promoMicrodraughtDescription} />
               <Line label="Promo Microdraught Sold" value={item.promoMicrodraughtSold} />
               <Line label="Promo Microdraught Repeat Orders" value={item.promoMicrodraughtRepeatOrders ?? item.promoMicrodraughtRepeatOrder} />
@@ -158,7 +173,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Promo Microdraught Sold - Type 2" value={item.promoMicrodraughtSoldType2} />
               <Line label="Promo Microdraught Repeat Orders - Type 2" value={item.promoMicrodraughtRepeatOrdersType2 ?? item.promoMicrodraughtRepeatOrderType2} />
 
-              <Line label="Guinness Gdic Promotion Available" value={item.guinnessGdicPromotionAvailable ? 'Yes' : 'No'} />
+              <Line label="Guinness Gdic Promotion Available" value={item.guinnessGdicPromotionAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Promo Gdic Description" value={item.promoGdicDescription} />
               <Line label="Promo Gdic Sold" value={item.promoGdicSold} />
               <Line label="Promo Gdic Repeat Orders" value={item.promoGdicRepeatOrders ?? item.promoGdicRepeatOrder} />
@@ -170,7 +185,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Packages Sold (All)" value={item.packagesSold} />
               <Line label="Repeat Orders (All)" value={item.repeatOrders} />
 
-              <SectionTitle>Visitor and Consumer Data</SectionTitle>
+              <SectionTitle>{t('visitor_consumer_data') || 'Visitor and Consumer Data'}</SectionTitle>
               <Line label="Visitors Overall" value={item.visitorsOverall} />
               <Line label="Visitors Alcohol Drinkers" value={item.visitorsAlcoholDrinkers} />
               <Line label="Visitors All Beer Drinkers" value={item.visitorsAllBeerDrinkers} />
@@ -184,7 +199,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Drinkers Gdic" value={item.drinkersGdic} />
               <Line label="Drinkers Mixed" value={item.drinkersMixed} />
 
-              <SectionTitle>Tables Data</SectionTitle>
+              <SectionTitle>{t('tables_data') || 'Tables Data'}</SectionTitle>
               <Line label="Tables Overall" value={item.tablesOverall} />
               <Line label="Tables Alcohol Drinkers" value={item.tablesAlcoholDrinkers} />
               <Line label="Tables Non Alcohol Drinkers" value={item.tablesNonAlcoholDrinkers} />
@@ -193,9 +208,9 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Tables All Competitor" value={item.tablesAllCompetitor} />
               <Line label="Tables All Guinness Mixed Competitor" value={item.tablesAllGuinnessMixedCompetitor} />
 
-              <SectionTitle>Competitor Sales</SectionTitle>
+              <SectionTitle>{t('competitor_sales') || 'Competitor Sales'}</SectionTitle>
               {/* Bintang */}
-              <Line label="Competitor Bintang Available" value={item.competitorBintangAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Bintang Available" value={item.competitorBintangAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Bintang Glass" value={item.competitorBintangGlass} />
               <Line label="Competitor Bintang Pint" value={item.competitorBintangPint} />
               <Line label="Competitor Bintang Quart" value={item.competitorBintangQuart} />
@@ -205,7 +220,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Bintang Promo Sold" value={item.competitorBintangPromoSold} />
 
               {/* Bintang Crystal */}
-              <Line label="Competitor Bintang Crystal Available" value={item.competitorBintangCrystalAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Bintang Crystal Available" value={item.competitorBintangCrystalAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Bintang Crystal Glass" value={item.competitorBintangCrystalGlass} />
               <Line label="Competitor Bintang Crystal Pint" value={item.competitorBintangCrystalPint} />
               <Line label="Competitor Bintang Crystal Quart" value={item.competitorBintangCrystalQuart} />
@@ -215,7 +230,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Bintang Crystal Promo Sold" value={item.competitorBintangCrystalPromoSold} />
 
               {/* Heineken */}
-              <Line label="Competitor Heineken Available" value={item.competitorHeinekenAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Heineken Available" value={item.competitorHeinekenAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Heineken Glass" value={item.competitorHeinekenGlass} />
               <Line label="Competitor Heineken Pint" value={item.competitorHeinekenPint} />
               <Line label="Competitor Heineken Quart" value={item.competitorHeinekenQuart} />
@@ -225,7 +240,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Heineken Promo Sold" value={item.competitorHeinekenPromoSold} />
 
               {/* Heineken Import */}
-              <Line label="Competitor Heineken Import Available" value={item.competitorHeinekenImportAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Heineken Import Available" value={item.competitorHeinekenImportAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Heineken Import Glass" value={item.competitorHeinekenImportGlass} />
               <Line label="Competitor Heineken Import Pint" value={item.competitorHeinekenImportPint} />
               <Line label="Competitor Heineken Import Quart" value={item.competitorHeinekenImportQuart} />
@@ -235,7 +250,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Heineken Import Promo Sold" value={item.competitorHeinekenImportPromoSold} />
 
               {/* Erdinger Import */}
-              <Line label="Competitor Erdinger Import Available" value={item.competitorErdingerImportAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Erdinger Import Available" value={item.competitorErdingerImportAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Erdinger Import Glass" value={item.competitorErdingerImportGlass} />
               <Line label="Competitor Erdinger Import Pint" value={item.competitorErdingerImportPint} />
               <Line label="Competitor Erdinger Import Quart" value={item.competitorErdingerImportQuart} />
@@ -245,7 +260,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Erdinger Import Promo Sold" value={item.competitorErdingerImportPromoSold} />
 
               {/* Budweizer Import */}
-              <Line label="Competitor Budweizer Import Available" value={item.competitorBudweizerImportAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Budweizer Import Available" value={item.competitorBudweizerImportAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Budweizer Import Glass" value={item.competitorBudweizerImportGlass} />
               <Line label="Competitor Budweizer Import Pint" value={item.competitorBudweizerImportPint} />
               <Line label="Competitor Budweizer Import Quart" value={item.competitorBudweizerImportQuart} />
@@ -255,7 +270,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Budweizer Import Promo Sold" value={item.competitorBudweizerImportPromoSold} />
 
               {/* Anker */}
-              <Line label="Competitor Anker Available" value={item.competitorAnkerAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Anker Available" value={item.competitorAnkerAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Anker Glass" value={item.competitorAnkerGlass} />
               <Line label="Competitor Anker Pint" value={item.competitorAnkerPint} />
               <Line label="Competitor Anker Quart" value={item.competitorAnkerQuart} />
@@ -265,7 +280,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Anker Promo Sold" value={item.competitorAnkerPromoSold} />
 
               {/* Bali Hai */}
-              <Line label="Competitor Bali Hai Available" value={item.competitorBalihaiAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Bali Hai Available" value={item.competitorBalihaiAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Bali Hai Glass" value={item.competitorBalihaiGlass} />
               <Line label="Competitor Bali Hai Pint" value={item.competitorBalihaiPint} />
               <Line label="Competitor Bali Hai Quart" value={item.competitorBalihaiQuart} />
@@ -275,7 +290,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Bali Hai Promo Sold" value={item.competitorBalihaiPromoSold} />
 
               {/* Prost */}
-              <Line label="Competitor Prost Available" value={item.competitorProstAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Prost Available" value={item.competitorProstAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Prost Glass" value={item.competitorProstGlass} />
               <Line label="Competitor Prost Pint" value={item.competitorProstPint} />
               <Line label="Competitor Prost Quart" value={item.competitorProstQuart} />
@@ -285,7 +300,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Prost Promo Sold" value={item.competitorProstPromoSold} />
 
               {/* San Miguel */}
-              <Line label="Competitor San Miguel Available" value={item.competitorSanMiguelAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor San Miguel Available" value={item.competitorSanMiguelAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor San Miguel Glass" value={item.competitorSanMiguelGlass} />
               <Line label="Competitor San Miguel Pint" value={item.competitorSanMiguelPint} />
               <Line label="Competitor San Miguel Quart" value={item.competitorSanMiguelQuart} />
@@ -295,7 +310,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor San Miguel Promo Sold" value={item.competitorSanMiguelPromoSold} />
 
               {/* Singaraja */}
-              <Line label="Competitor Singaraja Available" value={item.competitorSingarajaAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Singaraja Available" value={item.competitorSingarajaAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Singaraja Glass" value={item.competitorSingarajaGlass} />
               <Line label="Competitor Singaraja Pint" value={item.competitorSingarajaPint} />
               <Line label="Competitor Singaraja Quart" value={item.competitorSingarajaQuart} />
@@ -303,7 +318,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Singaraja Can Big" value={item.competitorSingarajaCanBig} />
 
               {/* Carlsberg */}
-              <Line label="Competitor Carlsberg Available" value={item.competitorCarlsbergAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Carlsberg Available" value={item.competitorCarlsbergAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Carlsberg Glass" value={item.competitorCarlsbergGlass} />
               <Line label="Competitor Carlsberg Pint" value={item.competitorCarlsbergPint} />
               <Line label="Competitor Carlsberg Quart" value={item.competitorCarlsbergQuart} />
@@ -313,7 +328,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Carlsberg Promo Sold" value={item.competitorCarlsbergPromoSold} />
 
               {/* Draft Beer */}
-              <Line label="Competitor Draftbeer Available" value={item.competitorDraftBeerAvailable ?? item.competitorDraftbeerAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Draftbeer Available" value={(item.competitorDraftBeerAvailable ?? item.competitorDraftbeerAvailable) ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Draftbeer Glass" value={item.competitorDraftBeerGlass ?? item.competitorDraftbeerGlass} />
               <Line label="Competitor Draftbeer Pint" value={item.competitorDraftBeerPint ?? item.competitorDraftbeerPint} />
               <Line label="Competitor Draftbeer Quart" value={item.competitorDraftBeerQuart ?? item.competitorDraftbeerQuart} />
@@ -323,7 +338,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Draftbeer Promo Sold" value={item.competitorDraftBeerPromoSold ?? item.competitorDraftbeerPromoSold} />
 
               {/* Kura Kura */}
-              <Line label="Competitor Kura Kura Available" value={item.competitorKuraKuraAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Kura Kura Available" value={item.competitorKuraKuraAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Kura Kura Glass" value={item.competitorKuraKuraGlass} />
               <Line label="Competitor Kura Kura Pint" value={item.competitorKuraKuraPint} />
               <Line label="Competitor Kura Kura Quart" value={item.competitorKuraKuraQuart} />
@@ -333,7 +348,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Kura Kura Promo Sold" value={item.competitorKuraKuraPromoSold} />
 
               {/* Island Brewing */}
-              <Line label="Competitor Island Brewing Available" value={item.competitorIslandBrewingAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Island Brewing Available" value={item.competitorIslandBrewingAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Island Brewing Glass" value={item.competitorIslandBrewingGlass} />
               <Line label="Competitor Island Brewing Pint" value={item.competitorIslandBrewingPint} />
               <Line label="Competitor Island Brewing Quart" value={item.competitorIslandBrewingQuart} />
@@ -343,7 +358,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Island Brewing Promo Sold" value={item.competitorIslandBrewingPromoSold} />
 
               {/* Others */}
-              <Line label="Competitor Others Available" value={item.competitorOthersAvailable ? 'Yes' : 'No'} />
+              <Line label="Competitor Others Available" value={item.competitorOthersAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Competitor Others Glass" value={item.competitorOthersGlass} />
               <Line label="Competitor Others Pint" value={item.competitorOthersPint} />
               <Line label="Competitor Others Quart" value={item.competitorOthersQuart} />
@@ -353,11 +368,11 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Competitor Others Promo Sold" value={item.competitorOthersPromoSold} />
 
               {/* Competitor activities summary */}
-              <Line label="Competitor Activity Description" value={item.competitorActivityDescription} />
-              <Line label="Competitor Activity SPG Total" value={item.competitorActivitySpgTotal} />
+              <Line label={t('competitor_activity_description') || 'Competitor Activity Description'} value={item.competitorActivityDescription} />
+              <Line label={t('competitor_activity_spg_total') || 'Competitor Activity SPG Total'} value={item.competitorActivitySpgTotal} />
 
-              <SectionTitle>Merchandise Data</SectionTitle>
-              <Line label="Merchandise Available" value={item.merchandiseAvailable ? 'Yes' : 'No'} />
+              <SectionTitle>{t('merchandise_data') || 'Merchandise Data'}</SectionTitle>
+              <Line label="Merchandise Available" value={item.merchandiseAvailable ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Merchandise Distributed" value={item.merchandiseDistributed} />
               <Line label="Merchandise Description 1" value={item.merchandiseDescription1} />
               <Line label="Merchandise Sold 1" value={item.merchandiseSold1} />
@@ -370,50 +385,50 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Merchandise Description 5" value={item.merchandiseDescription5} />
               <Line label="Merchandise Sold 5" value={item.merchandiseSold5} />
 
-              <SectionTitle>Weather Data</SectionTitle>
+              <SectionTitle>{t('weather_data') || 'Weather Data'}</SectionTitle>
               <Line label="Weather Status" value={item.weatherStatus} />
 
-              <SectionTitle>Programs and Digital Activity</SectionTitle>
+              <SectionTitle>{t('programs_digital_activity') || 'Programs and Digital Activity'}</SectionTitle>
               {/* Stoutie */}
-              <Line label="Stoutie Program Participation" value={(item.stoutieProgramParticipation ?? item.stoutieprogramParticipation) ? 'Yes' : 'No'} />
+              <Line label="Stoutie Program Participation" value={(item.stoutieProgramParticipation ?? item.stoutieprogramParticipation) ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Stoutie Program Description" value={item.stoutieProgramDescription} />
               <Line label="Stoutie Program Call Reach" value={item.stoutieProgramCallReach} />
               <Line label="Stoutie Program Packet Sold" value={item.stoutieProgramPacketSold} />
               <Line label="Stoutie Program Engage People" value={item.stoutieProgramEngagePeople} />
               {/* Loyalty */}
-              <Line label="Loyalty Program Participation" value={item.loyaltyProgramParticipation ? 'Yes' : 'No'} />
+              <Line label="Loyalty Program Participation" value={item.loyaltyProgramParticipation ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Loyalty Program Description" value={item.loyaltyProgramDescription} />
               <Line label="Loyalty Program Call Reach" value={item.loyaltyProgramCallReach} />
               <Line label="Loyalty Program Packet Sold" value={item.loyaltyProgramPacketSold} />
               <Line label="Loyalty Program Engage People" value={item.loyaltyProgramEngagePeople} />
               {/* Brightball */}
-              <Line label="Brightball Participation" value={item.brightballParticipation ? 'Yes' : 'No'} />
+              <Line label="Brightball Participation" value={item.brightballParticipation ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Brightball Description" value={item.brightballDescription} />
               <Line label="Brightball Call Reach" value={item.brightballCallReach} />
               <Line label="Brightball Packet Sold" value={item.brightballPacketSold} />
               <Line label="Brightball Engage People" value={item.brightballEngagePeople} />
               {/* SOV */}
-              <Line label="SOV Program Participation" value={item.sovProgramParticipation ? 'Yes' : 'No'} />
+              <Line label="SOV Program Participation" value={item.sovProgramParticipation ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="SOV Program Description" value={item.sovProgramDescription} />
               <Line label="SOV Program Call Reach" value={item.sovProgramCallReach} />
               <Line label="SOV Program Packet Sold" value={item.sovProgramPacketSold} />
               <Line label="SOV Program Engage People" value={item.sovProgramEngagePeople} />
 
-              <SectionTitle>Bali Specific Data</SectionTitle>
-              <Line label="Bali Specific Visitor Data" value={item.baliSpecificVisitorData ? 'Yes' : 'No'} />
+              <SectionTitle>{t('bali_specific_data') || 'Bali Specific Data'}</SectionTitle>
+              <Line label="Bali Specific Visitor Data" value={item.baliSpecificVisitorData ? (t('yes') || 'Yes') : (t('no') || 'No')} />
               <Line label="Bali Local Visitors" value={item.baliLocalVisitors} />
               <Line label="Bali Foreign Visitors" value={item.baliForeignVisitors} />
               <Line label="Bali Local Guinness Buyers" value={item.baliLocalGuinnessBuyers} />
               <Line label="Bali Foreign Guinness Buyers" value={item.baliForeignGuinnessBuyers} />
 
-              <SectionTitle>AMS Data</SectionTitle>
+              <SectionTitle>{t('ams_data') || 'AMS Data'}</SectionTitle>
               <Line label="AMS GFES" value={item.amsGfes} />
               <Line label="AMS Smooth" value={item.amsSmooth} />
               <Line label="AMS Microdraught" value={item.amsMicrodraught} />
               <Line label="AMS Kegs" value={item.amsKegs} />
               <Line label="AMS Total" value={item.amsTotal} />
 
-              <SectionTitle>Sales Report Summary Notes and Learning</SectionTitle>
+              <SectionTitle>{t('srd_summary_notes_learning') || 'Sales Report Summary Notes and Learning'}</SectionTitle>
               <Line label="Issues/Notes/Requests" value={item.issuesNotesRequests} />
               <Line label="Learning Points" value={item.learningPoints} />
               <Line label="Beer Market Size" value={item.beerMarketSize} />
@@ -424,21 +439,21 @@ const SalesReportDetailsModal: React.FC<Props> = ({
 
           <View style={styles.buttonRow}>
             {mode === 'description' && onCopyAll && (
-              <Button title="Copy All" onPress={onCopyAll} />
+              <Button title={t('copy_all') || 'Copy All'} onPress={onCopyAll} />
             )}
             {mode === 'description' && item && (
-              <Button title="Copy MD" onPress={handleCopyMarkdown} />
+              <Button title={t('copy_md') || 'Copy MD'} onPress={handleCopyMarkdown} />
             )}
             {mode === 'description' && item && (
-              <Button title="Share" onPress={handleShare} />
+              <Button title={t('share') || 'Share'} onPress={handleShare} />
             )}
             {mode === 'review' && userRole === 'area manager' && (
               <>
-                {onDoneByAM && <Button title="Done by AM" onPress={onDoneByAM} />}
-                {onReviewBackToTL && <Button title="Review back to TL" onPress={onReviewBackToTL} />}
+                {onDoneByAM && <Button title={t('done_by_am') || 'Done by AM'} onPress={onDoneByAM} />} 
+                {onReviewBackToTL && <Button title={t('review_back_to_tl') || 'Review back to TL'} onPress={onReviewBackToTL} />}
               </>
             )}
-            <Button title="Close" onPress={onClose} />
+            <Button title={t('close') || 'Close'} onPress={onClose} />
           </View>
         </View>
       </ScrollView>
@@ -447,10 +462,10 @@ const SalesReportDetailsModal: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10, marginVertical: 50 },
-  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: 14, marginBottom: 6, borderTopColor: '#ccc', borderTopWidth: 1, paddingTop: 8 },
+  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '92%', padding: spacing(5), borderRadius: radius.xl, marginVertical: spacing(8), borderWidth: 1 },
+  title: { fontSize: 18, fontWeight: 'bold', marginBottom: spacing(3), textAlign: 'center' },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: spacing(3), marginBottom: spacing(1.5), borderTopWidth: 1, paddingTop: spacing(2) },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },
 });
 

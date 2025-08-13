@@ -119,7 +119,7 @@ export default function TaskQuickQuizScreen() {
       const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAllQuestions(questions);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load quiz questions list.');
+      Alert.alert(t('error'), t('failed_to_fetch_reports'));
     } finally {
       setQuestionsLoading(false);
     }
@@ -148,7 +148,7 @@ export default function TaskQuickQuizScreen() {
       setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null });
       fetchAllQuestions();
     } catch (error) {
-      Alert.alert('Error', 'Failed to save question.');
+      Alert.alert(t('error'), t('update_failed'));
     }
   };
 
@@ -165,14 +165,14 @@ export default function TaskQuickQuizScreen() {
 
   // Delete question
   const handleDeleteQuestion = async (id: string) => {
-    Alert.alert('Delete Question', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('delete'), t('are_you_sure'), [
+      { text: t('cancel'), style: 'cancel' },
       { text: 'OK', onPress: async () => {
         try {
           await deleteDoc(doc(db, 'quiz_questions', id));
           fetchAllQuestions();
         } catch (error) {
-          Alert.alert('Error', 'Failed to delete question.');
+          Alert.alert(t('error'), t('update_failed'));
         }
       }}
     ]);
@@ -195,7 +195,7 @@ export default function TaskQuickQuizScreen() {
       setQuizzes(quizList);
     } catch (error) {
       console.error("Error fetching quizzes: ", error);
-      Alert.alert("Error", "Failed to fetch quizzes.");
+      Alert.alert(t('error'), t('failed_to_fetch_reports'));
     } finally {
       setLoading(false);
     }
@@ -212,16 +212,16 @@ export default function TaskQuickQuizScreen() {
       ...formData,
       quizDate: new Date(formData.quizDate),
       createdAt: serverTimestamp(),
-  createdBy: auth.currentUser?.uid || 'unknown'
+      createdBy: auth.currentUser?.uid || 'unknown'
     }).then((docRef) => {
       // Update the just-created document to set takeQuickQuizId to its own id
-  updateDoc(docRef, { takeQuickQuizId: docRef.id, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' }).then(() => {
+      updateDoc(docRef, { takeQuickQuizId: docRef.id, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' }).then(() => {
         setIsAddModalVisible(false);
         resetFormData();
         fetchQuizzes();
       });
     }).catch(error => {
-      Alert.alert("Add Failed", error.message);
+      Alert.alert(t('add_failed'), error.message);
     });
   };
 
@@ -253,21 +253,21 @@ export default function TaskQuickQuizScreen() {
         ...formData,
         quizDate: new Date(formData.quizDate),
         updatedAt: serverTimestamp(),
-  updatedBy: auth.currentUser?.uid || 'unknown'
+        updatedBy: auth.currentUser?.uid || 'unknown'
       }).then(() => {
         setIsEditModalVisible(false);
         resetFormData();
         setSelectedQuiz(null);
         fetchQuizzes();
       }).catch(error => {
-        Alert.alert("Update Failed", error.message);
+        Alert.alert(t('update_failed'), error.message);
       });
     }
   };
 
   const handleDeleteQuiz = (quizId: string) => {
-    Alert.alert("Delete Quiz", "Are you sure you want to delete this quiz record?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t('delete'), t('are_you_sure'), [
+      { text: t('cancel'), style: "cancel" },
       { text: "OK", onPress: () => {
         deleteDoc(doc(db, "task_quick_quiz", quizId)).then(() => {
           fetchQuizzes();
@@ -290,7 +290,7 @@ export default function TaskQuickQuizScreen() {
       setQuizScore(null);
       setQuizModalVisible(true);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load quiz questions.');
+      Alert.alert(t('error'), t('failed_to_fetch_reports'));
     } finally {
       setQuizLoading(false);
     }
@@ -369,14 +369,14 @@ export default function TaskQuickQuizScreen() {
     return (
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1, shadowOpacity: 0 } : {}]}>
         <View style={styles.cardHeader}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Quiz: {item.id}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('quiz_label')}: {item.id}</Text>
           <StatusPill label={status} tone={tone as any} />
         </View>
-        <Text style={[styles.meta, { color: colors.muted }]}>Assigned BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
-        <Text style={[styles.meta, { color: colors.muted }]}>Date: <Text style={[styles.metaValue, { color: colors.text }]}>{item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate || '-'}</Text></Text>
-        <Text style={[styles.meta, { color: colors.muted }]}>Result: <Text style={[styles.metaValue, { color: colors.text }]}>{item.quickQuizResult || '-'}</Text></Text>
-        <Text style={[styles.meta, { color: colors.muted }]}>Created: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
-        <Text style={[styles.meta, { color: colors.muted }]}>Task ID: <Text style={[styles.metaValue, { color: colors.text }]}>{item.tasksId || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>{t('assigned_ba')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>{t('date')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>{t('result')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.quickQuizResult || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>{t('created')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>{t('task_id')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.tasksId || '-'}</Text></Text>
         {score < 8 && (
           <PrimaryButton title={t('take_quiz')} onPress={() => handleTakeQuizNow(item.takeQuickQuizId, item.id)} style={styles.actionBtn} />
         )}
@@ -386,10 +386,10 @@ export default function TaskQuickQuizScreen() {
 
   const renderModalFields = () => (
     <>
-      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.userId} onChangeText={(text) => setFormData({...formData, userId: text})} placeholder="User ID" {...inputCommonProps} />
-      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.takeQuickQuizId} onChangeText={(text) => setFormData({...formData, takeQuickQuizId: text})} placeholder="Quiz ID" {...inputCommonProps} />
-      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.quizDate} onChangeText={(text) => setFormData({...formData, quizDate: text})} placeholder="Quiz Date (YYYY-MM-DD)" {...inputCommonProps} />
-      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.quickQuizResult} onChangeText={(text) => setFormData({...formData, quickQuizResult: text})} placeholder="Quiz Result" {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.userId} onChangeText={(text) => setFormData({...formData, userId: text})} placeholder={t('user_id')} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.takeQuickQuizId} onChangeText={(text) => setFormData({...formData, takeQuickQuizId: text})} placeholder={t('quiz_id')} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.quizDate} onChangeText={(text) => setFormData({...formData, quizDate: text})} placeholder={t('quiz_date_hint')} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.quickQuizResult} onChangeText={(text) => setFormData({...formData, quickQuizResult: text})} placeholder={t('quick_quiz_result')} {...inputCommonProps} />
     </>
   );
 
@@ -399,7 +399,7 @@ export default function TaskQuickQuizScreen() {
         title={t('quick_quiz')}
         search={search}
         status={''}
-        statusOptions={[{ label: 'All', value: '' }]} // placeholder, status not used
+  statusOptions={[{ label: t('all'), value: '' }]} // placeholder, status not used
         placeholder={t('search_outlet_or_id')}
         storageKey="filters:quiz"
         onApply={({ search: s }) => { setSearch(s); }}
@@ -425,8 +425,8 @@ export default function TaskQuickQuizScreen() {
         {(userRole === 'superadmin' || userRole === 'admin') && (
           <View style={styles.block}>
             <View style={styles.blockHeaderRow}>
-              <Text style={styles.blockTitle}>Quiz Questions</Text>
-              <PrimaryButton title="Add" onPress={() => setIsQuestionModalVisible(true)} style={styles.addBtn} />
+              <Text style={[styles.blockTitle, { color: colors.text }]}>{t('quiz_questions')}</Text>
+              <PrimaryButton title={t('add')} onPress={() => setIsQuestionModalVisible(true)} style={styles.addBtn} />
             </View>
             {questionsLoading ? (
               <ActivityIndicator />
@@ -437,10 +437,10 @@ export default function TaskQuickQuizScreen() {
                   {Object.entries(item.options).map(([key, value]) => (
                     <Text key={key} style={styles.meta}>{key}: <Text style={styles.metaValue}>{String(value)}</Text></Text>
                   ))}
-                  <Text style={styles.meta}>Answer: <Text style={styles.metaValue}>{item.answer}</Text></Text>
+                  <Text style={styles.meta}>{t('answer')}: <Text style={styles.metaValue}>{item.answer}</Text></Text>
                   <View style={styles.actionsRow}>
-                    <SecondaryButton title="Edit" onPress={() => handleEditQuestion(item)} style={styles.actionBtn} />
-                    <SecondaryButton title="Delete" onPress={() => handleDeleteQuestion(item.id)} style={styles.actionBtn} />
+                    <SecondaryButton title={t('edit')} onPress={() => handleEditQuestion(item)} style={styles.actionBtn} />
+                    <SecondaryButton title={t('delete')} onPress={() => handleDeleteQuestion(item.id)} style={styles.actionBtn} />
                   </View>
                 </View>
               ))
@@ -450,7 +450,7 @@ export default function TaskQuickQuizScreen() {
 
         {/* Quiz Results List - always visible below questions */}
         <View style={styles.block}>
-          <Text style={styles.blockTitle}>Quiz Results</Text>
+          <Text style={[styles.blockTitle, { color: colors.text }]}>{t('quiz_results')}</Text>
           {filteredQuizzes.length === 0 ? (
             <EmptyState onReset={() => setSearch('')} />
           ) : (
@@ -470,7 +470,7 @@ export default function TaskQuickQuizScreen() {
             {quizScore === null ? (
               quizQuestions.length > 0 && currentQuestionIndex < quizQuestions.length ? (
                 <>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Question {currentQuestionIndex + 1} of {quizQuestions.length}</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('question_x_of_y').replace('{x}', String(currentQuestionIndex + 1)).replace('{y}', String(quizQuestions.length))}</Text>
                   <Text style={{ marginBottom: 16, color: colors.text }}>{quizQuestions[currentQuestionIndex].question}</Text>
                   {Object.entries(quizQuestions[currentQuestionIndex].options).map(([key, value]) => (
                     <PrimaryButton key={key} title={`${key}: ${value}`} onPress={() => handleAnswer(key)} style={styles.actionBtn} />
@@ -479,9 +479,9 @@ export default function TaskQuickQuizScreen() {
               ) : <ActivityIndicator />
             ) : (
               <>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Quiz Complete!</Text>
-                <Text style={{ color: colors.text }}>Your Score: {quizScore}/10</Text>
-                <PrimaryButton title="Close" onPress={handleQuizModalClose} />
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('quiz_complete')}</Text>
+                <Text style={{ color: colors.text }}>{t('your_score')}: {quizScore}/10</Text>
+                <PrimaryButton title={t('close')} onPress={handleQuizModalClose} />
               </>
             )}
           </View>
@@ -492,12 +492,12 @@ export default function TaskQuickQuizScreen() {
       <Modal visible={isQuestionModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsQuestionModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{questionForm.id ? 'Edit' : 'Add'} Quiz Question</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{questionForm.id ? t('edit') : t('add')} {t('quiz_question')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={questionForm.question}
               onChangeText={text => setQuestionForm({ ...questionForm, question: text })}
-              placeholder="Question"
+              placeholder={t('question')}
               {...inputCommonProps}
             />
             {['A', 'B', 'C', 'D'].map(opt => (
@@ -506,7 +506,7 @@ export default function TaskQuickQuizScreen() {
                 style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
                 value={questionForm.options[opt as keyof typeof questionForm.options]}
                 onChangeText={text => setQuestionForm({ ...questionForm, options: { ...questionForm.options, [opt as keyof typeof questionForm.options]: text } })}
-                placeholder={`Option ${opt}`}
+                placeholder={`${t('option')} ${opt}`}
                 {...inputCommonProps}
               />
             ))}
@@ -514,13 +514,13 @@ export default function TaskQuickQuizScreen() {
               style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
               value={questionForm.answer}
               onChangeText={text => setQuestionForm({ ...questionForm, answer: text })}
-              placeholder="Answer (A/B/C/D)"
+              placeholder={t('answer_abcd')}
               maxLength={1}
               {...inputCommonProps}
             />
             <View style={styles.actionsRow}>
-              <PrimaryButton title={questionForm.id ? 'Update' : 'Add'} onPress={handleSaveQuestion} style={styles.actionBtn} />
-              <SecondaryButton title="Cancel" onPress={() => { setIsQuestionModalVisible(false); setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null }); }} style={styles.actionBtn} />
+              <PrimaryButton title={questionForm.id ? t('update') : t('add')} onPress={handleSaveQuestion} style={styles.actionBtn} />
+              <SecondaryButton title={t('cancel')} onPress={() => { setIsQuestionModalVisible(false); setQuestionForm({ question: '', options: { A: '', B: '', C: '', D: '' }, answer: 'A', id: null }); }} style={styles.actionBtn} />
             </View>
           </View>
         </ScrollView>
@@ -530,11 +530,11 @@ export default function TaskQuickQuizScreen() {
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
-            <Text style={styles.modalTitle}>Add Quiz Record</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('add_quiz_record')}</Text>
             {renderModalFields()}
             <View style={styles.actionsRow}>
-              <PrimaryButton title="Add" onPress={handleAddQuiz} style={styles.actionBtn} />
-              <SecondaryButton title="Cancel" onPress={() => { setIsAddModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
+              <PrimaryButton title={t('add')} onPress={handleAddQuiz} style={styles.actionBtn} />
+              <SecondaryButton title={t('cancel')} onPress={() => { setIsAddModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
             </View>
           </View>
         </ScrollView>
@@ -544,11 +544,11 @@ export default function TaskQuickQuizScreen() {
       <Modal visible={isEditModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
-            <Text style={styles.modalTitle}>Edit Quiz Record</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('edit_quiz_record')}</Text>
             {renderModalFields()}
             <View style={styles.actionsRow}>
-              <PrimaryButton title="Update" onPress={handleUpdateQuiz} style={styles.actionBtn} />
-              <SecondaryButton title="Cancel" onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
+              <PrimaryButton title={t('update')} onPress={handleUpdateQuiz} style={styles.actionBtn} />
+              <SecondaryButton title={t('cancel')} onPress={() => { setIsEditModalVisible(false); resetFormData(); }} style={styles.actionBtn} />
             </View>
           </View>
         </ScrollView>

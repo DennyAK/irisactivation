@@ -27,7 +27,7 @@ export default function AboutTabScreen() {
     trackScreen('About', { version: appVersion, channel });
   }, []);
 
-  const open = (url: string) => Linking.openURL(url).catch(() => Alert.alert('Error', 'Unable to open link'));
+  const open = (url: string) => Linking.openURL(url).catch(() => Alert.alert(t('error') || 'Error', t('unable_open_link') || 'Unable to open link'));
 
   const checkForUpdate = useCallback(async () => {
     try {
@@ -37,16 +37,16 @@ export default function AboutTabScreen() {
       if (result.isAvailable) {
         await Updates.fetchUpdateAsync();
         trackEvent('update_fetched');
-        Alert.alert('Update Ready', 'App will reload to apply the latest update.', [
-          { text: 'Reload', onPress: () => Updates.reloadAsync() },
+        Alert.alert(t('update_ready') || 'Update Ready', t('app_reload_apply') || 'App will reload to apply the latest update.', [
+          { text: t('reload') || 'Reload', onPress: () => Updates.reloadAsync() },
         ]);
       } else {
         trackEvent('update_not_available');
-        Alert.alert('Up-to-date', 'You have the latest version.');
+  Alert.alert(t('up_to_date') || 'Up-to-date', t('latest_version') || 'You have the latest version.');
       }
     } catch (e: any) {
       trackEvent('update_check_failed', { message: e?.message });
-      Alert.alert('Update Check Failed', e?.message || String(e));
+  Alert.alert(t('update_check_failed') || 'Update Check Failed', e?.message || String(e));
     } finally {
       setChecking(false);
     }

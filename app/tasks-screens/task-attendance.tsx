@@ -169,7 +169,7 @@ export default function TaskAttendanceScreen() {
       setAttendances(attendanceList);
     } catch (error) {
       console.error("Error fetching attendances: ", error);
-      Alert.alert("Error", "Failed to fetch attendances.");
+      Alert.alert(t('error') || 'Error', t('failed_to_fetch_attendances') || 'Failed to fetch attendances.');
     } finally {
       setLoading(false);
     }
@@ -205,7 +205,7 @@ export default function TaskAttendanceScreen() {
       resetFormData();
       fetchAttendances();
     }).catch(error => {
-      Alert.alert("Add Failed", error.message);
+      Alert.alert(t('add_failed') || 'Add Failed', error.message);
     });
   };
 
@@ -255,26 +255,26 @@ export default function TaskAttendanceScreen() {
       const attendanceDoc = doc(db, "task_attendance", selectedAttendance.id);
       await updateDoc(attendanceDoc, dataToUpdate);
 
-      Alert.alert("Success", "Attendance record updated successfully.");
+      Alert.alert(t('success') || 'Success', t('attendance_updated') || 'Attendance record updated successfully.');
       setIsEditModalVisible(false);
       fetchAttendances(); // Refresh the list
     } catch (error: any) {
-      Alert.alert("Update Failed", error.message);
+      Alert.alert(t('update_failed') || 'Update Failed', error.message);
     }
   };
   
   const confirmCheckIn = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission denied', 'Permission to access location was denied');
+      Alert.alert(t('permission_denied') || 'Permission denied', t('location_permission_denied') || 'Permission to access location was denied');
       return;
     }
 
     let location = await Location.getCurrentPositionAsync({});
     
-    Alert.alert("Confirm Check-In", "Are you sure you want to check in now?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "OK", onPress: () => setFormData({
+    Alert.alert(t('confirm_check_in') || 'Confirm Check-In', t('confirm_check_in_msg') || 'Are you sure you want to check in now?', [
+        { text: t('cancel') || 'Cancel', style: "cancel" },
+        { text: t('ok') || 'OK', onPress: () => setFormData({
             ...formData, 
             checkIn: new Date(),
             checkInLatitude: location.coords.latitude.toString(),
@@ -286,15 +286,15 @@ export default function TaskAttendanceScreen() {
   const confirmCheckOut = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission denied', 'Permission to access location was denied');
+      Alert.alert(t('permission_denied') || 'Permission denied', t('location_permission_denied') || 'Permission to access location was denied');
       return;
     }
 
     let location = await Location.getCurrentPositionAsync({});
 
-    Alert.alert("Confirm Check-Out", "Are you sure you want to check out now?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "OK", onPress: () => setFormData({
+    Alert.alert(t('confirm_check_out') || 'Confirm Check-Out', t('confirm_check_out_msg') || 'Are you sure you want to check out now?', [
+        { text: t('cancel') || 'Cancel', style: "cancel" },
+        { text: t('ok') || 'OK', onPress: () => setFormData({
             ...formData, 
             checkOut: new Date(),
             checkOutLatitude: location.coords.latitude.toString(),
@@ -316,30 +316,30 @@ export default function TaskAttendanceScreen() {
       });
 
       if (result.canceled || !result.assets || result.assets.length === 0) {
-        Alert.alert('Cancelled', 'Image selection was cancelled.');
+        Alert.alert(t('cancelled') || 'Cancelled', t('image_selection_cancelled') || 'Image selection was cancelled.');
         return;
       }
 
       const uri = result.assets[0].uri;
-      Alert.alert('Step 1: Image Picked', `URI: ${uri}`);
+  // Debug note retained intentionally: image picked
       // Do NOT set selfieUrl to cache URI here
 
       // 2. Upload to Firebase
       if (!auth.currentUser) {
-        Alert.alert("Authentication Error", "You must be logged in to upload images.");
+        Alert.alert(t('authentication_error') || 'Authentication Error', t('must_be_logged_in_to_upload_images') || 'You must be logged in to upload images.');
         return;
       }
-      Alert.alert('Step 2: Starting Upload', 'Preparing to upload to Firebase Storage...');
+      // Debug note retained intentionally: starting upload
       const response = await fetch(uri);
       const blob = await response.blob();
-      Alert.alert('Step 3: Blob Created', 'Image has been prepared for upload.');
+      // Debug note retained intentionally: blob created
 
       const storageRef = ref(storage, `task_attendance/${auth.currentUser.uid}/${new Date().getTime()}.jpg`);
       const snapshot = await uploadBytes(storageRef, blob);
-      Alert.alert('Step 4: Upload Complete', `File uploaded successfully to: ${snapshot.ref.fullPath}`);
+      // Debug note retained intentionally: upload complete
 
       const downloadURL = await getDownloadURL(snapshot.ref);
-      Alert.alert('Step 5: URL Retrieved', `File available at: ${downloadURL}`);
+      // Debug note retained intentionally: url retrieved
 
       // 3. Update form state with the final URL
       setFormData(prev => ({ ...prev, selfieUrl: downloadURL }));
@@ -349,18 +349,18 @@ export default function TaskAttendanceScreen() {
         const attendanceDoc = doc(db, "task_attendance", selectedAttendance.id);
         await updateDoc(attendanceDoc, { selfieUrl: downloadURL });
         fetchAttendances();
-        Alert.alert("Success", "Selfie uploaded and saved.");
+        Alert.alert(t('success') || 'Success', t('photo_uploaded_success') || 'Selfie uploaded and saved.');
       }
     } catch (error: any) {
       console.error("CRITICAL ERROR during image pick and upload: ", error);
-      Alert.alert("Upload Failed", `An error occurred: ${error.message}. Check the console for more details.`);
+      Alert.alert(t('upload_failed') || 'Upload Failed', `An error occurred: ${error.message}. Check the console for more details.`);
     }
   };
 
   const handleDeleteAttendance = (attendanceId: string) => {
-    Alert.alert("Delete Attendance", "Are you sure you want to delete this record?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "OK", onPress: () => {
+    Alert.alert(t('delete_attendance') || 'Delete Attendance', t('confirm_delete_attendance') || 'Are you sure you want to delete this record?', [
+      { text: t('cancel') || 'Cancel', style: "cancel" },
+      { text: t('ok') || 'OK', onPress: () => {
         deleteDoc(doc(db, "task_attendance", attendanceId)).then(() => {
           fetchAttendances();
         });
@@ -383,10 +383,10 @@ export default function TaskAttendanceScreen() {
     try {
       const attendanceDoc = doc(db, "task_attendance", attendanceId);
   await updateDoc(attendanceDoc, { taskAttendanceStatus: AttendanceStatus.ApprovedByTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
-      fetchAttendances();
-      Alert.alert('Success', 'Attendance approved by TL.');
+  fetchAttendances();
+  Alert.alert(t('success') || 'Success', t('attendance_approved_by_tl') || 'Attendance approved by TL.');
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+  Alert.alert(t('error') || 'Error', error.message);
     }
   };
 
@@ -394,10 +394,10 @@ export default function TaskAttendanceScreen() {
     try {
       const attendanceDoc = doc(db, "task_attendance", attendanceId);
   await updateDoc(attendanceDoc, { taskAttendanceStatus: AttendanceStatus.ApprovedByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
-      fetchAttendances();
-      Alert.alert('Success', 'Attendance approved by Area Manager.');
+  fetchAttendances();
+  Alert.alert(t('success') || 'Success', t('attendance_approved_by_am') || 'Attendance approved by Area Manager.');
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+  Alert.alert(t('error') || 'Error', error.message);
     }
   };
 
@@ -613,7 +613,7 @@ export default function TaskAttendanceScreen() {
       <TaskAttendanceDetailsModal
         visible={detailsVisible}
         item={detailsItem}
-        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildTaskAttendanceText(detailsItem, 'text')); Alert.alert('Copied to clipboard'); } : undefined}
+  onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildTaskAttendanceText(detailsItem, 'text')); Alert.alert(t('copied_to_clipboard')); } : undefined}
         onClose={() => setDetailsVisible(false)}
       />
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
@@ -635,13 +635,13 @@ export default function TaskAttendanceScreen() {
             {renderModalFields()}
             {(userRole === Roles.Admin || userRole === Roles.Superadmin) && selectedAttendance && (
               <View style={{ marginBottom: spacing(4) }}>
-                <Text style={[styles.input, { color: colors.text, borderColor: 'transparent', backgroundColor: 'transparent' }]}>Admin: Next Status</Text>
+        <Text style={[styles.input, { color: colors.text, borderColor: 'transparent', backgroundColor: 'transparent' }]}>{t('admin_next_status')}</Text>
                 <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surfaceAlt }}>
                   <Picker
                     selectedValue={adminNextStatus}
                     onValueChange={(v) => setAdminNextStatus(String(v))}
                   >
-                    <Picker.Item label="(no change)" value="" />
+          <Picker.Item label={t('no_change')} value="" />
                     {stateMachine
                       .nextOptionsForRole('Attendance', (userRole as any) || '', (selectedAttendance?.taskAttendanceStatus || '') as any)
                       .map(opt => (

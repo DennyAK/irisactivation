@@ -1,6 +1,9 @@
 import React from 'react';
 import { Modal, ScrollView, View, Text, Button, StyleSheet, Share, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { useI18n } from './I18n';
+import { useEffectiveScheme } from './ThemePreference';
+import { palette } from '@/constants/Design';
 
 type Props = {
   visible: boolean;
@@ -18,10 +21,13 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 );
 
 const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll }) => {
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
   const handleCopyMD = async () => {
     if (!item) return;
     await Clipboard.setStringAsync(buildQuickSalesReportText(item, 'markdown'));
-    Alert.alert('Copied to clipboard');
+    Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard');
   };
   const handleShare = async () => {
     if (!item) return;
@@ -29,28 +35,28 @@ const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item,
   };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <ScrollView contentContainerStyle={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text selectable style={styles.title}>Quick Sales Report</Text>
+      <ScrollView contentContainerStyle={[styles.modalContainer]}>
+        <View style={[styles.modalContent, isDark && { backgroundColor: '#111827' }]}>
+          <Text selectable style={[styles.title, isDark && { color: '#e5e7eb' }]}>{t('quick_sales_report') || 'Quick Sales Report'}</Text>
           {!item ? (
-            <Text>No data</Text>
+            <Text style={[isDark && { color: '#e5e7eb' }]}>{t('no_data') || 'No data'}</Text>
           ) : (
             <>
-              <SectionTitle>Personnel</SectionTitle>
-              <Line label="Assigned BA" value={item.assignedToBA} />
-              <Line label="Assigned TL" value={item.assignedToTL} />
-              <Line label="Status" value={item.taskSalesReportQuickStatus} />
-              <Line label="Created" value={tsToLocale(item.createdAt)} />
+              <SectionTitle>{t('personnel') || 'Personnel'}</SectionTitle>
+              <Line label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
+              <Line label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
+              <Line label={t('status') || 'Status'} value={item.taskSalesReportQuickStatus} />
+              <Line label={t('created') || 'Created'} value={tsToLocale(item.createdAt)} />
 
-              <SectionTitle>Outlet / Venue</SectionTitle>
-              <Line label="Outlet ID" value={item.outletId} />
-              <Line label="Outlet" value={item.outletName} />
-              <Line label="Province" value={item.outletProvince} />
-              <Line label="City" value={item.outletCity} />
-              <Line label="Tier" value={item.outletTier} />
-              <Line label="Date" value={tsToLocale(item.guardDate)} />
+              <SectionTitle>{t('outlet_venue') || 'Outlet / Venue'}</SectionTitle>
+              <Line label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
+              <Line label={t('outlet') || 'Outlet'} value={item.outletName} />
+              <Line label={t('province') || 'Province'} value={item.outletProvince} />
+              <Line label={t('city') || 'City'} value={item.outletCity} />
+              <Line label={t('tier') || 'Tier'} value={item.outletTier} />
+              <Line label={t('date') || 'Date'} value={tsToLocale(item.guardDate)} />
 
-              <SectionTitle>Guinness Selling</SectionTitle>
+              <SectionTitle>{t('guinness_selling') || 'Guinness Selling'}</SectionTitle>
               <Line label="KEGS 330ml (glass)" value={item.salesKegs330} />
               <Line label="KEGS 500ml (glass)" value={item.salesKegs500} />
               <Line label="MD 500ml (can)" value={item.salesMd500} />
@@ -62,16 +68,16 @@ const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item,
               <Line label="GFES Quart 620ml" value={item.salesGfesQuart620} />
               <Line label="GFES Can Big 500ml" value={item.salesGfesCanbig500} />
 
-              <SectionTitle>Restock</SectionTitle>
-              <Line label="Product Restock" value={yn(item.productRestock)} />
-              <Line label="Restock Description" value={item.productRestockDescription} />
+              <SectionTitle>{t('restock') || 'Restock'}</SectionTitle>
+              <Line label={t('product_restock') || 'Product Restock'} value={yn(item.productRestock)} />
+              <Line label={t('restock_description') || 'Restock Description'} value={item.productRestockDescription} />
             </>
           )}
           <View style={styles.buttonRow}>
-            {onCopyAll && <Button title="Copy All" onPress={onCopyAll} />}
-            {item && <Button title="Copy MD" onPress={handleCopyMD} />}
-            {item && <Button title="Share" onPress={handleShare} />}
-            <Button title="Close" onPress={onClose} />
+            {onCopyAll && <Button title={t('copy') || 'Copy All'} onPress={onCopyAll} />}
+            {item && <Button title={t('copy_md') || 'Copy MD'} onPress={handleCopyMD} />}
+            {item && <Button title={t('share') || 'Share'} onPress={handleShare} />}
+            <Button title={t('close') || 'Close'} onPress={onClose} />
           </View>
         </View>
       </ScrollView>
@@ -81,7 +87,7 @@ const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item,
 
 const styles = StyleSheet.create({
   modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '92%', backgroundColor: 'white', padding: 20, borderRadius: 10, marginVertical: 50 },
+  modalContent: { width: '92%', backgroundColor: palette.surface, padding: 20, borderRadius: 10, marginVertical: 50 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
   sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: 14, marginBottom: 6, borderTopColor: '#ccc', borderTopWidth: 1, paddingTop: 8 },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },

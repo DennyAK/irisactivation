@@ -551,21 +551,23 @@ const fetchTLUsers = async () => {
         selectedValue={formData.outletId}
         onValueChange={(itemValue) => setFormData({ ...formData, outletId: itemValue })}
       >
-        <Picker.Item label="Select an Outlet" value="" />
+        <Picker.Item label={t('select_outlet') || 'Select an Outlet'} value="" />
         {outlets.map(outlet => (
           <Picker.Item key={outlet.id} label={outlet.outletName} value={outlet.id} />
         ))}
       </Picker>
       {/* Province display (read-only, based on selected outlet) */}
-      <Text style={styles.input}>
-        Province: {(() => {
+      <Text style={[styles.input, isDark && { backgroundColor: '#0f172a', color: '#e5e7eb', borderColor: '#1f2937' }] }>
+        {t('province') || 'Province'}: {(() => {
           const selectedOutlet = outlets.find(o => o.id === formData.outletId);
           return selectedOutlet?.province || '-';
         })()}
       </Text>
       {/* Task Start Date below Outlet */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-        <Text style={styles.input}>{`Task Start Date: ${formData.startDate.toLocaleDateString()}`}</Text>
+        <Text style={[styles.input, isDark && { backgroundColor: '#0f172a', color: '#e5e7eb', borderColor: '#1f2937' }]}>
+          {(t('task_start_date') || 'Task Start Date') + ': ' + formData.startDate.toLocaleDateString()}
+        </Text>
       </TouchableOpacity>
       {showDatePicker && (
         <DateTimePicker
@@ -582,7 +584,7 @@ const fetchTLUsers = async () => {
         selectedValue={String(formData.assignedToUserBA)}
         onValueChange={(itemValue) => setFormData({ ...formData, assignedToUserBA: String(itemValue) })}
       >
-        <Picker.Item label="Select BA" value="" />
+        <Picker.Item label={t('select_ba') || 'Select BA'} value="" />
         {baUsers.map(user => (
           <Picker.Item key={String(user.id)} label={user.name || user.email || String(user.id)} value={String(user.id)} />
         ))}
@@ -592,13 +594,19 @@ const fetchTLUsers = async () => {
         selectedValue={String(formData.assignedToUserTLID)}
         onValueChange={(itemValue) => setFormData({ ...formData, assignedToUserTLID: String(itemValue) })}
       >
-        <Picker.Item label="Select TL" value="" />
+        <Picker.Item label={t('select_tl') || 'Select TL'} value="" />
         {tlUsers.map(user => (
           <Picker.Item key={String(user.id)} label={user.name || user.email || String(user.id)} value={String(user.id)} />
         ))}
       </Picker>
       {/* Remark field */}
-      <TextInput style={styles.input} value={formData.remark} onChangeText={(text) => setFormData({ ...formData, remark: text })} placeholder="Remark" />
+      <TextInput
+        style={[styles.input, isDark && { backgroundColor: '#0f172a', color: '#e5e7eb', borderColor: '#1f2937' }]}
+        value={formData.remark}
+        onChangeText={(text) => setFormData({ ...formData, remark: text })}
+        placeholder={t('remark') || 'Remark'}
+        placeholderTextColor={isDark ? '#64748b' : undefined}
+      />
     </>
   );
 
@@ -607,58 +615,58 @@ const fetchTLUsers = async () => {
     <>
       {/* Task Attendance switch */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-        <Text style={{ marginRight: 10 }}>Task Attendance:</Text>
+  <Text style={[{ marginRight: 10 }, isDark && { color: '#e5e7eb' }]}>{t('attendance') || 'Task Attendance'}:</Text>
         <Switch
           value={formData.task_attendance === 'Yes'}
           onValueChange={(isChecked: boolean) => {
             setFormData({ ...formData, task_attendance: isChecked ? 'Yes' : 'No' });
           }}
         />
-        <Text style={{ marginLeft: 10 }}>{formData.task_attendance === 'Yes' ? 'Yes' : 'No'}</Text>
+  <Text style={[{ marginLeft: 10 }, isDark && { color: '#e5e7eb' }]}>{formData.task_attendance === 'Yes' ? (t('yes') || 'Yes') : (t('no') || 'No')}</Text>
       </View>
       {/* Task Assessment switch */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-        <Text style={{ marginRight: 10 }}>Task Assessment:</Text>
+  <Text style={[{ marginRight: 10 }, isDark && { color: '#e5e7eb' }]}>{t('assessment') || 'Task Assessment'}:</Text>
         <Switch
           value={formData.task_assesment === 'Yes'}
           onValueChange={(isChecked: boolean) => {
             setFormData({ ...formData, task_assesment: isChecked ? 'Yes' : 'No' });
           }}
         />
-        <Text style={{ marginLeft: 10 }}>{formData.task_assesment === 'Yes' ? 'Yes' : 'No'}</Text>
+  <Text style={[{ marginLeft: 10 }, isDark && { color: '#e5e7eb' }]}>{formData.task_assesment === 'Yes' ? (t('yes') || 'Yes') : (t('no') || 'No')}</Text>
       </View>
       {/* Task Quick Quiz switch */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-        <Text style={{ marginRight: 10 }}>Task Quick Quiz:</Text>
+  <Text style={[{ marginRight: 10 }, isDark && { color: '#e5e7eb' }]}>{t('quick_quiz') || 'Task Quick Quiz'}:</Text>
         <Switch
           value={formData.task_quick_quiz === 'Yes'}
           onValueChange={(isChecked: boolean) => {
             setFormData({ ...formData, task_quick_quiz: isChecked ? 'Yes' : 'No' });
           }}
         />
-        <Text style={{ marginLeft: 10 }}>{formData.task_quick_quiz === 'Yes' ? 'Yes' : 'No'}</Text>
+  <Text style={[{ marginLeft: 10 }, isDark && { color: '#e5e7eb' }]}>{formData.task_quick_quiz === 'Yes' ? (t('yes') || 'Yes') : (t('no') || 'No')}</Text>
       </View>
       {/* Task Quick Sales Report switch */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-        <Text style={{ marginRight: 10 }}>Task Quick Sales Report:</Text>
+  <Text style={[{ marginRight: 10 }, isDark && { color: '#e5e7eb' }]}>{t('quick_sales_report') || 'Task Quick Sales Report'}:</Text>
         <Switch
           value={formData.task_quick_sales_report === 'Yes'}
           onValueChange={(isChecked: boolean) => {
             setFormData({ ...formData, task_quick_sales_report: isChecked ? 'Yes' : 'No' });
           }}
         />
-        <Text style={{ marginLeft: 10 }}>{formData.task_quick_sales_report === 'Yes' ? 'Yes' : 'No'}</Text>
+  <Text style={[{ marginLeft: 10 }, isDark && { color: '#e5e7eb' }]}>{formData.task_quick_sales_report === 'Yes' ? (t('yes') || 'Yes') : (t('no') || 'No')}</Text>
       </View>
       {/* Task Sales Report Detail switch */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-        <Text style={{ marginRight: 10 }}>Task Sales Report Detail:</Text>
+  <Text style={[{ marginRight: 10 }, isDark && { color: '#e5e7eb' }]}>{t('sales_detail') || 'Task Sales Report Detail'}:</Text>
         <Switch
           value={formData.task_sales_report_detail === 'Yes'}
           onValueChange={(isChecked: boolean) => {
             setFormData({ ...formData, task_sales_report_detail: isChecked ? 'Yes' : 'No' });
           }}
         />
-        <Text style={{ marginLeft: 10 }}>{formData.task_sales_report_detail === 'Yes' ? 'Yes' : 'No'}</Text>
+  <Text style={[{ marginLeft: 10 }, isDark && { color: '#e5e7eb' }]}>{formData.task_sales_report_detail === 'Yes' ? (t('yes') || 'Yes') : (t('no') || 'No')}</Text>
       </View>
     </>
   );
@@ -709,7 +717,7 @@ const fetchTLUsers = async () => {
       style={[styles.input, isDark && { backgroundColor: '#0f172a', borderColor: '#1f2937', color: '#e5e7eb' }]}
                   value={attendanceForm.remark || ''}
                   onChangeText={text => setAttendanceForm({ ...attendanceForm, remark: text })}
-                  placeholder="Remark"
+                  placeholder={t('remark')}
       placeholderTextColor={isDark ? '#64748b' : undefined}
                 />
               </>

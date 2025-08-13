@@ -75,8 +75,8 @@ export default function ModalScreen() {
   }, [role, t]);
 
   return (
-    <View style={[styles.menuContainer, { backgroundColor: scheme === 'dark' ? '#000' : '#fff' }]}>
-      <Text style={[styles.title, { color: scheme === 'dark' ? '#fff' : '#000' }]}>{t('menu')}</Text>
+    <View style={[styles.menuContainer, { backgroundColor: scheme === 'dark' ? '#0b1220' : '#fff' }]}>
+      <Text style={[styles.title, { color: scheme === 'dark' ? '#e5e7eb' : '#000' }]}>{t('menu')}</Text>
       <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingBottom: 40 }}>
         <TouchableOpacity style={[styles.logoutCard, { alignSelf: 'stretch', justifyContent: 'center' }]} onPress={handleLogout}>
           <Ionicons name="log-out" size={20} color="#fff" style={{ marginRight: 8 }} />
@@ -85,15 +85,15 @@ export default function ModalScreen() {
         <View style={{ height: spacing(2) }} />
         <View style={styles.grid}>
           {menuItems.map((item) => (
-            <TouchableOpacity key={item.route} style={styles.card} onPress={() => router.push(item.route as any)}>
+            <TouchableOpacity key={item.route} style={[styles.card, scheme === 'dark' && { backgroundColor: '#111827', borderColor: '#1f2937' }]} onPress={() => router.push(item.route as any)}>
               <Ionicons name={item.icon as any} size={22} color={palette.primary} style={{ marginBottom: 6 }} />
-              <Text style={styles.cardText} numberOfLines={2}>{item.label}</Text>
+              <Text style={[styles.cardText, scheme === 'dark' && { color: '#e5e7eb' }]} numberOfLines={2}>{item.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
         
       </ScrollView>
-      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
+      <StatusBar style={Platform.OS === 'ios' ? 'light' : (scheme === 'dark' ? 'light' : 'dark')} />
     </View>
   );
 }

@@ -107,7 +107,7 @@ export default function TabOneScreen() {
         await updateDoc(userDoc, { photoURL: downloadURL });
       }
     } catch (e: any) {
-      Alert.alert('Upload Failed', e.message);
+      Alert.alert(t('upload_failed') || 'Upload Failed', e.message);
     }
   };
 
@@ -118,7 +118,7 @@ export default function TabOneScreen() {
         setIsModalVisible(false);
         fetchUserData(auth.currentUser);
       }).catch(error => {
-        Alert.alert("Update Failed", error.message);
+        Alert.alert(t('update_failed') || 'Update Failed', error.message);
       });
     }
   };
@@ -198,7 +198,7 @@ export default function TabOneScreen() {
       <ModalSheet visible={isRoleRequestModalVisible} onClose={() => setIsRoleRequestModalVisible(false)} scroll>
         <Text style={[styles.sheetTitle, isDark && { color: '#e5e7eb' }]}>{t('request_new_role') || 'Request New Role'}</Text>
         <Text style={[styles.sheetLabel, isDark && { color: '#cbd5e1' }]}>{t('select_role') || 'Select Role'}</Text>
-        <View style={styles.pickerWrapper}>
+  <View style={[styles.pickerWrapper, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
           <Picker
             selectedValue={requestedRole}
             onValueChange={(itemValue) => setRequestedRole(itemValue)}
@@ -214,10 +214,11 @@ export default function TabOneScreen() {
         </View>
         <Text style={[styles.sheetLabel, isDark && { color: '#cbd5e1' }]}>{t('reason') || 'Reason'}</Text>
         <TextInput
-          style={[styles.multiInput]}
+          style={[styles.multiInput, isDark && { backgroundColor: '#111827', borderColor: '#1f2937', color: '#e5e7eb' }]}
           value={roleReason}
           onChangeText={setRoleReason}
           placeholder={t('role_reason_placeholder') || 'Why do you need this role?'}
+          placeholderTextColor={isDark ? '#64748b' : palette.textMuted}
           multiline
           numberOfLines={4}
           textAlignVertical="top"
@@ -261,21 +262,22 @@ export default function TabOneScreen() {
         <FormField label={t('first_name') || 'First Name'} value={formData.firstName} setValue={(v)=> setFormData({...formData, firstName: v})} placeholder={t('first_name') || 'First Name'} icon="person-outline" />
         <FormField label={t('last_name') || 'Last Name'} value={formData.lastName} setValue={(v)=> setFormData({...formData, lastName: v})} placeholder={t('last_name') || 'Last Name'} icon="person-outline" />
         <Text style={[styles.sheetLabel, isDark && { color: '#cbd5e1' }]}>{t('phone_id') || 'Phone (Indonesia)'}</Text>
-        <View style={styles.phoneWrapper}>
+    <View style={[styles.phoneWrapper, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}> 
           <Text style={styles.phonePrefix}>+62</Text>
           <TextInput
-            style={styles.phoneInput}
+      style={[styles.phoneInput, isDark && { color: '#e5e7eb' }]}
             value={formData.phone.startsWith('+62') ? formData.phone.slice(3) : (formData.phone.startsWith('0') ? formData.phone.slice(1) : formData.phone)}
             onChangeText={(text) => {
               let clean = text.replace(/^0+/, '');
               setFormData({ ...formData, phone: '+62' + clean });
             }}
             placeholder="81234567890"
+      placeholderTextColor={isDark ? '#64748b' : palette.textMuted}
             keyboardType="phone-pad"
             maxLength={13}
           />
         </View>
-        <Text style={[styles.helper, isDark && { color: '#94a3b8' }]}>Format: +6281234567890 (Indonesia)</Text>
+    <Text style={[styles.helper, isDark && { color: '#94a3b8' }]}>Format: +6281234567890 (Indonesia)</Text>
         <FormField label={t('province') || 'Province'} value={formData.province} setValue={(v)=> setFormData({...formData, province: v})} placeholder={t('province') || 'Province'} icon="earth-outline" />
         <FormField label={t('city') || 'City'} value={formData.city} setValue={(v)=> setFormData({...formData, city: v})} placeholder={t('city') || 'City'} icon="map-outline" />
         <View style={styles.sheetButtons}>

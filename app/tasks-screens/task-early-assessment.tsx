@@ -303,7 +303,7 @@ export default function TaskEarlyAssessmentScreen() {
       setAssessments(sorted);
     } catch (error) {
       console.error("Error fetching assessments: ", error);
-      Alert.alert("Error", "Failed to fetch assessments.");
+      Alert.alert(t('error') || 'Error', t('failed_to_fetch_assessments') || 'Failed to fetch assessments.');
     } finally {
       setLoading(false);
     }
@@ -419,20 +419,20 @@ export default function TaskEarlyAssessmentScreen() {
         .then(() => {
           fetchAssessments();
           setIsModalVisible(false);
-        }).catch(error => Alert.alert("Add Failed", error.message));
+  }).catch(error => Alert.alert(t('add_failed') || 'Add Failed', error.message));
     } else if (selectedAssessment) {
   updateDoc(doc(db, "task_early_assessment", selectedAssessment.id), { ...dataToSubmit, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' })
         .then(() => {
           fetchAssessments();
           setIsModalVisible(false);
-        }).catch(error => Alert.alert("Update Failed", error.message));
+  }).catch(error => Alert.alert(t('update_failed') || 'Update Failed', error.message));
     }
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Delete Assessment", "Are you sure?", [
-      { text: "Cancel" },
-      { text: "OK", onPress: () => {
+    Alert.alert(t('delete_assessment') || 'Delete Assessment', t('are_you_sure') || 'Are you sure?', [
+      { text: t('cancel') || 'Cancel' },
+      { text: t('ok') || 'OK', onPress: () => {
         deleteDoc(doc(db, "task_early_assessment", id)).then(() => fetchAssessments());
       }}
     ]);
@@ -634,23 +634,23 @@ export default function TaskEarlyAssessmentScreen() {
                   ]);
                 }} />
                 <View style={{ height: 12 }} />
-    <SecondaryButton title="REASSESS by TL" onPress={() => {
-                  Alert.alert('Confirm Reassess', 'Reassign to TL? Status will be set to RE ASSESS BY TL.', [
-                    { text: 'No', style: 'cancel' },
-                    { text: 'Yes', onPress: async () => {
+    <SecondaryButton title={t('reassess_by_tl')} onPress={() => {
+                  Alert.alert(t('confirm_reassess'), t('confirm_reassess_msg'), [
+                    { text: t('no'), style: 'cancel' },
+                    { text: t('yes'), onPress: async () => {
                       try {
   await updateDoc(doc(db, 'task_early_assessment', item.id), { status: EAStatus.ReassessByTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
                         fetchAssessments();
                         setIsReviewModalVisible(false);
-                        Alert.alert('Success', 'Status updated to RE ASSESS BY TL.');
+                        Alert.alert(t('success'), t('status_updated_to_reassess_tl'));
                       } catch (e) {
-                        Alert.alert('Error', 'Failed to update status.');
+                        Alert.alert(t('error'), t('failed_to_update_status'));
                       }
                     }}
                   ]);
                 }} />
                 <View style={{ height: 12 }} />
-                <SecondaryButton title="Cancel" onPress={() => setIsReviewModalVisible(false)} />
+                <SecondaryButton title={t('cancel')} onPress={() => setIsReviewModalVisible(false)} />
               </View>
             </View>
           </View>
@@ -663,16 +663,16 @@ export default function TaskEarlyAssessmentScreen() {
     <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
         <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
-          <Text style={[styles.title, { color: colors.text }]}>{modalType === 'add' ? 'Add' : 'Edit'} Assessment</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{modalType === 'add' ? t('add') : t('edit')} {t('assessment')}</Text>
           {(userRole === Roles.Admin || userRole === Roles.Superadmin) && selectedAssessment && (
             <View style={{ marginBottom: spacing(4) }}>
-              <Text style={[styles.sectionTitle, { color: colors.text, borderTopColor: colors.border }]}>Admin: Next Status</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text, borderTopColor: colors.border }]}>{t('admin_next_status')}</Text>
               <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surfaceAlt }}>
                 <Picker
                   selectedValue={adminNextStatus}
                   onValueChange={(v) => setAdminNextStatus(String(v))}
                 >
-                  <Picker.Item label="(no change)" value="" />
+          <Picker.Item label={t('no_change')} value="" />
                   {stateMachine
                     .nextOptionsForRole('EA', (userRole as any) || '', (selectedAssessment?.status || '') as any)
                     .map(opt => (
@@ -683,23 +683,23 @@ export default function TaskEarlyAssessmentScreen() {
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>Personnel Information</Text>
-          <Text>Assigned to BA ID: {formData.assignedToBA}</Text>
-          <Text>Assigned to TL : {formData.assignedToTL}</Text>
-          <Text style={styles.sectionTitle}>Outlet/Venue Details</Text>
-          <Text>Outlet ID: {formData.outletId}</Text>
-          <Text>Province: {outletDetails?.outletProvince || '-'}</Text>
-          <Text>City: {outletDetails?.outletCity || '-'}</Text>
-          <Text>Outlet Type: {outletDetails?.outletType || '-'}</Text>
-          <Text>Outlet Name: {outletDetails?.outletName || '-'}</Text>
-          <Text>Tier Outlet: {outletDetails?.outletTier || '-'}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('personal_info')}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {formData.assignedToBA}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_tl')}: {formData.assignedToTL}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('outlet_venue')}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet_id')}: {formData.outletId}</Text>
+          <Text style={{ color: colors.text }}>{t('province')}: {outletDetails?.outletProvince || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('city')}: {outletDetails?.outletCity || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('type')}: {outletDetails?.outletType || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet')}: {outletDetails?.outletName || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet_tier')}: {outletDetails?.outletTier || '-'}</Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.text, borderTopColor: colors.border }]}>Product Availabilty / Stock / Expiry Date</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text, borderTopColor: colors.border }]}>{t('availability_stock_expiry')}</Text>
 
-          <View style={styles.switchContainer}><Text>KEGS Available</Text><Switch value={formData.kegsAvailable} onValueChange={val => setFormData({...formData, kegsAvailable: val})} /></View>
-          <Text style={styles.switchLabel}>Stock - Kegs</Text>
+          <View style={styles.switchContainer}><Text style={{ color: colors.text }}>{t('kegs_available')}</Text><Switch value={formData.kegsAvailable} onValueChange={val => setFormData({...formData, kegsAvailable: val})} /></View>
+          <Text style={[styles.switchLabel, { color: colors.muted }]}>{t('stock_kegs')}</Text>
           <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockKegs} onChangeText={text => setFormData({...formData, stockKegs: text})} placeholder="KEGS Stock" {...inputCommonProps} />
-          <Text style={styles.switchLabel}>Expired Date - Kegs</Text>
+          <Text style={[styles.switchLabel, { color: colors.muted }]}>{t('expiry_kegs')}</Text>
           <TouchableOpacity onPress={() => setShowExpiryKegsPicker(true)}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
@@ -724,10 +724,10 @@ export default function TaskEarlyAssessmentScreen() {
             />
           )}
 
-          <View style={styles.switchContainer}><Text>Microdraught Available</Text><Switch value={formData.microdraughtAvailable} onValueChange={val => setFormData({...formData, microdraughtAvailable: val})} /></View>
-          <Text style={styles.switchLabel}>Stock - Microdraught</Text>
+          <View style={styles.switchContainer}><Text style={{ color: colors.text }}>{t('microdraught_available')}</Text><Switch value={formData.microdraughtAvailable} onValueChange={val => setFormData({...formData, microdraughtAvailable: val})} /></View>
+          <Text style={[styles.switchLabel, { color: colors.muted }]}>{t('stock_microdraught')}</Text>
           <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockMicrodraught} onChangeText={text => setFormData({...formData, stockMicrodraught: text})} placeholder="Microdraught Stock" {...inputCommonProps} />
-          <Text style={styles.switchLabel}>Expired Date - Microdraught</Text>
+          <Text style={[styles.switchLabel, { color: colors.muted }]}>{t('expiry_microdraught')}</Text>
           <TouchableOpacity onPress={() => setShowExpiryMicrodraughtPicker(true)}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
@@ -752,10 +752,10 @@ export default function TaskEarlyAssessmentScreen() {
             />
           )}
 
-          <View style={styles.switchContainer}><Text>Guinness GDIC Available</Text><Switch value={formData.gdicAvailable} onValueChange={val => setFormData({...formData, gdicAvailable: val})} /></View>
-          <Text style={styles.switchLabel}>Stock - GDIC</Text>
+          <View style={styles.switchContainer}><Text style={{ color: colors.text }}>{t('gdic_available')}</Text><Switch value={formData.gdicAvailable} onValueChange={val => setFormData({...formData, gdicAvailable: val})} /></View>
+          <Text style={[styles.switchLabel, { color: colors.muted }]}>{t('stock_gdic')}</Text>
           <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockGdic} onChangeText={text => setFormData({...formData, stockGdic: text})} placeholder="GDIC Stock" {...inputCommonProps} />
-          <Text style={styles.switchLabel}>Expired Date - GDIC</Text>
+          <Text style={[styles.switchLabel, { color: colors.muted }]}>{t('expiry_gdic')}</Text>
           <TouchableOpacity onPress={() => setShowExpiryGdicPicker(true)}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
@@ -780,10 +780,10 @@ export default function TaskEarlyAssessmentScreen() {
             />
           )}
           
-          <View style={styles.switchContainer}><Text>Guinness Smooth Available</Text><Switch value={formData.smoothAvailable} onValueChange={val => setFormData({...formData, smoothAvailable: val})} /></View>
-          <Text style={styles.switchLabel}>Stock - Smooth Pint 330ml</Text>
+          <View style={styles.switchContainer}><Text style={{ color: colors.text }}>{t('smooth_available')}</Text><Switch value={formData.smoothAvailable} onValueChange={val => setFormData({...formData, smoothAvailable: val})} /></View>
+          <Text style={[styles.switchLabel, { color: colors.muted }]}>{t('stock_smooth_pint_330')}</Text>
           <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.stockSmoothPint330} onChangeText={text => setFormData({...formData, stockSmoothPint330: text})} placeholder="Smooth Pint 330ml Stock" {...inputCommonProps} />
-          <Text style={styles.switchLabel}>Expired Date - Smooth Pint 330ml</Text>
+          <Text style={[styles.switchLabel, { color: colors.muted }]}>{t('expiry_smooth_pint_330')}</Text>
           <TouchableOpacity onPress={() => setShowExpirySmoothPintPicker(true)}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}

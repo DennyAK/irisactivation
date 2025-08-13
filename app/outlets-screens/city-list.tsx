@@ -89,7 +89,7 @@ export default function CityListScreen() {
       setCities(cityList.sort((a, b) => a.name.localeCompare(b.name)));
     } catch (error) {
       console.error("Error fetching cities: ", error);
-      Alert.alert("Error", "Failed to fetch cities.");
+  Alert.alert(t('error') || 'Error', t('failed_to_fetch_cities') || 'Failed to fetch cities.');
     } finally {
       setLoadingCities(false);
     }
@@ -112,10 +112,10 @@ export default function CityListScreen() {
       });
       await batch.commit();
       setCities([]);
-      Alert.alert("Success", "All cities have been cleared.");
+  Alert.alert(t('success') || 'Success', t('cities_cleared') || 'All cities have been cleared.');
     } catch (error) {
       console.error("Error clearing cities: ", error);
-      Alert.alert("Error", "Failed to clear cities.");
+  Alert.alert(t('error') || 'Error', t('failed_to_clear_cities') || 'Failed to clear cities.');
     } finally {
       setLoadingCities(false);
     }
@@ -127,7 +127,7 @@ export default function CityListScreen() {
       const citiesCollection = collection(db, 'cities');
       const snapshot = await getDocs(citiesCollection);
       if (!snapshot.empty) {
-        Alert.alert("Already Populated", "The cities collection already contains data.");
+  Alert.alert(t('already_populated') || 'Already Populated', t('cities_already_populated') || 'The cities collection already contains data.');
         setLoadingCities(false);
         return;
       }
@@ -138,11 +138,11 @@ export default function CityListScreen() {
         batch.set(docRef, { name: city.name, provinceId: city.provinceId });
       });
       await batch.commit();
-      Alert.alert("Success", "All cities and regencies have been added to the database.");
+  Alert.alert(t('success') || 'Success', t('cities_populated') || 'All cities and regencies have been added to the database.');
       if(selectedProvince) fetchCities(selectedProvince);
     } catch (error) {
       console.error("Error populating cities: ", error);
-      Alert.alert("Error", "Failed to populate cities.");
+  Alert.alert(t('error') || 'Error', t('failed_to_populate_cities') || 'Failed to populate cities.');
     } finally {
       setLoadingCities(false);
     }
@@ -213,7 +213,7 @@ export default function CityListScreen() {
         />
       ) : (
         <Text style={[styles.infoText, { color: colors.muted }]}>
-          {selectedProvince ? 'No cities found for this province.' : 'Please select a province to view the list of cities.'}
+          {selectedProvince ? (t('no_cities_for_province') || 'No cities found for this province.') : (t('select_province_to_view_cities') || 'Please select a province to view the list of cities.')}
         </Text>
       )}
     </View>

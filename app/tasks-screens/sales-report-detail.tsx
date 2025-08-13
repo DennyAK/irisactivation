@@ -233,7 +233,7 @@ export default function SalesReportDetailScreen() {
       setIsModalVisible(false);
     } catch (e) {
       console.error('handleFormSubmit error', e);
-      Alert.alert('Error', 'Failed to save report');
+  Alert.alert(t('error') || 'Error', t('failed_to_save_report') || 'Failed to save report');
     }
   };
 
@@ -326,7 +326,7 @@ export default function SalesReportDetailScreen() {
       setLastDoc(last);
     } catch (err) {
       console.error('fetchReports error', err);
-      Alert.alert('Error', 'Failed to fetch reports');
+      Alert.alert(t('error') || 'Error', t('failed_to_fetch_reports') || 'Failed to fetch reports');
     } finally {
       if (reset) setLoading(false);
       setLoadingMore(false);
@@ -334,9 +334,9 @@ export default function SalesReportDetailScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Delete Report", "Are you sure?", [
-      { text: "Cancel" },
-      { text: "OK", onPress: () => {
+    Alert.alert(t('delete_report') || 'Delete Report', t('are_you_sure') || 'Are you sure?', [
+      { text: t('cancel') || 'Cancel' },
+      { text: t('ok') || 'OK', onPress: () => {
         deleteDoc(doc(db, "sales_report_detail", id)).then(() => fetchReports());
       }}
     ]);
@@ -412,7 +412,7 @@ export default function SalesReportDetailScreen() {
   await updateDoc(ref, { salesReportDetailStatus: SRDStatus.ReviewBackToBA, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
                   await fetchReports();
                 } catch (e) {
-                  Alert.alert('Error', 'Failed to update status');
+                  Alert.alert(t('update_failed') || 'Update Failed', t('failed_to_update_status') || 'Failed to update status');
                 }
               }} style={styles.actionBtn} />
             )}
@@ -420,10 +420,10 @@ export default function SalesReportDetailScreen() {
               <PrimaryButton title="SRD by AM" onPress={() => { setSelectedReport(item); setDetailsMode('review'); setDetailsVisible(true); }} style={styles.actionBtn} />
             )}
             {canEditAdmin && (
-              <SecondaryButton title="Edit" onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
+              <SecondaryButton title={t('edit') || 'Edit'} onPress={() => handleOpenModal('edit', item)} style={styles.actionBtn} />
             )}
             {canRemove && (
-              <SecondaryButton title="Delete" onPress={() => handleDelete(item.id)} style={[styles.actionBtnDanger, isDark ? { backgroundColor: '#3f1d1d', borderColor: '#7f1d1d' } : {}]} />
+              <SecondaryButton title={t('delete') || 'Delete'} onPress={() => handleDelete(item.id)} style={[styles.actionBtnDanger, isDark ? { backgroundColor: '#3f1d1d', borderColor: '#7f1d1d' } : {}]} />
             )}
           </View>
           <View style={styles.iconActions}>
@@ -454,12 +454,12 @@ export default function SalesReportDetailScreen() {
 
   return (
     <View style={[styles.container, isDark ? { backgroundColor: colors.body } : {}]}>
-      <FilterHeader
+  <FilterHeader
   title={t('sales_detail')}
         search={search}
         status={statusFilter}
         statusOptions={SRD_STATUS_OPTIONS}
-        placeholder="Search outlet or ID"
+    placeholder={t('search_outlet_or_id') || 'Search outlet or ID'}
         storageKey="filters:srd"
   sortAsc={sortAsc}
   onToggleSort={() => setSortAsc(prev => !prev)}
@@ -501,8 +501,8 @@ export default function SalesReportDetailScreen() {
         visible={detailsVisible}
         mode={detailsMode}
         item={detailsMode === 'review' ? selectedReport : descriptionItem}
-        userRole={userRole}
-        onCopyAll={detailsMode === 'description' && descriptionItem ? async () => { await Clipboard.setStringAsync(getDescriptionText(descriptionItem)); Alert.alert('Copied to clipboard'); } : undefined}
+    userRole={userRole}
+    onCopyAll={detailsMode === 'description' && descriptionItem ? async () => { await Clipboard.setStringAsync(getDescriptionText(descriptionItem)); Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard'); } : undefined}
     onDoneByAM={detailsMode === 'review' && userRole === 'area manager' && selectedReport?.id ? async () => {
           try {
             const ref = doc(db, 'sales_report_detail', selectedReport.id);
@@ -511,7 +511,7 @@ export default function SalesReportDetailScreen() {
             setDetailsVisible(false);
           } catch (e) {
             console.error('Done by AM failed', e);
-            Alert.alert('Error', 'Failed to update status');
+      Alert.alert(t('update_failed') || 'Update Failed', t('failed_to_update_status') || 'Failed to update status');
           }
         } : undefined}
     onReviewBackToTL={detailsMode === 'review' && userRole === 'area manager' && selectedReport?.id ? async () => {
@@ -522,7 +522,7 @@ export default function SalesReportDetailScreen() {
             setDetailsVisible(false);
           } catch (e) {
             console.error('Review back to TL failed', e);
-            Alert.alert('Error', 'Failed to update status');
+      Alert.alert(t('update_failed') || 'Update Failed', t('failed_to_update_status') || 'Failed to update status');
           }
         } : undefined}
         onClose={() => setDetailsVisible(false)}

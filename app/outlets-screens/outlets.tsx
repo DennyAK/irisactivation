@@ -95,7 +95,7 @@ export default function OutletsScreen() {
   const getLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission denied', 'Permission to access location was denied');
+      Alert.alert(t('permission_denied') || 'Permission denied', t('location_permission_denied') || 'Permission to access location was denied');
       return;
     }
 
@@ -137,7 +137,7 @@ export default function OutletsScreen() {
       setOutlets(outletList);
     } catch (error) {
       console.error("Error fetching outlets: ", error);
-      Alert.alert("Error", "Failed to fetch outlets.");
+  Alert.alert(t('error') || 'Error', t('failed_to_fetch_outlets') || 'Failed to fetch outlets.');
     } finally {
       setLoading(false);
     }
@@ -202,7 +202,7 @@ export default function OutletsScreen() {
 
   const handleAddOutlet = () => {
     if (formData.outletName.trim() === '') {
-      Alert.alert("Invalid Name", "Outlet name cannot be empty.");
+      Alert.alert(t('invalid_name') || 'Invalid Name', `${t('outlet') || 'Outlet'} ${t('cannot_be_empty') || 'cannot be empty.'}`);
       return;
     }
     addDoc(collection(db, "outlets"), {
@@ -213,7 +213,7 @@ export default function OutletsScreen() {
       resetFormData();
       fetchOutlets();
     }).catch(error => {
-      Alert.alert("Add Failed", error.message);
+      Alert.alert(t('add_failed') || 'Add Failed', error.message);
     });
   };
 
@@ -247,14 +247,14 @@ export default function OutletsScreen() {
         setSelectedOutlet(null);
         fetchOutlets();
       }).catch(error => {
-        Alert.alert("Update Failed", error.message);
+        Alert.alert(t('update_failed') || 'Update Failed', error.message);
       });
     }
   };
 
   const handleDeleteOutlet = (outletId: string) => {
-    Alert.alert("Delete Outlet", "Are you sure you want to delete this outlet?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t('delete') || 'Delete', t('are_you_sure') || 'Are you sure?', [
+      { text: t('cancel') || 'Cancel', style: "cancel" },
       { text: "OK", onPress: () => {
         deleteDoc(doc(db, "outlets", outletId)).then(() => {
           fetchOutlets();
@@ -291,12 +291,12 @@ export default function OutletsScreen() {
         {!!item.outletChannel && <StatusPill label={item.outletChannel} tone={channelTone(item.outletChannel)} style={styles.pill} />}
         {!!item.outletTier && <StatusPill label={item.outletTier} tone="warning" style={styles.pill} />}
       </View>
-      <Text style={[styles.metaText, { color: colors.muted }]}>Province: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.provinceName || '-'}</Text></Text>
-      <Text style={[styles.metaText, { color: colors.muted }]}>Address: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletCompleteAddress || '-'}, {item.cityName || '-'}, {item.provinceName || '-'}</Text></Text>
-      <Text style={[styles.metaText, { color: colors.muted }]}>Contact: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletContactNo || '-'}</Text></Text>
-      <Text style={[styles.metaText, { color: colors.muted }]}>PIC: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletPicName || '-'} ({item.outletPicContactNumber || '-'})</Text></Text>
-      {!!item.outletSocialMedia && <Text style={[styles.metaText, { color: colors.muted }]}>Social: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletSocialMedia}</Text></Text>}
-      <Text style={[styles.coords, { color: colors.muted }]}>Coords: {item.latitude}, {item.longitude}</Text>
+  <Text style={[styles.metaText, { color: colors.muted }]}>{t('province')}: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.provinceName || '-'}</Text></Text>
+  <Text style={[styles.metaText, { color: colors.muted }]}>{t('address') || 'Address'}: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletCompleteAddress || '-'}, {item.cityName || '-'}, {item.provinceName || '-'}</Text></Text>
+  <Text style={[styles.metaText, { color: colors.muted }]}>{t('contact') || 'Contact'}: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletContactNo || '-'}</Text></Text>
+  <Text style={[styles.metaText, { color: colors.muted }]}>PIC: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletPicName || '-'} ({item.outletPicContactNumber || '-'})</Text></Text>
+  {!!item.outletSocialMedia && <Text style={[styles.metaText, { color: colors.muted }]}>{t('social') || 'Social'}: <Text style={[styles.metaStrong, { color: colors.text }]}>{item.outletSocialMedia}</Text></Text>}
+  <Text style={[styles.coords, { color: colors.muted }]}>{t('coords') || 'Coords'}: {item.latitude}, {item.longitude}</Text>
       <View style={styles.actionsRow}>
         <SecondaryButton
           title={t('history')}
@@ -307,7 +307,7 @@ export default function OutletsScreen() {
         />
         {isAdmin && (
           <SecondaryButton
-            title="View Audit"
+            title={t('view_audit') || 'View Audit'}
             onPress={() => router.push({ pathname: '/audit-screens/audit-logs' as any, params: { collection: 'outlets', docId: item.id } })}
           />
         )}
@@ -325,19 +325,19 @@ export default function OutletsScreen() {
   
   const renderModalFields = () => (
     <>
-      <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletName} onChangeText={(text) => setFormData({...formData, outletName: text})} placeholder="Outlet Name" {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletName} onChangeText={(text) => setFormData({...formData, outletName: text})} placeholder={`${t('outlet')} ${t('name') || 'Name'}`} {...inputCommonProps} />
       <Picker
         selectedValue={formData.outletProvince}
         onValueChange={(itemValue) => setFormData({...formData, outletProvince: itemValue, outletCity: ''})}
-      >
-        <Picker.Item label="Select a Province" value="" />
+    >
+  <Picker.Item label={t('select_province') || 'Select a Province'} value="" />
         {provinces.map(province => (
           <Picker.Item key={province.id} label={province.name} value={province.id} />
         ))}
       </Picker>
       {/* Province display (read-only, based on selected province) */}
   <Text style={[styles.input, { backgroundColor: 'transparent', borderColor: 'transparent', color: colors.text }]}>
-        Province: {(() => {
+        {t('province')}: {(() => {
           const selectedProvince = provinces.find(p => p.id === formData.outletProvince);
           return selectedProvince?.name || '-';
         })()}
@@ -346,8 +346,8 @@ export default function OutletsScreen() {
         selectedValue={formData.outletCity}
         onValueChange={(itemValue) => setFormData({...formData, outletCity: itemValue})}
         enabled={!!formData.outletProvince}
-      >
-        <Picker.Item label="Select a City/Regency" value="" />
+    >
+  <Picker.Item label={t('select_city_regency') || 'Select City/Regency'} value="" />
         {cities.map(city => (
           <Picker.Item key={city.id} label={city.name} value={city.id} />
         ))}
@@ -358,7 +358,7 @@ export default function OutletsScreen() {
         selectedValue={formData.outletChannel}
         onValueChange={(itemValue) => setFormData({ ...formData, outletChannel: itemValue })}
       >
-        <Picker.Item label="Select Channel" value="" />
+  <Picker.Item label={t('select_channel') || 'Select Channel'} value="" />
         <Picker.Item label="MOT" value="MOT" />
         <Picker.Item label="MOT WEEKLY" value="MOT WEEKLY" />
         <Picker.Item label="MOT MONTHLY" value="MOT MONTHLY" />
@@ -370,24 +370,24 @@ export default function OutletsScreen() {
         selectedValue={formData.outletTier}
         onValueChange={(itemValue) => setFormData({ ...formData, outletTier: itemValue })}
       >
-        <Picker.Item label="Select Tier" value="" />
+  <Picker.Item label={t('select_tier') || 'Select Tier'} value="" />
         <Picker.Item label="2.1 (kegs)" value="2.1(kegs)" />
         <Picker.Item label="2.2 (md)" value="2.2(md)" />
         <Picker.Item label="3 (gdic)" value="3(gdic)" />
         <Picker.Item label="4 (smooth&gfes)" value="4(smooth&gfes)" />
       </Picker>
 
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletCompleteAddress} onChangeText={(text) => setFormData({...formData, outletCompleteAddress: text})} placeholder="Complete Address" {...inputCommonProps} />
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletContactNo} onChangeText={(text) => setFormData({...formData, outletContactNo: text})} placeholder="Contact Number" {...inputCommonProps} />
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletPicName} onChangeText={(text) => setFormData({...formData, outletPicName: text})} placeholder="PIC Name" {...inputCommonProps} />
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletPicContactNumber} onChangeText={(text) => setFormData({...formData, outletPicContactNumber: text})} placeholder="PIC Contact Number" {...inputCommonProps} />
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletSocialMedia} onChangeText={(text) => setFormData({...formData, outletSocialMedia: text})} placeholder="Social Media" {...inputCommonProps} />
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletCapacity} onChangeText={(text) => setFormData({...formData, outletCapacity: text})} placeholder="Capacity (Person)" keyboardType='numeric' {...inputCommonProps} />
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletNoOfTableAVailable} onChangeText={(text) => setFormData({...formData, outletNoOfTableAVailable: text})} placeholder="No. of Tables Available (tables)" keyboardType='numeric' {...inputCommonProps}/>
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletCompleteAddress} onChangeText={(text) => setFormData({...formData, outletCompleteAddress: text})} placeholder={t('complete_address') || 'Complete Address'} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletContactNo} onChangeText={(text) => setFormData({...formData, outletContactNo: text})} placeholder={t('contact_number') || 'Contact Number'} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletPicName} onChangeText={(text) => setFormData({...formData, outletPicName: text})} placeholder={t('pic_name') || 'PIC Name'} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletPicContactNumber} onChangeText={(text) => setFormData({...formData, outletPicContactNumber: text})} placeholder={t('pic_contact_number') || 'PIC Contact Number'} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletSocialMedia} onChangeText={(text) => setFormData({...formData, outletSocialMedia: text})} placeholder={t('social_media') || 'Social Media'} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletCapacity} onChangeText={(text) => setFormData({...formData, outletCapacity: text})} placeholder={t('capacity_person') || 'Capacity (Person)'} keyboardType='numeric' {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.outletNoOfTableAVailable} onChangeText={(text) => setFormData({...formData, outletNoOfTableAVailable: text})} placeholder={t('tables_available') || 'No. of Tables Available (tables)'} keyboardType='numeric' {...inputCommonProps}/>
 
-  <SecondaryButton title="Get Current Location" onPress={getLocation} />
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.latitude} onChangeText={(text) => setFormData({...formData, latitude: text})} placeholder="Latitude" {...inputCommonProps} />
-  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.longitude} onChangeText={(text) => setFormData({...formData, longitude: text})} placeholder="Longitude" {...inputCommonProps} />
+  <SecondaryButton title={t('get_current_location') || 'Get Current Location'} onPress={getLocation} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.latitude} onChangeText={(text) => setFormData({...formData, latitude: text})} placeholder={t('latitude') || 'Latitude'} {...inputCommonProps} />
+  <TextInput style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]} value={formData.longitude} onChangeText={(text) => setFormData({...formData, longitude: text})} placeholder={t('longitude') || 'Longitude'} {...inputCommonProps} />
     </>
   );
 

@@ -1,93 +1,106 @@
 import React from 'react';
 import { Modal, ScrollView, View, Text, Button, StyleSheet, Share, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { useI18n } from './I18n';
+import { useEffectiveScheme } from './ThemePreference';
+import { palette } from '@/constants/Design';
 
 type Props = { visible: boolean; onClose: () => void; item: any | null; onCopyAll?: () => void };
 
-const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (<Text selectable>{label}: {formatValue(value)}</Text>);
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (<Text selectable style={styles.sectionTitle}>{children}</Text>);
-
 const TaskEarlyAssessmentDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll }) => {
-  const handleCopyMD = async () => { if (!item) return; await Clipboard.setStringAsync(buildTaskEarlyAssessmentText(item, 'markdown')); Alert.alert('Copied to clipboard'); };
+  const { t } = useI18n();
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const textColor = { color: isDark ? '#e5e7eb' : '#111827' };
+  const sectionBorder = { borderTopColor: isDark ? '#334155' : '#ccc' };
+
+  const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (
+    <Text selectable style={textColor}>{label}: {formatValue(value)}</Text>
+  );
+  const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <Text selectable style={[styles.sectionTitle, sectionBorder, textColor]}>{children}</Text>
+  );
+
+  const handleCopyMD = async () => { if (!item) return; await Clipboard.setStringAsync(buildTaskEarlyAssessmentText(item, 'markdown')); Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard'); };
   const handleShare = async () => { if (!item) return; try { await Share.share({ message: buildTaskEarlyAssessmentText(item, 'text') }); } catch {} };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text selectable style={styles.title}>Early Assessment</Text>
-          {!item ? <Text>No data</Text> : (
+        <View style={[styles.modalContent, { backgroundColor: isDark ? '#111827' : palette.surface }]}>
+          <Text selectable style={[styles.title, textColor]}>{t('assessment') || 'Early Assessment'}</Text>
+          {!item ? <Text style={textColor}>{t('no_data') || 'No data'}</Text> : (
             <>
-              <SectionTitle>Personnel</SectionTitle>
-              <Line label="Assigned BA" value={item.assignedToBA} />
-              <Line label="Assigned TL" value={item.assignedToTL} />
-              <Line label="Status" value={item.status} />
-              <Line label="Created" value={tsToLocale(item.createdAt)} />
+              <SectionTitle>{t('personnel') || 'Personnel'}</SectionTitle>
+              <Line label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
+              <Line label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
+              <Line label={t('status') || 'Status'} value={item.status} />
+              <Line label={t('created') || 'Created'} value={tsToLocale(item.createdAt)} />
 
-              <SectionTitle>Outlet</SectionTitle>
-              <Line label="Outlet ID" value={item.outletId} />
-              <Line label="Province" value={item.locationProvince} />
-              <Line label="City" value={item.locationCity} />
-              <Line label="Outlet" value={item.outletName} />
-              <Line label="Tier" value={item.outletTier} />
-              <Line label="Type" value={item.outletType} />
+              <SectionTitle>{t('outlet') || 'Outlet'}</SectionTitle>
+              <Line label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
+              <Line label={t('province') || 'Province'} value={item.locationProvince} />
+              <Line label={t('city') || 'City'} value={item.locationCity} />
+              <Line label={t('outlet') || 'Outlet'} value={item.outletName} />
+              <Line label={t('tier') || 'Tier'} value={item.outletTier} />
+              <Line label={t('type') || 'Type'} value={item.outletType} />
 
-              <SectionTitle>Availability / Stock / Expiry</SectionTitle>
-              <Line label="KEGS Available" value={yn(item.kegsAvailable)} />
-              <Line label="Stock Kegs" value={item.stockKegs} />
-              <Line label="Expiry Kegs" value={item.expiryKegs} />
-              <Line label="Microdraught Available" value={yn(item.microdraughtAvailable)} />
-              <Line label="Stock Microdraught" value={item.stockMicrodraught} />
-              <Line label="Expiry Microdraught" value={item.expiryMicrodraught} />
-              <Line label="GDIC Available" value={yn(item.gdicAvailable)} />
-              <Line label="Stock GDIC" value={item.stockGdic} />
-              <Line label="Expiry GDIC" value={item.expiryGdic} />
-              <Line label="Smooth Available" value={yn(item.smoothAvailable)} />
-              <Line label="Stock Smooth Pint 330" value={item.stockSmoothPint330} />
-              <Line label="Expiry Smooth Pint 330" value={item.expirySmoothPint330} />
-              <Line label="Stock Smooth Can 330" value={item.stockSmoothCan330} />
-              <Line label="Expiry Smooth Can 330" value={item.expirySmoothCan330} />
-              <Line label="GFES Available" value={yn(item.gfesAvailable)} />
-              <Line label="Stock GFES Pint 330" value={item.stockGfesPint330} />
-              <Line label="Expiry GFES Pint 330" value={item.expiryGfesPint330} />
-              <Line label="Stock GFES Can 330" value={item.stockGfesCan330} />
-              <Line label="Expiry GFES Can 330" value={item.expiryGfesCan330} />
-              <Line label="Stock GFES 620" value={item.stockGfes620} />
-              <Line label="Expiry GFES 620" value={item.expiryGfes620} />
-              <Line label="Stock GFES Can Big 500" value={item.stockGfesCanBig500} />
-              <Line label="Expiry GFES Can Big 500" value={item.expiryGfesCanBig500} />
+              <SectionTitle>{t('availability_stock_expiry') || 'Availability / Stock / Expiry'}</SectionTitle>
+              <Line label={t('kegs_available') || 'KEGS Available'} value={yn(item.kegsAvailable)} />
+              <Line label={t('stock_kegs') || 'Stock Kegs'} value={item.stockKegs} />
+              <Line label={t('expiry_kegs') || 'Expiry Kegs'} value={item.expiryKegs} />
+              <Line label={t('microdraught_available') || 'Microdraught Available'} value={yn(item.microdraughtAvailable)} />
+              <Line label={t('stock_microdraught') || 'Stock Microdraught'} value={item.stockMicrodraught} />
+              <Line label={t('expiry_microdraught') || 'Expiry Microdraught'} value={item.expiryMicrodraught} />
+              <Line label={t('gdic_available') || 'GDIC Available'} value={yn(item.gdicAvailable)} />
+              <Line label={t('stock_gdic') || 'Stock GDIC'} value={item.stockGdic} />
+              <Line label={t('expiry_gdic') || 'Expiry GDIC'} value={item.expiryGdic} />
+              <Line label={t('smooth_available') || 'Smooth Available'} value={yn(item.smoothAvailable)} />
+              <Line label={t('stock_smooth_pint_330') || 'Stock Smooth Pint 330'} value={item.stockSmoothPint330} />
+              <Line label={t('expiry_smooth_pint_330') || 'Expiry Smooth Pint 330'} value={item.expirySmoothPint330} />
+              <Line label={t('stock_smooth_can_330') || 'Stock Smooth Can 330'} value={item.stockSmoothCan330} />
+              <Line label={t('expiry_smooth_can_330') || 'Expiry Smooth Can 330'} value={item.expirySmoothCan330} />
+              <Line label={t('gfes_available') || 'GFES Available'} value={yn(item.gfesAvailable)} />
+              <Line label={t('stock_gfes_pint_330') || 'Stock GFES Pint 330'} value={item.stockGfesPint330} />
+              <Line label={t('expiry_gfes_pint_330') || 'Expiry GFES Pint 330'} value={item.expiryGfesPint330} />
+              <Line label={t('stock_gfes_can_330') || 'Stock GFES Can 330'} value={item.stockGfesCan330} />
+              <Line label={t('expiry_gfes_can_330') || 'Expiry GFES Can 330'} value={item.expiryGfesCan330} />
+              <Line label={t('stock_gfes_620') || 'Stock GFES 620'} value={item.stockGfes620} />
+              <Line label={t('expiry_gfes_620') || 'Expiry GFES 620'} value={item.expiryGfes620} />
+              <Line label={t('stock_gfes_can_big_500') || 'Stock GFES Can Big 500'} value={item.stockGfesCanBig500} />
+              <Line label={t('expiry_gfes_can_big_500') || 'Expiry GFES Can Big 500'} value={item.expiryGfesCanBig500} />
 
-              <SectionTitle>Activity / Compliance</SectionTitle>
-              <Line label="Activity Stoutie Running" value={yn(item.activityStoutieRunning)} />
-              <Line label="Activity Stoutie Result" value={item.activityStoutieResult} />
-              <Line label="Daily Quiz Completed" value={yn(item.dailyQuizCompleted)} />
-              <Line label="Roleplay Video Made" value={yn(item.roleplayVideoMade)} />
-              <Line label="PG Appearance Standard" value={yn(item.pgAppearanceStandard)} />
+              <SectionTitle>{t('activity_compliance') || 'Activity / Compliance'}</SectionTitle>
+              <Line label={t('activity_stoutie_running') || 'Activity Stoutie Running'} value={yn(item.activityStoutieRunning)} />
+              <Line label={t('activity_stoutie_result') || 'Activity Stoutie Result'} value={item.activityStoutieResult} />
+              <Line label={t('daily_quiz_completed') || 'Daily Quiz Completed'} value={yn(item.dailyQuizCompleted)} />
+              <Line label={t('roleplay_video_made') || 'Roleplay Video Made'} value={yn(item.roleplayVideoMade)} />
+              <Line label={t('pg_appearance_standard') || 'PG Appearance Standard'} value={yn(item.pgAppearanceStandard)} />
 
-              <SectionTitle>Visual Merchandising</SectionTitle>
-              <Line label="Visibility Available" value={yn(item.visibilityAvailable)} />
-              <Line label="Outlet Visibility Description" value={item.outletVisibilityDescription} />
-              <Line label="POSM Available" value={yn(item.posmAvailable)} />
-              <Line label="POSM Description" value={item.posmDescription} />
-              <Line label="Merchandise Available" value={yn(item.merchandiseAvailable)} />
-              <Line label="Merchandise Description" value={item.merchandiseDescription} />
+              <SectionTitle>{t('visual_merchandising') || 'Visual Merchandising'}</SectionTitle>
+              <Line label={t('visibility_available') || 'Visibility Available'} value={yn(item.visibilityAvailable)} />
+              <Line label={t('outlet_visibility_description') || 'Outlet Visibility Description'} value={item.outletVisibilityDescription} />
+              <Line label={t('posm_available') || 'POSM Available'} value={yn(item.posmAvailable)} />
+              <Line label={t('posm_description') || 'POSM Description'} value={item.posmDescription} />
+              <Line label={t('merchandise_available') || 'Merchandise Available'} value={yn(item.merchandiseAvailable)} />
+              <Line label={t('merchandise_description') || 'Merchandise Description'} value={item.merchandiseDescription} />
 
-              <SectionTitle>Promotions & Engagement</SectionTitle>
-              <Line label="Guinness Promotions Available" value={yn(item.guinnessPromotionsAvailable)} />
-              <Line label="Promotion Description" value={item.promotionDescription} />
-              <Line label="Guinness Promotion Displayed" value={yn(item.guinnessPromotionDisplayed)} />
-              <Line label="Guinness Promotion Displayed Description" value={item.guinnessPromotionDisplayedDescription} />
-              <Line label="Digital Activity Engagement" value={yn(item.digitalActivityEngagementSwitch)} />
-              <Line label="Digital Activity Engagement Description" value={item.digitalActivityEngagementDescription} />
+              <SectionTitle>{t('promotions_engagement') || 'Promotions & Engagement'}</SectionTitle>
+              <Line label={t('guinness_promotions_available') || 'Guinness Promotions Available'} value={yn(item.guinnessPromotionsAvailable)} />
+              <Line label={t('promotion_description') || 'Promotion Description'} value={item.promotionDescription} />
+              <Line label={t('guinness_promotion_displayed') || 'Guinness Promotion Displayed'} value={yn(item.guinnessPromotionDisplayed)} />
+              <Line label={t('guinness_promotion_displayed_description') || 'Guinness Promotion Displayed Description'} value={item.guinnessPromotionDisplayedDescription} />
+              <Line label={t('digital_activity_engagement') || 'Digital Activity Engagement'} value={yn(item.digitalActivityEngagementSwitch)} />
+              <Line label={t('digital_activity_engagement_description') || 'Digital Activity Engagement Description'} value={item.digitalActivityEngagementDescription} />
 
-              <SectionTitle>Issues / Notes</SectionTitle>
-              <Line label="Issues/Notes" value={item.issuesNotes} />
+              <SectionTitle>{t('issues_notes') || 'Issues / Notes'}</SectionTitle>
+              <Line label={t('issues_notes') || 'Issues/Notes'} value={item.issuesNotes} />
             </>
           )}
           <View style={styles.buttonRow}>
-            {onCopyAll && <Button title="Copy All" onPress={onCopyAll} />}
-            {item && <Button title="Copy MD" onPress={handleCopyMD} />}
-            {item && <Button title="Share" onPress={handleShare} />}
-            <Button title="Close" onPress={onClose} />
+            {onCopyAll && <Button title={t('copy') || 'Copy All'} onPress={onCopyAll} />}
+            {item && <Button title={t('copy_md') || 'Copy MD'} onPress={handleCopyMD} />}
+            {item && <Button title={t('share') || 'Share'} onPress={handleShare} />}
+            <Button title={t('close') || 'Close'} onPress={onClose} />
           </View>
         </View>
       </ScrollView>

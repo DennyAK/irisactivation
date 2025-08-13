@@ -181,7 +181,7 @@ export default function ProvinceListScreen() {
             <View style={styles.modalActions}>
         <PrimaryButton title={t('add')} style={styles.flexBtn} onPress={async () => {
                 if (newProvinceName.trim() === '') {
-          Alert.alert('Invalid Name', `${t('province')} cannot be empty.`);
+          Alert.alert(t('invalid_name') || 'Invalid Name', `${t('province')} ${t('cannot_be_empty') || 'cannot be empty.'}`);
                   return;
                 }
                 try {
@@ -191,7 +191,7 @@ export default function ProvinceListScreen() {
                   setIsAddModalVisible(false);
                   fetchProvinces();
                 } catch (error) {
-                  Alert.alert('Error', 'Failed to add province.');
+                  Alert.alert(t('error') || 'Error', t('failed_to_add_province') || 'Failed to add province.');
                 }
               }} />
   <SecondaryButton title={t('cancel')} style={styles.flexBtn} onPress={() => { setIsAddModalVisible(false); setNewProvinceName(''); }} />

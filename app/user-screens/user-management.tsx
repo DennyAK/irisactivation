@@ -111,9 +111,9 @@ export default function UserManagementScreen() {
         setIsModalVisible(false);
         setSelectedUser(null);
         if (userRole) fetchUsers(userRole);
-      }).catch(error => {
-          Alert.alert("Update Failed", error.message);
-      });
+    }).catch(error => {
+      Alert.alert(t('update_failed') || 'Update Failed', error.message);
+    });
     }
   };
 

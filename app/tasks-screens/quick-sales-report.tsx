@@ -184,8 +184,8 @@ export default function QuickSalesReportScreen() {
       const last = snapshot.docs[snapshot.docs.length - 1] || null;
       setLastDoc(last);
     } catch (error) {
-      console.error("Error fetching reports: ", error);
-      Alert.alert("Error", "Failed to fetch sales reports.");
+  console.error("Error fetching reports: ", error);
+  Alert.alert(t('error') || 'Error', t('failed_to_fetch_sales_reports') || 'Failed to fetch sales reports.');
     } finally {
       if (reset) setLoading(false);
       setLoadingMore(false);
@@ -228,20 +228,20 @@ export default function QuickSalesReportScreen() {
         .then(() => {
           fetchReports(true);
           setIsModalVisible(false);
-        }).catch(error => Alert.alert("Add Failed", error.message));
+  }).catch(error => Alert.alert(t('add_failed') || 'Add Failed', error.message));
     } else if (selectedReport) {
       updateDoc(doc(db, "sales_report_quick", selectedReport.id), dataToSubmit)
         .then(() => {
           fetchReports(true);
           setIsModalVisible(false);
-        }).catch(error => Alert.alert("Update Failed", error.message));
+  }).catch(error => Alert.alert(t('update_failed') || 'Update Failed', error.message));
     }
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Delete Report", "Are you sure?", [
-      { text: "Cancel" },
-      { text: "OK", onPress: () => {
+    Alert.alert(t('delete_report') || 'Delete Report', t('are_you_sure') || 'Are you sure?', [
+      { text: t('cancel') || 'Cancel' },
+      { text: t('ok') || 'OK', onPress: () => {
   deleteDoc(doc(db, "sales_report_quick", id)).then(() => fetchReports(true));
       }}
     ]);
@@ -329,17 +329,17 @@ export default function QuickSalesReportScreen() {
           <Text style={[styles.title, { color: colors.text }]}>{modalType === 'add' ? t('add') : t('edit')} {t('sales_report')}</Text>
           
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('personal_info')}</Text>
-          <Text style={{ color: colors.text }}>Assigned to BA: {formData.assignedToBA || '-'}</Text>
-          <Text style={{ color: colors.text }}>Assigned to TL: {formData.assignedToTL || '-'}</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Outlet / Venue Details</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {formData.assignedToBA || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_tl')}: {formData.assignedToTL || '-'}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('outlet_venue')}</Text>
 
-          <Text style={{ color: colors.text }}>Outlet ID: {formData.outletId || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet_id')}: {formData.outletId || '-'}</Text>
           <Text style={[styles.itemTitle, { color: colors.text }]}>{formData.outletName} - {formData.guardDate ? formData.guardDate : '-'}</Text>
-          <Text style={{ color: colors.text }}>Province: {formData.outletProvince || '-'}</Text>
-          <Text style={{ color: colors.text }}>City: {formData.outletCity || '-'}</Text>
-          <Text style={{ color: colors.text }}>Outlet Tier: {formData.outletTier || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('province')}: {formData.outletProvince || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('city')}: {formData.outletCity || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('tier')}: {formData.outletTier || '-'}</Text>
           
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Guinness Selling Data</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('guinness_selling')}</Text>
           <View style={styles.rowInputs}>
             <View style={{flex: 1, marginRight: 4}}>
               <Text style={[styles.inputLabel, { color: colors.muted }]}>KEGS (330ml) glass</Text>
@@ -395,10 +395,10 @@ export default function QuickSalesReportScreen() {
             </View>
           </View>
           {/* Admin-only: Quick Sales Report Status */}
-          {(userRole === 'admin' || userRole === 'superadmin') && modalType === 'edit' && (
+      {(userRole === 'admin' || userRole === 'superadmin') && modalType === 'edit' && (
             <>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Status (Admin)</Text>
-              <Text style={[styles.inputLabel, { color: colors.muted }]}>Task Quick Sales Report Status</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('status_admin')}</Text>
+        <Text style={[styles.inputLabel, { color: colors.muted }]}>{t('qr_status')}</Text>
               <View style={[styles.input, { padding: 0 }, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border } : undefined]}> 
                 <Picker
                   selectedValue={formData.taskSalesReportQuickStatus}
@@ -418,15 +418,15 @@ export default function QuickSalesReportScreen() {
               </View>
             </>
           )}
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Restock Information</Text>
-          <View style={styles.switchContainer}><Text style={{ color: colors.text }}>Product Restock?</Text><Switch value={formData.productRestock} onValueChange={val => setFormData({...formData, productRestock: val})} /></View>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('restock_information')}</Text>
+      <View style={styles.switchContainer}><Text style={{ color: colors.text }}>{t('product_restock_question')}</Text><Switch value={formData.productRestock} onValueChange={val => setFormData({...formData, productRestock: val})} /></View>
           {formData.productRestock && (
             <TextInput
               {...inputCommonProps}
               style={[styles.input, isDark ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text } : undefined]}
               value={formData.productRestockDescription}
-              onChangeText={text => setFormData({...formData, productRestockDescription: text})}
-              placeholder="Restock Description"
+        onChangeText={text => setFormData({...formData, productRestockDescription: text})}
+        placeholder={t('restock_description')}
             />
           )}
           <View style={styles.buttonContainer}>
@@ -442,17 +442,17 @@ export default function QuickSalesReportScreen() {
     <Modal visible={isAMReviewModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAMReviewModalVisible(false)}>
       <ScrollView contentContainerStyle={styles.modalContainer}>
   <View style={[styles.modalContent, isDark ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border } : undefined]}>
-          <Text style={[styles.title, { color: colors.text }]}>QR Review by AM</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Personnel Information</Text>
-          <Text style={{ color: colors.text }}>Assigned to BA: {selectedReport?.assignedToBA || '-'} </Text>
-          <Text style={{ color: colors.text }}>Assigned to TL: {selectedReport?.assignedToTL || '-'} </Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Outlet / Venue Details</Text>
-          <Text style={{ color: colors.text }}>Outlet ID: {selectedReport?.outletId || '-'} </Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('qr_review_by_am')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('personal_info')}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {selectedReport?.assignedToBA || '-'} </Text>
+          <Text style={{ color: colors.text }}>{t('assigned_tl')}: {selectedReport?.assignedToTL || '-'} </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('outlet_venue')}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet_id')}: {selectedReport?.outletId || '-'} </Text>
           <Text style={[styles.itemTitle, { color: colors.text }]}>{selectedReport?.outletName} - {selectedReport?.guardDate?.toDate ? selectedReport.guardDate.toDate().toLocaleDateString() : '-'}</Text>
-          <Text style={{ color: colors.text }}>Province: {selectedReport?.outletProvince || '-'} </Text>
-          <Text style={{ color: colors.text }}>City: {selectedReport?.outletCity || '-'} </Text>
-          <Text style={{ color: colors.text }}>Outlet Tier: {selectedReport?.outletTier || '-'} </Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Guinness Selling Data</Text>
+          <Text style={{ color: colors.text }}>{t('province')}: {selectedReport?.outletProvince || '-'} </Text>
+          <Text style={{ color: colors.text }}>{t('city')}: {selectedReport?.outletCity || '-'} </Text>
+          <Text style={{ color: colors.text }}>{t('tier')}: {selectedReport?.outletTier || '-'} </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('guinness_selling')}</Text>
           <Text style={{ color: colors.text }}>KEGS (330ml) glass: {selectedReport?.salesKegs330 || '-'}</Text>
           <Text style={{ color: colors.text }}>KEGS (500ml) glass: {selectedReport?.salesKegs500 || '-'}</Text>
           <Text style={{ color: colors.text }}>MD (500ml) can: {selectedReport?.salesMd500 || '-'}</Text>
@@ -463,31 +463,31 @@ export default function QuickSalesReportScreen() {
           <Text style={{ color: colors.text }}>GFES CAN 330ml: {selectedReport?.salesGfesCan330 || '-'}</Text>
           <Text style={{ color: colors.text }}>GFES QUART 620ml: {selectedReport?.salesGfesQuart620 || '-'}</Text>
           <Text style={{ color: colors.text }}>GFES CANBIG 500ml: {selectedReport?.salesGfesCanbig500 || '-'}</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Restock Information</Text>
-          <Text style={{ color: colors.text }}>Product Restock: {selectedReport?.productRestock ? 'Yes' : 'No'}</Text>
-          <Text style={{ color: colors.text }}>Restock Description: {selectedReport?.productRestockDescription || '-'}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('restock_information')}</Text>
+          <Text style={{ color: colors.text }}>{t('product_restock')}: {selectedReport?.productRestock ? t('yes') : t('no')}</Text>
+          <Text style={{ color: colors.text }}>{t('restock_description')}: {selectedReport?.productRestockDescription || '-'}</Text>
           <View style={{ marginTop: 20 }}>
             <View style={{ marginBottom: 12 }}>
-  <PrimaryButton title="Confirm QR Review by AM" onPress={async () => {
+  <PrimaryButton title={t('confirm_qr_review_by_am')} onPress={async () => {
                 try {
     await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: QRStatus.ReviewByAM, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
       fetchReports(true);
                   setIsAMReviewModalVisible(false);
-                  Alert.alert('Success', 'Status updated to QR Review by AM.');
+                  Alert.alert(t('success'), t('status_updated_to_qr_review_by_am'));
                 } catch (e) {
-                  Alert.alert('Error', 'Failed to update status.');
+                  Alert.alert(t('error'), t('failed_to_update_status'));
                 }
               }} />
             </View>
             <View style={{ marginBottom: 12 }}>
-  <SecondaryButton title="Review back to TL" onPress={async () => {
+  <SecondaryButton title={t('review_back_to_tl')} onPress={async () => {
                 try {
     await updateDoc(doc(db, "sales_report_quick", selectedReport.id), { taskSalesReportQuickStatus: QRStatus.ReviewBackToTL, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || 'unknown' });
       fetchReports(true);
                   setIsAMReviewModalVisible(false);
-                  Alert.alert('Success', 'Status updated to Review back to TL.');
+                  Alert.alert(t('success'), t('status_updated_to_review_back_to_tl'));
                 } catch (e) {
-                  Alert.alert('Error', 'Failed to update status.');
+                  Alert.alert(t('error'), t('failed_to_update_status'));
                 }
               }} />
             </View>
