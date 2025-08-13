@@ -12,6 +12,7 @@ interface Props extends TextInputProps {
   secureToggle?: boolean; // if true uses eye icons automatically
   value: string;
   setValue: (v: string) => void;
+  isDark?: boolean;
 }
 
 export const FormField: React.FC<Props> = ({
@@ -24,19 +25,24 @@ export const FormField: React.FC<Props> = ({
   secureToggle,
   value,
   setValue,
+  isDark,
   ...inputProps
 }) => {
   const [show, setShow] = React.useState(false);
   const effectiveSecure = secureToggle ? !show : secureTextEntry;
   const handleToggle = () => setShow(s => !s);
+  const muted = isDark ? '#94a3b8' : palette.textMuted;
+  const textColor = isDark ? '#e5e7eb' : palette.text;
+  const fieldBg = isDark ? '#0f172a' : palette.surfaceAlt;
+  const border = isDark ? '#1f2937' : palette.border;
   return (
     <View style={styles.wrapper}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[styles.field, !!error && styles.errorBorder]}>
-        {icon && <Ionicons name={icon as any} size={18} color={palette.textMuted} style={styles.leftIcon} />}
+      {label && <Text style={[styles.label, { color: textColor }]}>{label}</Text>}
+      <View style={[styles.field, { backgroundColor: fieldBg, borderColor: border }, !!error && styles.errorBorder]}>
+        {icon && <Ionicons name={icon as any} size={18} color={muted} style={styles.leftIcon} />}
         <TextInput
-          style={styles.input}
-          placeholderTextColor={palette.textMuted}
+          style={[styles.input, { color: textColor }]}
+          placeholderTextColor={(inputProps as any).placeholderTextColor ?? muted}
           value={value}
           onChangeText={setValue}
           secureTextEntry={effectiveSecure}
@@ -44,12 +50,12 @@ export const FormField: React.FC<Props> = ({
         />
         {secureToggle && (
           <TouchableOpacity style={styles.rightIcon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={handleToggle}>
-            <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={palette.textMuted} />
+            <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={muted} />
           </TouchableOpacity>
         )}
         {!secureToggle && rightIcon && (
           <TouchableOpacity style={styles.rightIcon} onPress={onRightIconPress}>
-            <Ionicons name={rightIcon as any} size={20} color={palette.textMuted} />
+            <Ionicons name={rightIcon as any} size={20} color={muted} />
           </TouchableOpacity>
         )}
       </View>

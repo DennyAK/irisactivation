@@ -10,6 +10,8 @@ import { StatusPill } from '../../components/ui/StatusPill';
 import FilterHeader from '../../components/ui/FilterHeader';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { useRouter } from 'expo-router';
+import { useEffectiveScheme } from '../../components/ThemePreference';
+import { useI18n } from '../../components/I18n';
 
 type UserItem = {
   id: string;
@@ -26,6 +28,9 @@ type UserItem = {
 const TEAM_ROLES = ['area manager', 'Iris - TL', 'Iris - BA'];
 
 export default function TeamManagementScreen() {
+  const scheme = useEffectiveScheme();
+  const isDark = scheme === 'dark';
+  const { t } = useI18n();
   const router = useRouter();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,13 +128,17 @@ export default function TeamManagementScreen() {
   }, [filtered]);
 
   if (loading) {
-    return <ActivityIndicator />;
+    return (
+      <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator />
+      </View>
+    );
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, isDark && { backgroundColor: '#0b1220' }]}>
       <FilterHeader
-        title="Team Management"
+        title={t('team_management') || 'Team Management'}
         search={search}
         status={''}
         statusOptions={[]}
@@ -144,26 +153,26 @@ export default function TeamManagementScreen() {
         sections={sections}
         keyExtractor={(item) => item.id}
         renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{title}</Text>
+          <View style={[styles.sectionHeader, isDark && { backgroundColor: '#111827' }]}>
+            <Text style={[styles.sectionTitle, isDark && { color: '#94a3b8' }]}>{title}</Text>
           </View>
         )}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.email || 'Unknown'}</Text>
+              <Text style={[styles.cardTitle, isDark && { color: '#e5e7eb' }]}>{item.email || (t('unknown') || 'Unknown')}</Text>
               <StatusPill
                 label={item.role || '-'}
                 tone={item.role?.includes('manager') ? 'info' : item.role?.includes('admin') ? 'primary' : 'neutral'}
               />
             </View>
-            <InfoRow label="Name" value={`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'} />
-            <InfoRow label="City" value={item.city || '-'} />
+            <InfoRow label={t('name') || 'Name'} value={`${item.firstName || ''} ${item.lastName || ''}`.trim() || '-'} />
+            <InfoRow label={t('city') || 'City'} value={item.city || '-'} />
             <View style={{ marginTop: spacing(3) }}>
               <SecondaryButton
-                title="History"
+                title={t('history') || 'History'}
                 onPress={() => {
-                  const name = (`${item.firstName || ''} ${item.lastName || ''}`.trim() || item.email || 'User');
+                  const name = (`${item.firstName || ''} ${item.lastName || ''}`.trim() || item.email || (t('user') || 'User'));
                   const url = `/user-screens/team-history?userId=${encodeURIComponent(item.id)}&userName=${encodeURIComponent(name)}`;
                   router.push(url as any);
                 }}
@@ -172,7 +181,7 @@ export default function TeamManagementScreen() {
           </View>
         )}
         contentContainerStyle={{ paddingBottom: spacing(15) }}
-        ListEmptyComponent={<Text style={styles.empty}>No team members found.</Text>}
+        ListEmptyComponent={<Text style={[styles.empty, isDark && { color: '#94a3b8' }]}>{t('no_team_members') || 'No team members found.'}</Text>}
       />
     </View>
   );
@@ -189,7 +198,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing(2),
   },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: palette.textMuted },
-  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(5), ...shadow.card },
+  card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: spacing(5), marginBottom: spacing(5), ...shadow.card, borderWidth: 1, borderColor: palette.border },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(2) },
   cardTitle: { fontSize: 16, fontWeight: '700', color: palette.text, flex: 1, marginRight: spacing(3) },
   empty: { color: palette.textMuted, textAlign: 'center', marginTop: spacing(10) },
