@@ -91,26 +91,30 @@ export default function SignUp() {
           <Text style={[styles.title, isDark && { color: '#e5e7eb' }]}>{t('get_started') || 'Get Started'}</Text>
           <Text style={[styles.subtitle, isDark && { color: '#94a3b8' }]}>{t('fill_information_below') || 'Fill in the information below'}</Text>
           <View style={styles.rowGap}>
-            <FormField
-              label={t('first_name') || 'First Name'}
-              icon="person-outline"
-              placeholder={t('first_name_placeholder') || 'John'}
-              isDark={isDark}
-              placeholderTextColor={isDark ? '#64748b' : undefined}
-              returnKeyType="next"
-              value={firstName}
-              setValue={setFirstName}
-            />
-            <FormField
-              label={t('last_name') || 'Last Name'}
-              icon="person-outline"
-              placeholder={t('last_name_placeholder') || 'Doe'}
-              isDark={isDark}
-              placeholderTextColor={isDark ? '#64748b' : undefined}
-              returnKeyType="next"
-              value={lastName}
-              setValue={setLastName}
-            />
+            <View style={{ flex: 1 }}>
+              <FormField
+                label={t('first_name') || 'First Name'}
+                icon="person-outline"
+                placeholder={t('first_name_placeholder') || 'John'}
+                isDark={isDark}
+                placeholderTextColor={isDark ? '#64748b' : undefined}
+                returnKeyType="next"
+                value={firstName}
+                setValue={setFirstName}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <FormField
+                label={t('last_name') || 'Last Name'}
+                icon="person-outline"
+                placeholder={t('last_name_placeholder') || 'Doe'}
+                isDark={isDark}
+                placeholderTextColor={isDark ? '#64748b' : undefined}
+                returnKeyType="next"
+                value={lastName}
+                setValue={setLastName}
+              />
+            </View>
           </View>
           <View style={{ marginBottom: spacing(4) }}>
             <Text style={[styles.label, isDark && { color: '#e5e7eb' }]}>{t('phone_indonesia') || 'Phone (Indonesia)'}</Text>

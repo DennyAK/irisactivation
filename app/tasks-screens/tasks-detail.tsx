@@ -16,7 +16,7 @@ import { StatusPill } from '../../components/ui/StatusPill';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffectiveScheme } from '../../components/ThemePreference';
 import { db, auth } from '../../firebaseConfig';
-import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, writeBatch } from 'firebase/firestore';
 import { query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Picker } from '@react-native-picker/picker';
@@ -347,75 +347,98 @@ const fetchTLUsers = async () => {
     }
   };
 
-  // Step 2: Add child documents for the new task
+  // Step 2: Add child documents for the new task (atomic via batch)
   const handleAddChildFeatures = async () => {
-    let updatedFormData = { ...formData };
+    if (!currentUserId) {
+      Alert.alert('Error', 'Not authenticated');
+      return;
+    }
+    if (!newTaskId) {
+      Alert.alert('Error', 'Task reference missing');
+      return;
+    }
     try {
+      const batch = writeBatch(db);
+      const updatedFormData: any = { ...formData };
+
+      // Prepare child docs and parent update in one batch
       if (formData.task_attendance === 'Yes' && !formData.taskAttendanceId) {
-        const docRef = await addDoc(collection(db, 'task_attendance'), {
+        const ref = doc(collection(db, 'task_attendance'));
+        batch.set(ref, {
           createdAt: serverTimestamp(),
           createdBy: currentUserId,
           assignedToBA: formData.assignedToUserBA,
           assignedToTL: formData.assignedToUserTLID,
-          tasksId: newTaskId || '',
+          tasksId: newTaskId,
           outletId: formData.outletId || '',
         });
-        updatedFormData.taskAttendanceId = docRef.id;
+        updatedFormData.taskAttendanceId = ref.id;
       }
+
       if (formData.task_assesment === 'Yes' && !formData.task_assesmentId) {
-        const docRef = await addDoc(collection(db, 'task_early_assessment'), {
+        const ref = doc(collection(db, 'task_early_assessment'));
+        batch.set(ref, {
           createdAt: serverTimestamp(),
           createdBy: currentUserId,
           assignedToBA: formData.assignedToUserBA,
           assignedToTL: formData.assignedToUserTLID,
-          tasksId: newTaskId || '',
+          tasksId: newTaskId,
           outletId: formData.outletId || '',
         });
-        updatedFormData.task_assesmentId = docRef.id;
+        updatedFormData.task_assesmentId = ref.id;
       }
+
       if (formData.task_quick_quiz === 'Yes' && !formData.task_quick_quizId) {
-        const docRef = await addDoc(collection(db, 'task_quick_quiz'), {
+        const ref = doc(collection(db, 'task_quick_quiz'));
+        batch.set(ref, {
           createdAt: serverTimestamp(),
           createdBy: currentUserId,
           assignedToBA: formData.assignedToUserBA,
           assignedToTL: formData.assignedToUserTLID,
-          tasksId: newTaskId || '',
+          tasksId: newTaskId,
         });
-        updatedFormData.task_quick_quizId = docRef.id;
+        updatedFormData.task_quick_quizId = ref.id;
       }
+
       if (formData.task_quick_sales_report === 'Yes' && !formData.task_quick_sales_reportId) {
-        const docRef = await addDoc(collection(db, 'sales_report_quick'), {
+        const ref = doc(collection(db, 'sales_report_quick'));
+        batch.set(ref, {
           createdAt: serverTimestamp(),
           createdBy: currentUserId,
           assignedToBA: formData.assignedToUserBA,
           assignedToTL: formData.assignedToUserTLID,
-          tasksId: newTaskId || '',
+          tasksId: newTaskId,
           outletId: formData.outletId || '',
         });
-        updatedFormData.task_quick_sales_reportId = docRef.id;
+        updatedFormData.task_quick_sales_reportId = ref.id;
       }
+
       if (formData.task_sales_report_detail === 'Yes' && !formData.task_sales_report_detailId) {
-        const docRef = await addDoc(collection(db, 'sales_report_detail'), {
+        const ref = doc(collection(db, 'sales_report_detail'));
+        batch.set(ref, {
           createdAt: serverTimestamp(),
           createdBy: currentUserId,
           assignedToBA: formData.assignedToUserBA,
           assignedToTL: formData.assignedToUserTLID,
-          tasksId: newTaskId || '',
+          tasksId: newTaskId,
           outletId: formData.outletId || '',
         });
-        updatedFormData.task_sales_report_detailId = docRef.id;
+        updatedFormData.task_sales_report_detailId = ref.id;
       }
-      // Update the main task with child IDs
-      if (newTaskId) {
-        const taskDoc = doc(db, 'tasks', newTaskId);
-        await updateDoc(taskDoc, updatedFormData);
-      }
+
+      // Parent update
+      const taskDocRef = doc(db, 'tasks', newTaskId);
+      batch.update(taskDocRef, updatedFormData);
+
+      await batch.commit();
+
       setIsAddChildModalVisible(false);
       setNewTaskId(null);
       resetFormData();
       fetchTasks();
     } catch (error: any) {
-      Alert.alert('Error', error.message || String(error));
+      const msg = typeof error?.message === 'string' ? error.message : String(error);
+      Alert.alert('Error', msg.includes('PERMISSION') || msg.includes('permission') ? `Missing/insufficient permissions: ${msg}` : msg);
     }
   };
 
