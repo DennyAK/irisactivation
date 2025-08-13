@@ -357,7 +357,7 @@ const fetchTLUsers = async () => {
       Alert.alert('Error', 'Task reference missing');
       return;
     }
-    try {
+  try {
       const batch = writeBatch(db);
       const updatedFormData: any = { ...formData };
 
@@ -477,8 +477,132 @@ const fetchTLUsers = async () => {
       resetFormData();
       fetchTasks();
     } catch (error: any) {
-      const msg = typeof error?.message === 'string' ? error.message : String(error);
-      Alert.alert('Error', msg.includes('PERMISSION') || msg.includes('permission') ? `Missing/insufficient permissions: ${msg}` : msg);
+      // Fallback: try creating each child individually to identify which collection fails
+      try {
+        const results: Record<string, string | null> = {
+          taskAttendanceId: null,
+          task_assesmentId: null,
+          task_quick_quizId: null,
+          task_quick_sales_reportId: null,
+          task_sales_report_detailId: null,
+        };
+        const failures: string[] = [];
+
+        const create = async (col: string, data: any, key: keyof typeof results, label: string) => {
+          try {
+            const ref = await addDoc(collection(db, col), data);
+            results[key as string] = ref.id;
+          } catch (e: any) {
+            failures.push(label);
+          }
+        };
+
+        if (formData.task_attendance === 'Yes' && !formData.taskAttendanceId) {
+          await create('task_attendance', {
+            createdAt: serverTimestamp(),
+            createdBy: currentUserId,
+            assignedToBA: formData.assignedToUserBA,
+            assignedToTL: formData.assignedToUserTLID,
+            tasksId: newTaskId,
+            outletId: formData.outletId || '',
+          }, 'taskAttendanceId' as any, 'Attendance');
+        }
+        if (formData.task_assesment === 'Yes' && !formData.task_assesmentId) {
+          await create('task_early_assessment', {
+            createdAt: serverTimestamp(),
+            createdBy: currentUserId,
+            assignedToBA: formData.assignedToUserBA,
+            assignedToTL: formData.assignedToUserTLID,
+            tasksId: newTaskId,
+            outletId: formData.outletId || '',
+          }, 'task_assesmentId' as any, 'Early Assessment');
+        }
+        if (formData.task_quick_quiz === 'Yes' && !formData.task_quick_quizId) {
+          await create('task_quick_quiz', {
+            createdAt: serverTimestamp(),
+            createdBy: currentUserId,
+            assignedToBA: formData.assignedToUserBA,
+            assignedToTL: formData.assignedToUserTLID,
+            tasksId: newTaskId,
+          }, 'task_quick_quizId' as any, 'Quick Quiz');
+        }
+        if (formData.task_quick_sales_report === 'Yes' && !formData.task_quick_sales_reportId) {
+          await create('sales_report_quick', {
+            createdAt: serverTimestamp(),
+            createdBy: currentUserId,
+            assignedToBA: formData.assignedToUserBA,
+            assignedToTL: formData.assignedToUserTLID,
+            tasksId: newTaskId,
+            outletId: formData.outletId || '',
+            issuesNotesRequests: '',
+            learningPoints: '',
+            guinessPromoDescription: '',
+            guinessSmoothPromoDescription: '',
+            guinessSmoothPromoDescriptionType2: '',
+            guinessGfesPromoDescription: '',
+            guinessGfesPromoDescriptionType2: '',
+            guinessKegsPromoDescription: '',
+            guinessKegsPromoDescriptionType2: '',
+            guinessMdPromoDescription: '',
+            guinessMdPromoDescriptionType2: '',
+            guinessGdicPromoDescription: '',
+            guinessGdicPromoDescriptionType2: '',
+            merchandiseDescription1: '',
+            merchandiseDescription2: '',
+            merchandiseDescription3: '',
+            merchandiseDescription4: '',
+            merchandiseDescription5: '',
+            taskSalesReportQuickStatus: '',
+          }, 'task_quick_sales_reportId' as any, 'Quick Sales Report');
+        }
+        if (formData.task_sales_report_detail === 'Yes' && !formData.task_sales_report_detailId) {
+          await create('sales_report_detail', {
+            createdAt: serverTimestamp(),
+            createdBy: currentUserId,
+            assignedToBA: formData.assignedToUserBA,
+            assignedToTL: formData.assignedToUserTLID,
+            tasksId: newTaskId,
+            outletId: formData.outletId || '',
+            issuesNotesRequests: '',
+            learningPoints: '',
+            guinessPromoDescription: '',
+            guinessSmoothPromoDescription: '',
+            guinessSmoothPromoDescriptionType2: '',
+            guinessGfesPromoDescription: '',
+            guinessGfesPromoDescriptionType2: '',
+            guinessKegsPromoDescription: '',
+            guinessKegsPromoDescriptionType2: '',
+            guinessMdPromoDescription: '',
+            guinessMdPromoDescriptionType2: '',
+            guinessGdicPromoDescription: '',
+            guinessGdicPromoDescriptionType2: '',
+            merchandiseDescription1: '',
+            merchandiseDescription2: '',
+            merchandiseDescription3: '',
+            merchandiseDescription4: '',
+            merchandiseDescription5: '',
+            salesReportDetailStatus: '',
+          }, 'task_sales_report_detailId' as any, 'Sales Report Detail');
+        }
+
+        const parentUpdate: any = { ...formData };
+        Object.assign(parentUpdate, results);
+        if (newTaskId) {
+          await updateDoc(doc(db, 'tasks', newTaskId), parentUpdate);
+        }
+
+        const summary = failures.length
+          ? `Some linked tasks failed due to permissions: ${failures.join(', ')}. Others were created successfully.`
+          : 'All linked tasks created successfully.';
+        Alert.alert('Save Result', summary);
+        setIsAddChildModalVisible(false);
+        setNewTaskId(null);
+        resetFormData();
+        fetchTasks();
+      } catch (e2: any) {
+        const msg = typeof e2?.message === 'string' ? e2.message : String(e2);
+        Alert.alert('Error', msg.includes('PERMISSION') || msg.includes('permission') ? `Missing/insufficient permissions: ${msg}` : msg);
+      }
     }
   };
 
