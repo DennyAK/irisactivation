@@ -15,8 +15,12 @@
     "test:rules": "jest --config jest-rules.config.cjs --runInBand",
     "test:rules:emu": "npx firebase emulators:exec --only firestore \"node ./node_modules/jest/bin/jest.js --config jest-rules.config.cjs --runInBand\"",
     "deploy:indexes": "npx firebase deploy --only firestore:indexes",
-    "seed:quiz": "node scripts/seed-quiz-from-file.js seedQuizQuestionsNew.json",
-    "backfill:audit-actors": "node scripts/backfill-audit-actors.js"
+  "seed:quiz": "node scripts/seed-quiz-from-file.js seedQuizQuestionsNew.json",
+  "backfill:audit-actors": "node scripts/backfill-audit-actors.js",
+  "update:production": "npx eas update --branch production --platform all",
+  "update:development": "npx eas update --branch development --platform all",
+  "eas:channel:list": "npx eas channel:list --non-interactive",
+  "eas:branch:list": "npx eas branch:list --non-interactive"
   },
   "jest": {
     "preset": "jest-expo",
