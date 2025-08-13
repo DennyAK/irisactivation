@@ -709,7 +709,23 @@ const fetchTLUsers = async () => {
                 borderRadius: radius.sm,
                 alignItems: 'center',
               }}
-              onPress={() => (navigation as any).navigate(sub.route as any, { [sub.param]: sub.id })}
+              onPress={() => {
+                // Use Expo Router with a typed path mapping
+                const routePaths = {
+                  'task-attendance': '/tasks-screens/task-attendance',
+                  'task-early-assessment': '/tasks-screens/task-early-assessment',
+                  'task-quick-quiz': '/tasks-screens/task-quick-quiz',
+                  'quick-sales-report': '/tasks-screens/quick-sales-report',
+                  'sales-report-detail': '/tasks-screens/sales-report-detail',
+                } as const;
+                const path = routePaths[sub.route as keyof typeof routePaths];
+                if (path) {
+                  router.push({ pathname: path, params: { [sub.param]: sub.id } as any });
+                } else {
+                  // Fallback to React Navigation by name if mapping is missing
+                  (navigation as any).navigate(sub.route as any, { [sub.param]: sub.id });
+                }
+              }}
             >
               <Text style={{ fontSize: 11, color: '#fff', fontWeight: '600' }}>{sub.button}</Text>
             </AnimatedTouchable>
