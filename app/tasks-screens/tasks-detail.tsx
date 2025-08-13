@@ -402,6 +402,7 @@ const fetchTLUsers = async () => {
 
     if (formData.task_quick_sales_report === 'Yes' && !formData.task_quick_sales_reportId) {
         const ref = doc(collection(db, 'sales_report_quick'));
+        // Minimal draft create; rules may allow this if they gate strict checks on submit
         batch.set(ref, {
           createdAt: serverTimestamp(),
           createdBy: currentUserId,
@@ -409,32 +410,14 @@ const fetchTLUsers = async () => {
           assignedToTL: formData.assignedToUserTLID,
           tasksId: newTaskId,
           outletId: formData.outletId || '',
-      // Defaults to satisfy text validators
-      issuesNotesRequests: '',
-      learningPoints: '',
-      guinessPromoDescription: '',
-      guinessSmoothPromoDescription: '',
-      guinessSmoothPromoDescriptionType2: '',
-      guinessGfesPromoDescription: '',
-      guinessGfesPromoDescriptionType2: '',
-      guinessKegsPromoDescription: '',
-      guinessKegsPromoDescriptionType2: '',
-      guinessMdPromoDescription: '',
-      guinessMdPromoDescriptionType2: '',
-      guinessGdicPromoDescription: '',
-      guinessGdicPromoDescriptionType2: '',
-      merchandiseDescription1: '',
-      merchandiseDescription2: '',
-      merchandiseDescription3: '',
-      merchandiseDescription4: '',
-      merchandiseDescription5: '',
-      taskSalesReportQuickStatus: '',
+          taskSalesReportQuickStatus: 'draft',
         });
         updatedFormData.task_quick_sales_reportId = ref.id;
       }
 
     if (formData.task_sales_report_detail === 'Yes' && !formData.task_sales_report_detailId) {
         const ref = doc(collection(db, 'sales_report_detail'));
+        // Minimal draft create; rules may allow this if they gate strict checks on submit
         batch.set(ref, {
           createdAt: serverTimestamp(),
           createdBy: currentUserId,
@@ -442,26 +425,7 @@ const fetchTLUsers = async () => {
           assignedToTL: formData.assignedToUserTLID,
           tasksId: newTaskId,
           outletId: formData.outletId || '',
-      // Defaults to satisfy text validators
-      issuesNotesRequests: '',
-      learningPoints: '',
-      guinessPromoDescription: '',
-      guinessSmoothPromoDescription: '',
-      guinessSmoothPromoDescriptionType2: '',
-      guinessGfesPromoDescription: '',
-      guinessGfesPromoDescriptionType2: '',
-      guinessKegsPromoDescription: '',
-      guinessKegsPromoDescriptionType2: '',
-      guinessMdPromoDescription: '',
-      guinessMdPromoDescriptionType2: '',
-      guinessGdicPromoDescription: '',
-      guinessGdicPromoDescriptionType2: '',
-      merchandiseDescription1: '',
-      merchandiseDescription2: '',
-      merchandiseDescription3: '',
-      merchandiseDescription4: '',
-      merchandiseDescription5: '',
-      salesReportDetailStatus: '',
+          salesReportDetailStatus: 'draft',
         });
         updatedFormData.task_sales_report_detailId = ref.id;
       }
@@ -527,62 +491,100 @@ const fetchTLUsers = async () => {
           }, 'task_quick_quizId' as any, 'Quick Quiz');
         }
         if (formData.task_quick_sales_report === 'Yes' && !formData.task_quick_sales_reportId) {
-          await create('sales_report_quick', {
-            createdAt: serverTimestamp(),
-            createdBy: currentUserId,
-            assignedToBA: formData.assignedToUserBA,
-            assignedToTL: formData.assignedToUserTLID,
-            tasksId: newTaskId,
-            outletId: formData.outletId || '',
-            issuesNotesRequests: '',
-            learningPoints: '',
-            guinessPromoDescription: '',
-            guinessSmoothPromoDescription: '',
-            guinessSmoothPromoDescriptionType2: '',
-            guinessGfesPromoDescription: '',
-            guinessGfesPromoDescriptionType2: '',
-            guinessKegsPromoDescription: '',
-            guinessKegsPromoDescriptionType2: '',
-            guinessMdPromoDescription: '',
-            guinessMdPromoDescriptionType2: '',
-            guinessGdicPromoDescription: '',
-            guinessGdicPromoDescriptionType2: '',
-            merchandiseDescription1: '',
-            merchandiseDescription2: '',
-            merchandiseDescription3: '',
-            merchandiseDescription4: '',
-            merchandiseDescription5: '',
-            taskSalesReportQuickStatus: '',
-          }, 'task_quick_sales_reportId' as any, 'Quick Sales Report');
+          // Try minimal draft first, then fallback to full payload if rules reject
+          try {
+            const ref = await addDoc(collection(db, 'sales_report_quick'), {
+              createdAt: serverTimestamp(),
+              createdBy: currentUserId,
+              assignedToBA: formData.assignedToUserBA,
+              assignedToTL: formData.assignedToUserTLID,
+              tasksId: newTaskId,
+              outletId: formData.outletId || '',
+              taskSalesReportQuickStatus: 'draft',
+            });
+            results['task_quick_sales_reportId'] = ref.id;
+          } catch (e) {
+            try {
+              const ref = await addDoc(collection(db, 'sales_report_quick'), {
+                createdAt: serverTimestamp(),
+                createdBy: currentUserId,
+                assignedToBA: formData.assignedToUserBA,
+                assignedToTL: formData.assignedToUserTLID,
+                tasksId: newTaskId,
+                outletId: formData.outletId || '',
+                issuesNotesRequests: '',
+                learningPoints: '',
+                guinessPromoDescription: '',
+                guinessSmoothPromoDescription: '',
+                guinessSmoothPromoDescriptionType2: '',
+                guinessGfesPromoDescription: '',
+                guinessGfesPromoDescriptionType2: '',
+                guinessKegsPromoDescription: '',
+                guinessKegsPromoDescriptionType2: '',
+                guinessMdPromoDescription: '',
+                guinessMdPromoDescriptionType2: '',
+                guinessGdicPromoDescription: '',
+                guinessGdicPromoDescriptionType2: '',
+                merchandiseDescription1: '',
+                merchandiseDescription2: '',
+                merchandiseDescription3: '',
+                merchandiseDescription4: '',
+                merchandiseDescription5: '',
+                taskSalesReportQuickStatus: '',
+              });
+              results['task_quick_sales_reportId'] = ref.id;
+            } catch (e2) {
+              failures.push('Quick Sales Report');
+            }
+          }
         }
         if (formData.task_sales_report_detail === 'Yes' && !formData.task_sales_report_detailId) {
-          await create('sales_report_detail', {
-            createdAt: serverTimestamp(),
-            createdBy: currentUserId,
-            assignedToBA: formData.assignedToUserBA,
-            assignedToTL: formData.assignedToUserTLID,
-            tasksId: newTaskId,
-            outletId: formData.outletId || '',
-            issuesNotesRequests: '',
-            learningPoints: '',
-            guinessPromoDescription: '',
-            guinessSmoothPromoDescription: '',
-            guinessSmoothPromoDescriptionType2: '',
-            guinessGfesPromoDescription: '',
-            guinessGfesPromoDescriptionType2: '',
-            guinessKegsPromoDescription: '',
-            guinessKegsPromoDescriptionType2: '',
-            guinessMdPromoDescription: '',
-            guinessMdPromoDescriptionType2: '',
-            guinessGdicPromoDescription: '',
-            guinessGdicPromoDescriptionType2: '',
-            merchandiseDescription1: '',
-            merchandiseDescription2: '',
-            merchandiseDescription3: '',
-            merchandiseDescription4: '',
-            merchandiseDescription5: '',
-            salesReportDetailStatus: '',
-          }, 'task_sales_report_detailId' as any, 'Sales Report Detail');
+          // Try minimal draft first, then fallback to full payload if rules reject
+          try {
+            const ref = await addDoc(collection(db, 'sales_report_detail'), {
+              createdAt: serverTimestamp(),
+              createdBy: currentUserId,
+              assignedToBA: formData.assignedToUserBA,
+              assignedToTL: formData.assignedToUserTLID,
+              tasksId: newTaskId,
+              outletId: formData.outletId || '',
+              salesReportDetailStatus: 'draft',
+            });
+            results['task_sales_report_detailId'] = ref.id;
+          } catch (e) {
+            try {
+              const ref = await addDoc(collection(db, 'sales_report_detail'), {
+                createdAt: serverTimestamp(),
+                createdBy: currentUserId,
+                assignedToBA: formData.assignedToUserBA,
+                assignedToTL: formData.assignedToUserTLID,
+                tasksId: newTaskId,
+                outletId: formData.outletId || '',
+                issuesNotesRequests: '',
+                learningPoints: '',
+                guinessPromoDescription: '',
+                guinessSmoothPromoDescription: '',
+                guinessSmoothPromoDescriptionType2: '',
+                guinessGfesPromoDescription: '',
+                guinessGfesPromoDescriptionType2: '',
+                guinessKegsPromoDescription: '',
+                guinessKegsPromoDescriptionType2: '',
+                guinessMdPromoDescription: '',
+                guinessMdPromoDescriptionType2: '',
+                guinessGdicPromoDescription: '',
+                guinessGdicPromoDescriptionType2: '',
+                merchandiseDescription1: '',
+                merchandiseDescription2: '',
+                merchandiseDescription3: '',
+                merchandiseDescription4: '',
+                merchandiseDescription5: '',
+                salesReportDetailStatus: '',
+              });
+              results['task_sales_report_detailId'] = ref.id;
+            } catch (e2) {
+              failures.push('Sales Report Detail');
+            }
+          }
         }
 
         const parentUpdate: any = { ...formData };
