@@ -122,8 +122,10 @@ export default function TaskQuickQuizScreen() {
         const id = String(params.quizId);
         const snap = await getDoc(doc(db, 'task_quick_quiz', id));
         if (snap.exists()) {
-          setSelectedQuiz({ id: snap.id, ...snap.data() });
-          setIsEditModalVisible(true); // open edit modal if role allows; for AM, they'll use details modal if present
+          const data = snap.data() as any;
+          const takeId = data?.takeQuickQuizId || snap.id;
+          // Auto-trigger the Take Quiz flow with the current quiz record
+          handleTakeQuizNow(takeId, snap.id);
         }
       } catch {}
       setAutoOpened(true);
