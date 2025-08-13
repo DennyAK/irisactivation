@@ -42,5 +42,13 @@ yarn-error.*
 # firebaseConfig.ts
 firestore.rules
 storage.rules
+# Secrets & credentials (do not commit)
 secret/
-firebase-sa.json
+secrets/
+**/serviceAccount*.json
+**/*firebase-sa*.json
+**/*-sa.json
+**/*.pem
+**/*.p12
+**/*.p8
+**/*.key

@@ -20,7 +20,9 @@
   "update:production": "npx eas update --branch production --platform all",
   "update:development": "npx eas update --branch development --platform all",
   "eas:channel:list": "npx eas channel:list --non-interactive",
-  "eas:branch:list": "npx eas branch:list --non-interactive"
+  "eas:branch:list": "npx eas branch:list --non-interactive",
+  "seed:outlets:dry": "node scripts/seed-outlets-from-file.js data/seed_outlets.json --dry",
+  "seed:outlets": "node scripts/seed-outlets-from-file.js data/seed_outlets.json --upsert"
   },
   "jest": {
     "preset": "jest-expo",

@@ -12,18 +12,25 @@ type Props = {
   onCopyAll?: () => void;
 };
 
-const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (
-  <Text selectable>{label}: {formatValue(value)}</Text>
+const Line: React.FC<{ label: string; value: any; color: string }> = ({ label, value, color }) => (
+  <Text selectable style={{ color, marginBottom: 4 }}>{label}: {formatValue(value)}</Text>
 );
 
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Text selectable style={styles.sectionTitle}>{children}</Text>
+const SectionTitle: React.FC<{ children: React.ReactNode; color: string; border: string }> = ({ children, color, border }) => (
+  <Text selectable style={[styles.sectionTitle, { color, borderTopColor: border }]}>{children}</Text>
 );
 
 const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll }) => {
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
+  const colors = {
+    overlay: 'rgba(0,0,0,0.5)',
+    surface: isDark ? '#111827' : palette.surface,
+    border: isDark ? '#334155' : '#e5e7eb',
+    text: isDark ? '#e5e7eb' : '#111827',
+    muted: isDark ? '#94a3b8' : '#6b7280',
+  };
   const handleCopyMD = async () => {
     if (!item) return;
     await Clipboard.setStringAsync(buildQuickSalesReportText(item, 'markdown'));
@@ -35,44 +42,51 @@ const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item,
   };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <ScrollView contentContainerStyle={[styles.modalContainer]}>
-        <View style={[styles.modalContent, isDark && { backgroundColor: '#111827' }]}>
-          <Text selectable style={[styles.title, isDark && { color: '#e5e7eb' }]}>{t('quick_sales_report') || 'Quick Sales Report'}</Text>
-          {!item ? (
-            <Text style={[isDark && { color: '#e5e7eb' }]}>{t('no_data') || 'No data'}</Text>
-          ) : (
-            <>
-              <SectionTitle>{t('personnel') || 'Personnel'}</SectionTitle>
-              <Line label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
-              <Line label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
-              <Line label={t('status') || 'Status'} value={item.taskSalesReportQuickStatus} />
-              <Line label={t('created') || 'Created'} value={tsToLocale(item.createdAt)} />
+      <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
+        <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+          <Text selectable style={[styles.title, { color: colors.text }]}>{t('quick_sales_report') || 'Quick Sales Report'}</Text>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            {!item ? (
+              <Text style={{ color: colors.muted }}>{t('no_data') || 'No data'}</Text>
+            ) : (
+              <>
+                <SectionTitle color={colors.muted} border={colors.border}>{t('personnel') || 'Personnel'}</SectionTitle>
+                <Line color={colors.text} label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
+                <Line color={colors.text} label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
+                <Line color={colors.text} label={t('status') || 'Status'} value={item.taskSalesReportQuickStatus} />
+                <Line color={colors.text} label={t('created') || 'Created'} value={tsToLocale(item.createdAt)} />
 
-              <SectionTitle>{t('outlet_venue') || 'Outlet / Venue'}</SectionTitle>
-              <Line label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
-              <Line label={t('outlet') || 'Outlet'} value={item.outletName} />
-              <Line label={t('province') || 'Province'} value={item.outletProvince} />
-              <Line label={t('city') || 'City'} value={item.outletCity} />
-              <Line label={t('tier') || 'Tier'} value={item.outletTier} />
-              <Line label={t('date') || 'Date'} value={tsToLocale(item.guardDate)} />
+                <SectionTitle color={colors.muted} border={colors.border}>{t('outlet_venue') || 'Outlet / Venue'}</SectionTitle>
+                <Line color={colors.text} label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
+                <Line color={colors.text} label={t('outlet') || 'Outlet'} value={item.outletName} />
+                <Line color={colors.text} label={t('province') || 'Province'} value={item.outletProvince} />
+                <Line color={colors.text} label={t('city') || 'City'} value={item.outletCity} />
+                <Line color={colors.text} label={t('tier') || 'Tier'} value={item.outletTier} />
+                <Line color={colors.text} label={t('date') || 'Date'} value={tsToLocale(item.guardDate)} />
 
-              <SectionTitle>{t('guinness_selling') || 'Guinness Selling'}</SectionTitle>
-              <Line label="KEGS 330ml (glass)" value={item.salesKegs330} />
-              <Line label="KEGS 500ml (glass)" value={item.salesKegs500} />
-              <Line label="MD 500ml (can)" value={item.salesMd500} />
-              <Line label="GDIC 400ml (can)" value={item.salesGdic400} />
-              <Line label="Smooth Pint 330ml" value={item.salesSmoothPint330} />
-              <Line label="Smooth Can 330ml" value={item.salesSmoothCan330} />
-              <Line label="GFES Pint 330ml" value={item.salesGfesPint330} />
-              <Line label="GFES Can 330ml" value={item.salesGfesCan330} />
-              <Line label="GFES Quart 620ml" value={item.salesGfesQuart620} />
-              <Line label="GFES Can Big 500ml" value={item.salesGfesCanbig500} />
+                <SectionTitle color={colors.muted} border={colors.border}>{t('guinness_selling') || 'Guinness Selling'}</SectionTitle>
+                <Line color={colors.text} label="KEGS 330ml (glass)" value={item.salesKegs330} />
+                <Line color={colors.text} label="KEGS 500ml (glass)" value={item.salesKegs500} />
+                <Line color={colors.text} label="MD 500ml (can)" value={item.salesMd500} />
+                <Line color={colors.text} label="GDIC 400ml (can)" value={item.salesGdic400} />
+                <Line color={colors.text} label="Smooth Pint 330ml" value={item.salesSmoothPint330} />
+                <Line color={colors.text} label="Smooth Can 330ml" value={item.salesSmoothCan330} />
+                <Line color={colors.text} label="GFES Pint 330ml" value={item.salesGfesPint330} />
+                <Line color={colors.text} label="GFES Can 330ml" value={item.salesGfesCan330} />
+                <Line color={colors.text} label="GFES Quart 620ml" value={item.salesGfesQuart620} />
+                <Line color={colors.text} label="GFES Can Big 500ml" value={item.salesGfesCanbig500} />
 
-              <SectionTitle>{t('restock') || 'Restock'}</SectionTitle>
-              <Line label={t('product_restock') || 'Product Restock'} value={yn(item.productRestock)} />
-              <Line label={t('restock_description') || 'Restock Description'} value={item.productRestockDescription} />
-            </>
-          )}
+                <SectionTitle color={colors.muted} border={colors.border}>{t('restock') || 'Restock'}</SectionTitle>
+                <Line color={colors.text} label={t('product_restock') || 'Product Restock'} value={yn(item.productRestock)} />
+                <Line color={colors.text} label={t('restock_description') || 'Restock Description'} value={item.productRestockDescription} />
+              </>
+            )}
+          </ScrollView>
           <View style={styles.buttonRow}>
             {onCopyAll && <Button title={t('copy') || 'Copy All'} onPress={onCopyAll} />}
             {item && <Button title={t('copy_md') || 'Copy MD'} onPress={handleCopyMD} />}
@@ -80,16 +94,18 @@ const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item,
             <Button title={t('close') || 'Close'} onPress={onClose} />
           </View>
         </View>
-      </ScrollView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '92%', backgroundColor: palette.surface, padding: 20, borderRadius: 10, marginVertical: 50 },
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  modalContent: { width: '92%', backgroundColor: palette.surface, borderWidth: 1, padding: 16, borderRadius: 10, maxHeight: '85%' },
+  scroll: { flexGrow: 0 },
+  scrollContent: { paddingBottom: 8 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: 14, marginBottom: 6, borderTopColor: '#ccc', borderTopWidth: 1, paddingTop: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: 14, marginBottom: 6, borderTopWidth: 1, paddingTop: 8 },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },
 });
 

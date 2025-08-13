@@ -25,11 +25,12 @@ const TaskEarlyAssessmentDetailsModal: React.FC<Props> = ({ visible, onClose, it
   const handleShare = async () => { if (!item) return; try { await Share.share({ message: buildTaskEarlyAssessmentText(item, 'text') }); } catch {} };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <ScrollView contentContainerStyle={styles.modalContainer}>
-        <View style={[styles.modalContent, { backgroundColor: isDark ? '#111827' : palette.surface }]}>
+      <View style={styles.overlay}>
+        <View style={[styles.modalContent, { backgroundColor: isDark ? '#111827' : palette.surface, borderColor: isDark ? '#334155' : '#e5e7eb' }]}>
           <Text selectable style={[styles.title, textColor]}>{t('assessment') || 'Early Assessment'}</Text>
-          {!item ? <Text style={textColor}>{t('no_data') || 'No data'}</Text> : (
-            <>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} nestedScrollEnabled>
+            {!item ? <Text style={textColor}>{t('no_data') || 'No data'}</Text> : (
+              <>
               <SectionTitle>{t('personnel') || 'Personnel'}</SectionTitle>
               <Line label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
               <Line label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
@@ -96,6 +97,7 @@ const TaskEarlyAssessmentDetailsModal: React.FC<Props> = ({ visible, onClose, it
               <Line label={t('issues_notes') || 'Issues/Notes'} value={item.issuesNotes} />
             </>
           )}
+          </ScrollView>
           <View style={styles.buttonRow}>
             {onCopyAll && <Button title={t('copy') || 'Copy All'} onPress={onCopyAll} />}
             {item && <Button title={t('copy_md') || 'Copy MD'} onPress={handleCopyMD} />}
@@ -103,14 +105,16 @@ const TaskEarlyAssessmentDetailsModal: React.FC<Props> = ({ visible, onClose, it
             <Button title={t('close') || 'Close'} onPress={onClose} />
           </View>
         </View>
-      </ScrollView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '92%', backgroundColor: 'white', padding: 20, borderRadius: 10, marginVertical: 50 },
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { width: '92%', backgroundColor: 'white', padding: 16, borderRadius: 10, maxHeight: '85%', borderWidth: 1 },
+  scroll: { flexGrow: 0 },
+  scrollContent: { paddingBottom: 8 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
   sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: 14, marginBottom: 6, borderTopColor: '#ccc', borderTopWidth: 1, paddingTop: 8 },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },

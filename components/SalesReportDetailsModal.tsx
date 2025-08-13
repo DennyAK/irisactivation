@@ -64,9 +64,10 @@ const SalesReportDetailsModal: React.FC<Props> = ({
   };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <ScrollView contentContainerStyle={[styles.modalContainer, { backgroundColor: colors.overlay }]}>
+      <View style={[styles.overlay, { backgroundColor: colors.overlay }]}> 
         <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
           <Text selectable style={[styles.title, { color: colors.text }]}>{mode === 'review' ? (t('review_for_area_manager') || 'Review for Area Manager') : (t('description') || 'Description')}</Text>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} nestedScrollEnabled keyboardShouldPersistTaps="handled">
           {!item ? (
             <Text style={{ color: colors.muted }}>{t('no_data') || 'No data'}</Text>
           ) : (
@@ -436,6 +437,7 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label="Achievement Percentage" value={item.achievementPercentage} />
             </>
           )}
+          </ScrollView>
 
           <View style={styles.buttonRow}>
             {mode === 'description' && onCopyAll && (
@@ -456,14 +458,16 @@ const SalesReportDetailsModal: React.FC<Props> = ({
             <Button title={t('close') || 'Close'} onPress={onClose} />
           </View>
         </View>
-      </ScrollView>
+    </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '92%', padding: spacing(5), borderRadius: radius.xl, marginVertical: spacing(8), borderWidth: 1 },
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing(4) },
+  modalContent: { width: '92%', padding: spacing(5), borderRadius: radius.xl, maxHeight: '85%', borderWidth: 1 },
+  scroll: { flexGrow: 0 },
+  scrollContent: { paddingBottom: spacing(2) },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: spacing(3), textAlign: 'center' },
   sectionTitle: { fontSize: 14, fontWeight: 'bold', marginTop: spacing(3), marginBottom: spacing(1.5), borderTopWidth: 1, paddingTop: spacing(2) },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },
