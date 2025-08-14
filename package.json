@@ -22,7 +22,9 @@
   "eas:channel:list": "npx eas channel:list --non-interactive",
   "eas:branch:list": "npx eas branch:list --non-interactive",
   "seed:outlets:dry": "node scripts/seed-outlets-from-file.js data/seed_outlets.json --dry",
-  "seed:outlets": "node scripts/seed-outlets-from-file.js data/seed_outlets.json --upsert"
+  "seed:outlets": "node scripts/seed-outlets-from-file.js data/seed_outlets.json --upsert",
+  "gen:templates": "node scripts/generate-templates.js",
+  "convert:xlsx": "node scripts/xlsx-to-json.js"
   },
   "jest": {
     "preset": "jest-expo",
@@ -78,7 +80,8 @@
     "jest": "^29.2.1",
     "jest-expo": "~53.0.9",
     "react-test-renderer": "19.0.0",
-    "typescript": "~5.8.3"
+  "typescript": "~5.8.3",
+  "xlsx": "^0.18.5"
   },
   "private": true
 }
