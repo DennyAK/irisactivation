@@ -12,8 +12,8 @@ const styles = StyleSheet.create({
   },
 });
 import React, { useState, useEffect } from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs, Redirect } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Tabs, Redirect, useRouter } from 'expo-router';
 import { Pressable, ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,10 +25,10 @@ import { doc, getDoc } from 'firebase/firestore';
 
 
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
 }) {
-  return <FontAwesome size={24} style={{ marginBottom: -3 }} {...props} />;
+  return <Ionicons size={24} style={{ marginBottom: -3 }} {...props} />;
 }
 import { useI18n } from '@/components/I18n';
 import { useEffectiveScheme } from '@/components/ThemePreference';
@@ -124,12 +124,16 @@ function CustomTabBar({ state, descriptors, navigation, userRole }: BottomTabBar
 
 
 export default function TabLayout() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { t } = useI18n();
   const effective = useEffectiveScheme();
   const isDark = effective === 'dark';
+  // Map unknown roles to guest to avoid redirect loops
+  const knownRoles = new Set(['guest','admin','superadmin','area manager','Iris - BA','Iris - TL','Dima','Diageo']);
+  const effectiveUserRole = userRole && knownRoles.has(userRole) ? userRole : 'guest';
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -162,16 +166,10 @@ export default function TabLayout() {
     return <Redirect href="/login" />;
   }
 
-  // Unknown/unassigned roles (e.g., '', 'user', 'User') are restricted to login/signup
-  const knownRoles = new Set(['guest','admin','superadmin','area manager','Iris - BA','Iris - TL','Dima','Diageo']);
-  if (userRole && !knownRoles.has(userRole)) {
-    return <Redirect href="/login" />;
-  }
-
-  if (userRole === 'guest') {
+  if (effectiveUserRole === 'guest') {
     return (
       <Tabs
-        tabBar={(props) => <CustomTabBar {...props} userRole={userRole} />}
+        tabBar={(props) => <CustomTabBar {...props} userRole={effectiveUserRole} />}
         screenOptions={{
           tabBarActiveTintColor: Colors[effective].tint,
           headerStyle: { backgroundColor: isDark ? '#0b1220' : Colors.light.background },
@@ -182,20 +180,18 @@ export default function TabLayout() {
           name="index"
           options={{
             title: t('profile'),
-            tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />, 
+    tabBarIcon: ({ color }) => <TabBarIcon name="person-circle" color={color} />, 
             headerRight: () => (
-              <Link href="/modal" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="ellipsis-h"
-                      size={25}
-                      color={Colors[effective].text}
-                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
+              <Pressable onPress={() => router.push('/modal')}>
+                {({ pressed }) => (
+      <Ionicons
+        name="ellipsis-horizontal"
+                    size={25}
+                    color={Colors[effective].text}
+                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                  />
+                )}
+              </Pressable>
             ),
           }}
         />
@@ -203,20 +199,18 @@ export default function TabLayout() {
           name="clicker"
           options={{
             title: t('clicker'),
-            tabBarIcon: ({ color }) => <TabBarIcon name="plus" color={color} />, 
+    tabBarIcon: ({ color }) => <TabBarIcon name="add-circle" color={color} />, 
             headerRight: () => (
-              <Link href="/modal" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="ellipsis-h"
-                      size={25}
-                      color={Colors[effective].text}
-                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
+              <Pressable onPress={() => router.push('/modal')}>
+                {({ pressed }) => (
+      <Ionicons
+        name="ellipsis-horizontal"
+                    size={25}
+                    color={Colors[effective].text}
+                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                  />
+                )}
+              </Pressable>
             ),
           }}
         />
@@ -224,20 +218,18 @@ export default function TabLayout() {
             name="about"
             options={{
               title: t('about'),
-              tabBarIcon: ({ color }) => <TabBarIcon name="info-circle" color={color} />, 
+      tabBarIcon: ({ color }) => <TabBarIcon name="information-circle" color={color} />, 
               headerRight: () => (
-                <Link href="/modal" asChild>
-                  <Pressable>
-                    {({ pressed }) => (
-                      <FontAwesome
-                        name="ellipsis-h"
-                        size={25}
-                        color={Colors[effective].text}
-                        style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                      />
-                    )}
-                  </Pressable>
-                </Link>
+                <Pressable onPress={() => router.push('/modal')}>
+                  {({ pressed }) => (
+        <Ionicons
+          name="ellipsis-horizontal"
+                      size={25}
+                      color={Colors[effective].text}
+                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                    />
+                  )}
+                </Pressable>
               ),
             }}
           />
@@ -247,7 +239,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      tabBar={(props) => <CustomTabBar {...props} userRole={userRole} />}
+  tabBar={(props) => <CustomTabBar {...props} userRole={effectiveUserRole} />}
       screenOptions={{
   tabBarActiveTintColor: Colors[effective].tint,
   headerStyle: { backgroundColor: isDark ? '#0b1220' : Colors.light.background },
@@ -258,78 +250,70 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('profile'),
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />, 
+          tabBarIcon: ({ color }) => <TabBarIcon name="person-circle" color={color} />, 
           headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="ellipsis-h"
-                    size={25}
-                    color={Colors[effective].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+            <Pressable onPress={() => router.push('/modal')}>
+              {({ pressed }) => (
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={25}
+                  color={Colors[effective].text}
+                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                />
+              )}
+            </Pressable>
           ),
         }}
       />
       {/* Clicker: visible to all logged-in users, placed beside Profile */}
   <Tabs.Screen name="clicker" options={{
         title: t('clicker'),
-        tabBarIcon: ({ color }) => <TabBarIcon name="plus" color={color} />, 
+        tabBarIcon: ({ color }) => <TabBarIcon name="add-circle" color={color} />, 
         headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[effective].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
+          <Pressable onPress={() => router.push('/modal')}>
+            {({ pressed }) => (
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={25}
+                color={Colors[effective].text}
+                style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+              />
+            )}
+          </Pressable>
         ),
       }} />
       <Tabs.Screen name="about" options={{
         title: t('about'),
-        tabBarIcon: ({ color }) => <TabBarIcon name="info-circle" color={color} />, 
+        tabBarIcon: ({ color }) => <TabBarIcon name="information-circle" color={color} />, 
         headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[effective].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
+          <Pressable onPress={() => router.push('/modal')}>
+            {({ pressed }) => (
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={25}
+                color={Colors[effective].text}
+                style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+              />
+            )}
+          </Pressable>
   ),
       }} />
       {/* All other tabs for non-guests */}
       
   <Tabs.Screen name="user-manager" options={{
         title: t('users_manager'),
-        tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />, 
+        tabBarIcon: ({ color }) => <TabBarIcon name="people" color={color} />, 
         headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[effective].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
+          <Pressable onPress={() => router.push('/modal')}>
+            {({ pressed }) => (
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={25}
+                color={Colors[effective].text}
+                style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+              />
+            )}
+          </Pressable>
         ),
         href: '/user-manager',
   }} />
@@ -337,61 +321,60 @@ export default function TabLayout() {
         title: t('projects'),
         tabBarIcon: ({ color }) => <TabBarIcon name="briefcase" color={color} />, 
         headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[effective].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
+          <Pressable onPress={() => router.push('/modal')}>
+            {({ pressed }) => (
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={25}
+                color={Colors[effective].text}
+                style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+              />
+            )}
+          </Pressable>
         ),
         href: '/projects-detail',
       }} />
       
       <Tabs.Screen name="outlets-detail" options={{
         title: t('outlets'),
-        tabBarIcon: ({ color }) => <TabBarIcon name="building" color={color} />, 
+        tabBarIcon: ({ color }) => <TabBarIcon name="business" color={color} />, 
         headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[effective].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
+          <Pressable onPress={() => router.push('/modal')}>
+            {({ pressed }) => (
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={25}
+                color={Colors[effective].text}
+                style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+              />
+            )}
+          </Pressable>
         ),
         href: '/outlets-detail',
       }} />
       <Tabs.Screen name="tasks" options={{
         title: t('tasks'),
-        tabBarIcon: ({ color }) => <TabBarIcon name="tasks" color={color} />, 
+        tabBarIcon: ({ color }) => <TabBarIcon name="checkbox" color={color} />, 
         headerRight: () => (
-          <Link href="/modal" asChild>
-            <Pressable>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="ellipsis-h"
-                  size={25}
-                  color={Colors[effective].text}
-                  style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          </Link>
+          <Pressable onPress={() => router.push('/modal')}>
+            {({ pressed }) => (
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={25}
+                color={Colors[effective].text}
+                style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+              />
+            )}
+          </Pressable>
         ),
         href: '/tasks',
       }} />      
-  {/* Audit Logs tab removed; access via /audit-screens/audit-logs only */}
+      {/* Explicitly hide legacy '(tabs)/audit-logs' route to prevent it from showing in tabs on stale bundles */}
+          <Tabs.Screen
+            name="audit-logs"
+            options={{ href: null, headerShown: false }}
+          />
+      {/* Audit Logs tab removed; access via /audit-screens/audit-logs only */}
     </Tabs>
     
   );

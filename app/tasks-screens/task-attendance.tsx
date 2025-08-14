@@ -3,10 +3,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Image, Platform, RefreshControl, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { useI18n } from '@/components/I18n';
 import { useEffectiveScheme } from '@/components/ThemePreference';
@@ -14,10 +14,11 @@ import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { db, auth, storage } from '../../firebaseConfig';
-import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '@/components/utils/pickImage';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import TaskAttendanceDetailsModal, { buildTaskAttendanceText } from '@/components/TaskAttendanceDetailsModal';
 import * as Clipboard from 'expo-clipboard';
@@ -27,8 +28,28 @@ import stateMachine from '../../constants/stateMachine';
 import FilterHeader from '../../components/ui/FilterHeader';
 import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
+import { useAppSettings } from '@/components/AppSettings';
 
 export default function TaskAttendanceScreen() {
+  // Cross-platform confirm helper: on web use window.confirm so OK button actually triggers
+  const confirmAsync = async (title: string, message: string): Promise<boolean> => {
+    if (Platform.OS === 'web') {
+      try {
+        return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+      } catch {
+        // Fallback to simple alert without cancel
+        window.alert(`${title}\n\n${message}`);
+        return true;
+      }
+    }
+    return new Promise<boolean>((resolve) => {
+      Alert.alert(title, message, [
+        { text: t('cancel') || 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: t('ok') || 'OK', onPress: () => resolve(true) },
+      ]);
+    });
+  };
+
   const params = useLocalSearchParams<{ attendanceId?: string }>();
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
@@ -78,6 +99,12 @@ export default function TaskAttendanceScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [detailsItem, setDetailsItem] = useState<any | null>(null);
+  // Per-item loading states to avoid double taps and race conditions
+  const [loadingById, setLoadingById] = useState<Record<string, { checkIn?: boolean; checkOut?: boolean; selfie?: boolean }>>({});
+  // Inline error messages per item (e.g., permission-denied) for quick diagnosis
+  const [lastErrorById, setLastErrorById] = useState<Record<string, string | undefined>>({});
+  // Cache of userId -> display name for showing BA/TL names
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
   // Admin-only status override selection (constrained by state machine)
   const [adminNextStatus, setAdminNextStatus] = useState<string>('');
   // Filters
@@ -94,6 +121,7 @@ export default function TaskAttendanceScreen() {
       return matchesSearch && matchesStatus;
     });
   }, [attendances, outlets, debouncedSearch, statusFilter]);
+  const { debugHeaderEnabled } = useAppSettings();
 
   useEffect(() => {
     (async () => {
@@ -133,11 +161,85 @@ export default function TaskAttendanceScreen() {
   };
 
   const isFocused = useIsFocused();
+  const navigation: any = useNavigation();
+  // Real-time subscription to attendance records with role-based filtering
   useEffect(() => {
-    if (userRole && isFocused) {
-      fetchAttendances();
+    if (!userRole || !isFocused) return;
+    const uid = auth.currentUser?.uid;
+    let colRef = collection(db, 'task_attendance');
+    let qRef: any = colRef;
+    if (isBAish(userRole as any)) {
+      if (!uid) { setAttendances([]); return; }
+      qRef = query(colRef, where('assignedToBA', '==', uid));
+    } else if (isTLish(userRole as any)) {
+      if (!uid) { setAttendances([]); return; }
+      qRef = query(colRef, where('assignedToTL', '==', uid));
     }
+    setLoading(true);
+    const unsub = onSnapshot(qRef, (snap: any) => {
+      let list = snap.docs.map((d: any) => {
+        const data = d.data();
+        return { id: d.id, assignedToBA: (data as any).assignedToBA, createdAt: (data as any).createdAt, ...data } as any;
+      });
+      list.sort((a: any, b: any) => {
+        let aTime = 0, bTime = 0;
+        if (a.createdAt && typeof a.createdAt.toDate === 'function') aTime = a.createdAt.toDate().getTime();
+        if (b.createdAt && typeof b.createdAt.toDate === 'function') bTime = b.createdAt.toDate().getTime();
+        return sortAsc ? (aTime - bTime) : (bTime - aTime);
+      });
+      setAttendances(list);
+      // Preload BA/TL display names for this page
+      try {
+        const uids: string[] = Array.from(new Set(list.flatMap((it: any) => [it.assignedToBA, it.assignedToTL]).filter(Boolean)));
+        const missing = uids.filter(uid => !!uid && !userNames[uid]);
+        if (missing.length) {
+          (async () => {
+            const entries: Record<string, string> = {};
+            for (const uid of missing) {
+              try {
+                const uSnap = await getDoc(doc(db, 'users', uid));
+                if (uSnap.exists()) {
+                  const u = uSnap.data() as any;
+                  const name = `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || u?.email || u?.phone || uid;
+                  entries[uid] = name;
+                } else {
+                  entries[uid] = uid;
+                }
+              } catch {
+                entries[uid] = uid;
+              }
+            }
+            setUserNames(prev => ({ ...prev, ...entries }));
+          })();
+        }
+      } catch {}
+      setLoading(false);
+    }, (err: any) => {
+      console.error('onSnapshot attendance error', err);
+      setLoading(false);
+    });
+    return () => unsub();
   }, [userRole, isFocused, sortAsc]);
+
+  // Temporary DBG header label (center, toggleable)
+  useEffect(() => {
+    if (!debugHeaderEnabled) {
+      navigation.setOptions?.({ headerTitle: undefined });
+      return;
+    }
+    const uid = auth.currentUser?.uid || '';
+    const shortUid = uid ? `${uid.slice(0,4)}…${uid.slice(-4)}` : '—';
+    const resolveUser = (u?: string) => (u ? (userNames[u] || u) : '—');
+    const ba = detailsVisible && detailsItem ? resolveUser(detailsItem.assignedToBA) : undefined;
+    const tl = detailsVisible && detailsItem ? resolveUser(detailsItem.assignedToTL) : undefined;
+    const label = `role:${userRole || '—'} | uid:${shortUid}` + (ba || tl ? ` | BA:${ba || '—'} | TL:${tl || '—'}` : '');
+    navigation.setOptions?.({
+      headerTitleAlign: 'center',
+      headerTitle: () => (
+        <Text style={{ color: '#ef4444', fontSize: 10 }} numberOfLines={1} ellipsizeMode="tail">{label}</Text>
+      ),
+    });
+  }, [userRole, auth.currentUser?.uid, detailsVisible, detailsItem, userNames, debugHeaderEnabled]);
 
   // Auto-open details when navigated with an attendanceId (AM review)
   const [autoOpened, setAutoOpened] = useState(false);
@@ -193,6 +295,24 @@ export default function TaskAttendanceScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Cross-platform geolocation helper: uses navigator.geolocation on web
+  const getCurrentCoords = async (): Promise<{ latitude: number; longitude: number }> => {
+    if (Platform.OS === 'web') {
+      if (!('geolocation' in navigator)) throw new Error('Geolocation not available');
+      return await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') throw new Error(t('location_permission_denied') || 'Permission to access location was denied');
+    const loc = await Location.getCurrentPositionAsync({});
+    return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
   };
 
   const resetFormData = () => {
@@ -284,13 +404,32 @@ export default function TaskAttendanceScreen() {
   };
   
   const confirmCheckIn = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t('permission_denied') || 'Permission denied', t('location_permission_denied') || 'Permission to access location was denied');
-      return;
+    let location: { coords: { latitude: number; longitude: number } };
+    if (Platform.OS === 'web') {
+      if (!('geolocation' in navigator)) {
+        Alert.alert(t('permission_denied') || 'Permission denied', 'Geolocation not available in this browser.');
+        return;
+      }
+      try {
+        location = await new Promise<any>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ coords: { latitude: pos.coords.latitude, longitude: pos.coords.longitude } }),
+            (err) => reject(err),
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        });
+      } catch (e: any) {
+        Alert.alert(t('permission_denied') || 'Permission denied', e?.message || 'Unable to access location.');
+        return;
+      }
+    } else {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('permission_denied') || 'Permission denied', t('location_permission_denied') || 'Permission to access location was denied');
+        return;
+      }
+      location = await Location.getCurrentPositionAsync({});
     }
-
-    let location = await Location.getCurrentPositionAsync({});
     
     Alert.alert(t('confirm_check_in') || 'Confirm Check-In', t('confirm_check_in_msg') || 'Are you sure you want to check in now?', [
         { text: t('cancel') || 'Cancel', style: "cancel" },
@@ -304,13 +443,32 @@ export default function TaskAttendanceScreen() {
   };
 
   const confirmCheckOut = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t('permission_denied') || 'Permission denied', t('location_permission_denied') || 'Permission to access location was denied');
-      return;
+    let location: { coords: { latitude: number; longitude: number } };
+    if (Platform.OS === 'web') {
+      if (!('geolocation' in navigator)) {
+        Alert.alert(t('permission_denied') || 'Permission denied', 'Geolocation not available in this browser.');
+        return;
+      }
+      try {
+        location = await new Promise<any>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ coords: { latitude: pos.coords.latitude, longitude: pos.coords.longitude } }),
+            (err) => reject(err),
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        });
+      } catch (e: any) {
+        Alert.alert(t('permission_denied') || 'Permission denied', e?.message || 'Unable to access location.');
+        return;
+      }
+    } else {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('permission_denied') || 'Permission denied', t('location_permission_denied') || 'Permission to access location was denied');
+        return;
+      }
+      location = await Location.getCurrentPositionAsync({});
     }
-
-    let location = await Location.getCurrentPositionAsync({});
 
     Alert.alert(t('confirm_check_out') || 'Confirm Check-Out', t('confirm_check_out_msg') || 'Are you sure you want to check out now?', [
         { text: t('cancel') || 'Cancel', style: "cancel" },
@@ -328,19 +486,14 @@ export default function TaskAttendanceScreen() {
 
     try {
       // 1. Pick Image
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-      });
-
-      if (result.canceled || !result.assets || result.assets.length === 0) {
+  const result2 = await pickImage();
+  if (result2.canceled || !result2.uri) {
         Alert.alert(t('cancelled') || 'Cancelled', t('image_selection_cancelled') || 'Image selection was cancelled.');
         return;
       }
 
-      const uri = result.assets[0].uri;
+  const uri = result2.uri;
+  const pickedFile = (result2 as any).file as File | undefined;
   // Debug note retained intentionally: image picked
       // Do NOT set selfieUrl to cache URI here
 
@@ -350,12 +503,18 @@ export default function TaskAttendanceScreen() {
         return;
       }
       // Debug note retained intentionally: starting upload
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      let blob: Blob;
+      if (Platform.OS === 'web' && pickedFile) {
+        blob = pickedFile; // use original File to preserve type and avoid revoke timing issues
+      } else {
+        const response = await fetch(uri);
+        blob = await response.blob();
+      }
       // Debug note retained intentionally: blob created
 
       const storageRef = ref(storage, `task_attendance/${auth.currentUser.uid}/${new Date().getTime()}.jpg`);
-      const snapshot = await uploadBytes(storageRef, blob);
+      const metadata = (Platform.OS === 'web' && pickedFile) ? { contentType: pickedFile.type || 'image/jpeg' } : undefined;
+      const snapshot = await uploadBytes(storageRef, blob, metadata as any);
       // Debug note retained intentionally: upload complete
 
       const downloadURL = await getDownloadURL(snapshot.ref);
@@ -369,11 +528,14 @@ export default function TaskAttendanceScreen() {
         const attendanceDoc = doc(db, "task_attendance", selectedAttendance.id);
         await updateDoc(attendanceDoc, { selfieUrl: downloadURL });
         fetchAttendances();
-        Alert.alert(t('success') || 'Success', t('photo_uploaded_success') || 'Selfie uploaded and saved.');
+        Alert.alert(
+          t('success') || 'Success',
+          `${t('photo_uploaded_success') || 'Selfie uploaded and saved.'}\n\n${t('selfie_post_upload_warning') || 'Please ensure your face is clearly visible. If needed, re-upload before approval.'}`
+        );
       }
     } catch (error: any) {
       console.error("CRITICAL ERROR during image pick and upload: ", error);
-      Alert.alert(t('upload_failed') || 'Upload Failed', `An error occurred: ${error.message}. Check the console for more details.`);
+      Alert.alert(t('upload_failed') || 'Upload Failed', `An error occurred: ${error?.message || String(error)}. Check the console for more details.`);
     }
   };
 
@@ -424,6 +586,8 @@ export default function TaskAttendanceScreen() {
   const renderAttendance = ({ item }: { item: any }) => {
   const status = item.taskAttendanceStatus || '';
   const statusTone = getToneForAttendanceStatus(status) as any;
+  const currentUid = auth.currentUser?.uid;
+  const isOwnerBA = !!currentUid && item.assignedToBA === currentUid;
     const outletName = (() => { const outlet = outlets.find(o => o.id === item.outletId); return outlet?.outletName || item.outletId || '-'; })();
     const isExpanded = !!expanded[item.id];
     return (
@@ -434,8 +598,8 @@ export default function TaskAttendanceScreen() {
             <StatusPill label={status} tone={statusTone as any} />
           </View>
         </View>
-        <Text style={[styles.meta, { color: colors.muted }]}>BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
-        <Text style={[styles.meta, { color: colors.muted }]}>TL: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToTL || '-'}</Text></Text>
+  <Text style={[styles.meta, { color: colors.muted }]}>BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA ? (userNames[item.assignedToBA] || item.assignedToBA) : '-'}</Text></Text>
+  <Text style={[styles.meta, { color: colors.muted }]}>TL: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToTL ? (userNames[item.assignedToTL] || item.assignedToTL) : '-'}</Text></Text>
         <Text style={[styles.meta, { color: colors.muted }]}>Check-in: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkIn?.toDate ? item.checkIn.toDate().toLocaleString() : '-'}</Text></Text>
         <Text style={[styles.meta, { color: colors.muted }]}>Check-out: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkOut?.toDate ? item.checkOut.toDate().toLocaleString() : '-'}</Text></Text>
         <Text style={[styles.meta, { color: colors.muted }]}>Created: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
@@ -448,91 +612,132 @@ export default function TaskAttendanceScreen() {
             <Text style={[styles.meta, { color: colors.muted }]}>Check-out Lng: <Text style={[styles.metaValue, { color: colors.text }]}>{item.checkOutLongitude || '-'}</Text></Text>
           </View>
         )}
-        {canReadUpdate && (
+    {canReadUpdate && (
           <View style={styles.actionsRow}>
-            {userRole === Roles.IrisBA && !item.checkIn && (
-              <PrimaryButton title="Check In" onPress={async () => {
-              let { status } = await Location.requestForegroundPermissionsAsync();
-              if (status !== 'granted') {
-                Alert.alert('Permission denied', 'Permission to access location was denied');
-                return;
-              }
-              let location = await Location.getCurrentPositionAsync({});
-              Alert.alert("Confirm Check-In", "Are you sure you want to check in now?", [
-                { text: "Cancel", style: "cancel" },
-                { text: "OK", onPress: async () => {
+      {userRole === Roles.IrisBA && isOwnerBA && !item.checkIn && (
+              <PrimaryButton
+                title="Check In"
+                loading={!!loadingById[item.id]?.checkIn}
+                onPress={async () => {
+                  // Confirm first to avoid popup blockers, then request geolocation
+                  const proceed = await confirmAsync('Confirm Check-In', 'Are you sure you want to check in now?');
+                  if (!proceed) return;
+                  setLoadingById(prev => ({ ...prev, [item.id]: { ...(prev[item.id] || {}), checkIn: true } }));
                   try {
+                    const coords = await getCurrentCoords();
                     const attendanceDoc = doc(db, "task_attendance", item.id);
                     await updateDoc(attendanceDoc, {
-                      checkIn: new Date(),
-                      checkInLatitude: location.coords.latitude.toString(),
-                      checkInLongitude: location.coords.longitude.toString(),
+                      checkIn: serverTimestamp(),
+                      checkInLatitude: Number(coords.latitude),
+                      checkInLongitude: Number(coords.longitude),
+                      ...(String(item.taskAttendanceStatus || '') === '' ? { taskAttendanceStatus: AttendanceStatus.Pending } : {}),
+                      updatedAt: serverTimestamp(),
+                      updatedBy: auth.currentUser?.uid || 'unknown',
                     });
-                    fetchAttendances();
-                  } catch (error) {
-                    Alert.alert('Error', 'Failed to check in.');
+                    console.info('[Attendance] Check-in success', { id: item.id, role: userRole });
+                    // Realtime listener will update UI
+                  } catch (error: any) {
+        console.error('Check-in failed', error);
+        const msg = `${error?.code || 'unknown'}: ${error?.message || 'Failed to check in.'}`;
+        setLastErrorById(prev => ({ ...prev, [item.id]: msg }));
+        Alert.alert('Error', msg);
+                  } finally {
+                    setLoadingById(prev => ({ ...prev, [item.id]: { ...(prev[item.id] || {}), checkIn: false } }));
                   }
                 }}
-              ]);
-              }} style={styles.actionBtn} />
+                style={styles.actionBtn}
+              />
             )}
-            {userRole === Roles.IrisBA && item.checkIn && !item.checkOut && (
-              <PrimaryButton title="Check Out" onPress={async () => {
-              let { status } = await Location.requestForegroundPermissionsAsync();
-              if (status !== 'granted') {
-                Alert.alert('Permission denied', 'Permission to access location was denied');
-                return;
-              }
-              let location = await Location.getCurrentPositionAsync({});
-              Alert.alert("Confirm Check-Out", "Are you sure you want to check out now?", [
-                { text: "Cancel", style: "cancel" },
-                { text: "OK", onPress: async () => {
+      {userRole === Roles.IrisBA && isOwnerBA && item.checkIn && !item.checkOut && (
+              <PrimaryButton
+                title="Check Out"
+                loading={!!loadingById[item.id]?.checkOut}
+                onPress={async () => {
+                  const proceed = await confirmAsync('Confirm Check-Out', 'Are you sure you want to check out now?');
+                  if (!proceed) return;
+                  setLoadingById(prev => ({ ...prev, [item.id]: { ...(prev[item.id] || {}), checkOut: true } }));
                   try {
+                    const coords = await getCurrentCoords();
                     const attendanceDoc = doc(db, "task_attendance", item.id);
                     await updateDoc(attendanceDoc, {
-                      checkOut: new Date(),
-                      checkOutLatitude: location.coords.latitude.toString(),
-                      checkOutLongitude: location.coords.longitude.toString(),
+                      checkOut: serverTimestamp(),
+                      checkOutLatitude: Number(coords.latitude),
+                      checkOutLongitude: Number(coords.longitude),
+                      updatedAt: serverTimestamp(),
+                      updatedBy: auth.currentUser?.uid || 'unknown',
                     });
-                    fetchAttendances();
-                  } catch (error) {
-                    Alert.alert('Error', 'Failed to check out.');
+                    console.info('[Attendance] Check-out success', { id: item.id, role: userRole });
+                    // Realtime listener will update UI
+                  } catch (error: any) {
+        console.error('Check-out failed', error);
+        const msg = `${error?.code || 'unknown'}: ${error?.message || 'Failed to check out.'}`;
+        setLastErrorById(prev => ({ ...prev, [item.id]: msg }));
+        Alert.alert('Error', msg);
+                  } finally {
+                    setLoadingById(prev => ({ ...prev, [item.id]: { ...(prev[item.id] || {}), checkOut: false } }));
                   }
                 }}
-              ]);
-              }} style={styles.actionBtn} />
+                style={styles.actionBtn}
+              />
             )}
-            {userRole === Roles.IrisBA && (!item.selfieUrl || item.selfieUrl === '') && (
-              <SecondaryButton title="Selfie" onPress={async () => {
-              try {
-                let result = await ImagePicker.launchImageLibraryAsync({
-                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                  allowsEditing: true,
-                  aspect: [1, 1],
-                  quality: 0.5,
-                });
-                if (result.canceled || !result.assets || result.assets.length === 0) {
-                  Alert.alert('Cancelled', 'Image selection was cancelled.');
-                  return;
-                }
-                const uri = result.assets[0].uri;
-                if (!auth.currentUser) {
-                  Alert.alert("Authentication Error", "You must be logged in to upload images.");
-                  return;
-                }
-                const response = await fetch(uri);
-                const blob = await response.blob();
-                const storageRef = ref(storage, `task_attendance/${auth.currentUser.uid}/${new Date().getTime()}.jpg`);
-                const snapshot = await uploadBytes(storageRef, blob);
-                const downloadURL = await getDownloadURL(snapshot.ref);
-                const attendanceDoc = doc(db, "task_attendance", item.id);
-                await updateDoc(attendanceDoc, { selfieUrl: downloadURL });
-                fetchAttendances();
-                Alert.alert("Success", "Selfie uploaded and saved.");
-              } catch (error) {
-                Alert.alert("Upload Failed", `An error occurred. Check the console for more details.`);
-              }
-              }} style={styles.actionBtn} />
+      {userRole === Roles.IrisBA && isOwnerBA && (!item.selfieUrl || item.selfieUrl === '') && (
+              <SecondaryButton
+                title="Selfie"
+                loading={!!loadingById[item.id]?.selfie}
+                onPress={async () => {
+                  setLoadingById(prev => ({ ...prev, [item.id]: { ...(prev[item.id] || {}), selfie: true } }));
+                  try {
+                    const result2 = await pickImage();
+                    if (result2.canceled || !result2.uri) {
+                      return; // silent cancel
+                    }
+                    const uri = result2.uri;
+                    if (!auth.currentUser) {
+                      Alert.alert("Authentication Error", "You must be logged in to upload images.");
+                      return;
+                    }
+                    let blob: Blob;
+                    const pickedFile = (result2 as any).file as File | undefined;
+                    if (Platform.OS === 'web' && pickedFile) {
+                      blob = pickedFile;
+                    } else {
+                      const response = await fetch(uri);
+                      blob = await response.blob();
+                    }
+                    const storageRef = ref(storage, `task_attendance/${auth.currentUser.uid}/${new Date().getTime()}.jpg`);
+                    const metadata = (Platform.OS === 'web' && pickedFile) ? { contentType: pickedFile.type || 'image/jpeg' } : undefined;
+                    const snapshot = await uploadBytes(storageRef, blob, metadata as any);
+                    const downloadURL = await getDownloadURL(snapshot.ref);
+                    const attendanceDoc = doc(db, "task_attendance", item.id);
+                    await updateDoc(attendanceDoc, {
+                      selfieUrl: downloadURL,
+                      ...(String(item.taskAttendanceStatus || '') === '' ? { taskAttendanceStatus: AttendanceStatus.Pending } : {}),
+                      updatedAt: serverTimestamp(),
+                      updatedBy: auth.currentUser?.uid || 'unknown',
+                    });
+                    console.info('[Attendance] Selfie upload success', { id: item.id, role: userRole });
+                    // Realtime listener will update UI
+                    Alert.alert(
+                      t('success') || 'Success',
+                      `${t('photo_uploaded_success') || 'Selfie uploaded and saved.'}\n\n${t('selfie_post_upload_warning') || 'Please ensure your face is clearly visible. If needed, re-upload before approval.'}`
+                    );
+                  } catch (error: any) {
+                    console.error('Selfie upload failed', error);
+                    const msg = `${error?.code || 'unknown'}: ${error?.message || 'An error occurred. Check the console for more details.'}`;
+                    setLastErrorById(prev => ({ ...prev, [item.id]: msg }));
+                    Alert.alert("Upload Failed", msg);
+                  } finally {
+                    setLoadingById(prev => ({ ...prev, [item.id]: { ...(prev[item.id] || {}), selfie: false } }));
+                  }
+                }}
+                style={styles.actionBtn}
+              />
+            )}
+            {!isOwnerBA && userRole === Roles.IrisBA && (
+              <Text style={[styles.meta, { color: '#dc2626', width: '100%' }]}>Not assigned to you</Text>
+            )}
+            {!!lastErrorById[item.id] && (
+              <Text style={[styles.meta, { color: '#dc2626', width: '100%' }]}>{lastErrorById[item.id]}</Text>
             )}
             {userRole === Roles.IrisTL && stateMachine.canTransition('Attendance', Roles.IrisTL, status || AttendanceStatus.Pending, AttendanceStatus.ApprovedByTL) && (
               <PrimaryButton title="Approve TL" onPress={() => handleApproveByTL(item.id)} style={styles.actionBtn} />
@@ -633,7 +838,9 @@ export default function TaskAttendanceScreen() {
       <TaskAttendanceDetailsModal
         visible={detailsVisible}
         item={detailsItem}
-  onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildTaskAttendanceText(detailsItem, 'text')); Alert.alert(t('copied_to_clipboard')); } : undefined}
+        userNames={userNames}
+        outlets={outlets}
+        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildTaskAttendanceText(detailsItem, 'text', { userNames, outlets })); Alert.alert(t('copied_to_clipboard')); } : undefined}
         onClose={() => setDetailsVisible(false)}
       />
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>

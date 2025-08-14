@@ -1,17 +1,18 @@
 import 'react-native-gesture-handler';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 
 // Sentry: dynamically require to avoid bundler resolution issues in dev
 let Sentry: any;
 import { useColorScheme } from '@/components/useColorScheme';
 import { ThemePreferenceProvider, useThemePreference } from '@/components/ThemePreference';
+import { AppSettingsProvider } from '@/components/AppSettings';
 import { I18nProvider, useI18n } from '@/components/I18n';
 
 export {
@@ -47,7 +48,8 @@ try {
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
+  ...FontAwesome.font,
+  ...Ionicons.font,
   });
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
@@ -61,6 +63,16 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+  // Ensure icon fonts initialize on web as well
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      try {
+        (Ionicons as any)?.loadFont?.();
+        (FontAwesome as any)?.loadFont?.();
+      } catch {}
+    }
+  }, []);
+
   if (!loaded) {
     return null;
   }
@@ -68,7 +80,9 @@ export default function RootLayout() {
   return (
     <I18nProvider>
       <ThemePreferenceProvider>
-        <RootLayoutNav />
+        <AppSettingsProvider>
+          <RootLayoutNav />
+        </AppSettingsProvider>
       </ThemePreferenceProvider>
     </I18nProvider>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, ActivityIndicator, Modal, TextInput, Alert, ScrollView, RefreshControl } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
@@ -14,12 +14,15 @@ import { useEffectiveScheme } from '@/components/ThemePreference';
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useAppSettings } from '@/components/AppSettings';
 
 export default function TaskQuickQuizScreen() {
   const params = useLocalSearchParams<{ quizId?: string }>();
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
+  const navigation: any = useNavigation();
+  const { debugHeaderEnabled } = useAppSettings();
   const colors = {
     body: isDark ? '#0b1220' : palette.bg,
     surface: isDark ? '#111827' : palette.surface,
@@ -60,6 +63,8 @@ export default function TaskQuickQuizScreen() {
   });
   const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  // Resolvers
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   // Quiz modal states
   const [quizModalVisible, setQuizModalVisible] = useState(false);
@@ -111,6 +116,24 @@ export default function TaskQuickQuizScreen() {
       fetchQuizzes();
     }
   }, [userRole, isFocused]);
+
+  // Temporary DBG header label (centered, toggleable)
+  useEffect(() => {
+    if (!debugHeaderEnabled) {
+      navigation.setOptions?.({ headerTitle: undefined });
+      return;
+    }
+    const uid = auth.currentUser?.uid || '';
+    const shortUid = uid ? `${uid.slice(0,4)}…${uid.slice(-4)}` : '—';
+    const resolveUser = (u?: string) => (u ? (userNames[u] || u) : '—');
+    const label = `role:${userRole || '—'} | uid:${shortUid}`;
+    navigation.setOptions?.({
+      headerTitleAlign: 'center',
+      headerTitle: () => (
+        <Text style={{ color: '#ef4444', fontSize: 10 }} numberOfLines={1} ellipsizeMode="tail">{label}</Text>
+      ),
+    });
+  }, [userRole, auth.currentUser?.uid, userNames, debugHeaderEnabled]);
 
   // Auto-focus doc when navigated with quizId (AM review or TL/BA action)
   const [autoOpened, setAutoOpened] = useState(false);
@@ -205,7 +228,7 @@ export default function TaskQuickQuizScreen() {
     try {
       const quizzesCollection = collection(db, 'task_quick_quiz');
       const quizSnapshot = await getDocs(quizzesCollection);
-      let quizList = quizSnapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
+      let quizList: any[] = quizSnapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
       // Filter for BA role: only show records assigned to current user
       if (userRole === 'Iris - BA' && auth.currentUser?.uid) {
         quizList = quizList.filter(q => q?.assignedToBA === auth.currentUser?.uid);
@@ -214,6 +237,29 @@ export default function TaskQuickQuizScreen() {
       if (userRole === 'Iris - TL' && auth.currentUser?.uid) {
         quizList = quizList.filter(q => q?.assignedToTL === auth.currentUser?.uid);
       }
+      // Preload user display names (BA/TL)
+      try {
+        const uids: string[] = Array.from(new Set(quizList.flatMap((it: any) => [it.assignedToBA, it.assignedToTL]).filter(Boolean)));
+        const missing = uids.filter(uid => !!uid && !userNames[uid]);
+        if (missing.length) {
+          const entries: Record<string, string> = {};
+          for (const uid of missing) {
+            try {
+              const uSnap = await getDoc(doc(db, 'users', uid));
+              if (uSnap.exists()) {
+                const u = uSnap.data() as any;
+                const name = `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || u?.email || u?.phone || uid;
+                entries[uid] = name;
+              } else {
+                entries[uid] = uid;
+              }
+            } catch {
+              entries[uid] = uid;
+            }
+          }
+          setUserNames(prev => ({ ...prev, ...entries }));
+        }
+      } catch {}
       setQuizzes(quizList);
     } catch (error) {
       console.error("Error fetching quizzes: ", error);
@@ -394,7 +440,7 @@ export default function TaskQuickQuizScreen() {
           <Text style={[styles.cardTitle, { color: colors.text }]}>{t('quiz_label')}: {item.id}</Text>
           <StatusPill label={status} tone={tone as any} />
         </View>
-        <Text style={[styles.meta, { color: colors.muted }]}>{t('assigned_ba')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
+  <Text style={[styles.meta, { color: colors.muted }]}>{t('assigned_ba')}: <Text style={[styles.metaValue, { color: colors.text }]}>{userNames[item.assignedToBA] || item.assignedToBA || '-'}</Text></Text>
         <Text style={[styles.meta, { color: colors.muted }]}>{t('date')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.quizDate?.toDate ? item.quizDate.toDate().toLocaleDateString() : item.quizDate || '-'}</Text></Text>
         <Text style={[styles.meta, { color: colors.muted }]}>{t('result')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.quickQuizResult || '-'}</Text></Text>
         <Text style={[styles.meta, { color: colors.muted }]}>{t('created')}: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>

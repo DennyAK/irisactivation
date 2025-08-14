@@ -9,6 +9,8 @@ import SecondaryButton from '../../components/ui/SecondaryButton';
 import { trackEvent, trackScreen } from '../../components/analytics';
 import { useThemePreference, useEffectiveScheme } from '../../components/ThemePreference';
 import { useI18n } from '../../components/I18n';
+import { useAppSettings } from '../../components/AppSettings';
+import { Switch } from 'react-native';
 
 export default function AboutTabScreen() {
   const insets = useSafeAreaInsets();
@@ -22,6 +24,7 @@ export default function AboutTabScreen() {
   const [checking, setChecking] = useState(false);
   const { preference, setPreference } = useThemePreference();
   const { t, locale, setLocale } = useI18n();
+  const { debugHeaderEnabled, setDebugHeaderEnabled } = useAppSettings();
 
   useEffect(() => {
     trackScreen('About', { version: appVersion, channel });
@@ -88,6 +91,12 @@ export default function AboutTabScreen() {
           <View style={{ flexDirection: 'row', gap: spacing(2), marginTop: spacing(2) }}>
             <SecondaryButton title={t('english')} onPress={() => setLocale('en')} selected={locale === 'en'} />
             <SecondaryButton title={t('bahasa')} onPress={() => setLocale('id')} selected={locale === 'id'} />
+          </View>
+          <View style={{ height: spacing(3) }} />
+          <Text style={{ color: scheme === 'dark' ? '#cbd5e1' : palette.text, fontWeight: '700' }}>Debug Header</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing(2) }}>
+            <Text style={{ color: scheme === 'dark' ? '#94a3b8' : '#6b7280' }}>Show small red DBG header in task screens</Text>
+            <Switch value={debugHeaderEnabled} onValueChange={setDebugHeaderEnabled} />
           </View>
         </View>
       </View>

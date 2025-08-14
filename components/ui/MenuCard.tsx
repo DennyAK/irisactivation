@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import { Link } from 'expo-router';
 import { palette, radius, shadow, spacing, typography } from '../../constants/Design';
 import { useEffectiveScheme } from '../ThemePreference';
@@ -19,23 +20,23 @@ interface Props extends MenuItemData {
 export const MenuCard: React.FC<Props> = ({ icon, label, subtitle, href, style }) => {
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
+  const router = useRouter();
   return (
-    <Link href={href as any} asChild>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={[
-          styles.card,
-          isDark && { backgroundColor: '#111827', borderColor: '#1f2937' },
-          style,
-        ]}
-      >        
-        <View style={[styles.iconWrap, isDark && { backgroundColor: 'rgba(37,99,235,0.15)' }]}>
-          <Ionicons name={icon as any} size={26} color={palette.primary} />
-        </View>
-        <Text style={[styles.label, isDark && { color: '#e5e7eb' }]} numberOfLines={2}>{label}</Text>
-        {!!subtitle && <Text style={[styles.subtitle, isDark && { color: '#94a3b8' }]} numberOfLines={3}>{subtitle}</Text>}
-      </TouchableOpacity>
-    </Link>
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => router.push(href as any)}
+      style={[
+        styles.card,
+        isDark && { backgroundColor: '#111827', borderColor: '#1f2937' },
+        style,
+      ]}
+    >        
+      <View style={[styles.iconWrap, isDark && { backgroundColor: 'rgba(37,99,235,0.15)' }]}>
+        <Ionicons name={icon as any} size={26} color={palette.primary} />
+      </View>
+      <Text style={[styles.label, isDark && { color: '#e5e7eb' }]} numberOfLines={2}>{label}</Text>
+      {!!subtitle && <Text style={[styles.subtitle, isDark && { color: '#94a3b8' }]} numberOfLines={3}>{subtitle}</Text>}
+    </TouchableOpacity>
   );
 };
 
@@ -56,8 +57,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: spacing(5),
-    columnGap: spacing(4),
+  // Use marginBottom on cards for vertical spacing; avoid CSS gap for RN Web compat
   },
   card: {
     backgroundColor: palette.surface,
@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing(4),
     minHeight: 150,
     width: CARD_MIN_WIDTH_PERCENT,
+  marginBottom: spacing(5),
     borderWidth: 1,
     borderColor: palette.border,
     ...shadow.card,

@@ -2,14 +2,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '@/components/utils/pickImage';
 import { Image } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity, Button } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { useI18n } from '@/components/I18n';
 import { useEffectiveScheme } from '@/components/ThemePreference';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { StatusPill } from '../../components/ui/StatusPill';
@@ -21,6 +22,7 @@ import * as Clipboard from 'expo-clipboard';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Platform } from 'react-native';
 import { Roles, isBAish, isTLish } from '../../constants/roles';
+import { useAppSettings } from '@/components/AppSettings';
 import { EAStatus, getToneForEAStatus, nextStatusOnSubmitEA, EA_STATUS_OPTIONS } from '../../constants/status';
 import stateMachine from '../../constants/stateMachine';
 import FilterHeader from '../../components/ui/FilterHeader';
@@ -32,6 +34,7 @@ export default function TaskEarlyAssessmentScreen() {
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
+  const navigation: any = useNavigation();
   const colors = {
     body: isDark ? '#0b1220' : palette.bg,
     surface: isDark ? '#111827' : palette.surface,
@@ -65,6 +68,10 @@ export default function TaskEarlyAssessmentScreen() {
   const [sortAsc, setSortAsc] = useState(false);
   const [outletDetails, setOutletDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  // Cached resolvers
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [outlets, setOutlets] = useState<Array<{ id: string; outletName?: string }>>([]);
+  const { debugHeaderEnabled } = useAppSettings();
   // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -285,9 +292,9 @@ export default function TaskEarlyAssessmentScreen() {
     }
     setLoading(true);
     try {
-      const collectionRef = collection(db, 'task_early_assessment');
-      const snapshot = await getDocs(collectionRef);
-      let list = snapshot.docs.map(doc => ({ id: doc.id, assignedToBA: doc.data().assignedToBA, assignedToTL: doc.data().assignedToTL, ...doc.data() }));
+  const collectionRef = collection(db, 'task_early_assessment');
+  const snapshot = await getDocs(collectionRef);
+  let list: any[] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as any));
       // Filter for BA role: only show records assigned to current user
   if (isBAish(userRole as any) && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToBA === auth.currentUser?.uid);
@@ -296,6 +303,29 @@ export default function TaskEarlyAssessmentScreen() {
   if (isTLish(userRole as any) && auth.currentUser?.uid) {
         list = list.filter(a => a?.assignedToTL === auth.currentUser?.uid);
       }
+      // Fetch outlets to resolve names and metadata
+      try {
+        const outletsSnapshot = await getDocs(collection(db, 'outlets'));
+        const outletMap: Record<string, any> = {};
+        const outletList: Array<{ id: string; outletName?: string }> = [];
+        outletsSnapshot.forEach(doc => {
+          outletMap[doc.id] = doc.data();
+          outletList.push({ id: doc.id, outletName: (doc.data() as any)?.outletName });
+        });
+        setOutlets(outletList);
+        // Merge outlet info for display
+  list = list.map((item: any) => {
+          const outlet = outletMap[item.outletId] || {};
+          return {
+            ...item,
+            outletName: outlet.outletName || item.outletName || '-',
+            locationProvince: outlet.outletProvince || item.locationProvince || '-',
+            locationCity: outlet.outletCity || item.locationCity || '-',
+            outletType: outlet.outletType || item.outletType || '-',
+            outletTier: outlet.outletTier || item.outletTier || '-',
+          };
+        });
+      } catch {}
       // Sort by createdAt asc/desc when available
       const sorted = [...list].sort((a: any, b: any) => {
         const ta = a?.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
@@ -303,6 +333,29 @@ export default function TaskEarlyAssessmentScreen() {
         return sortAsc ? (ta - tb) : (tb - ta);
       });
       setAssessments(sorted);
+      // Preload user display names for BA/TL
+      try {
+        const uids: string[] = Array.from(new Set(sorted.flatMap((it: any) => [it.assignedToBA, it.assignedToTL]).filter(Boolean)));
+        const missing = uids.filter(uid => !!uid && !userNames[uid]);
+        if (missing.length) {
+          const entries: Record<string, string> = {};
+          for (const uid of missing) {
+            try {
+              const uSnap = await getDoc(doc(db, 'users', uid));
+              if (uSnap.exists()) {
+                const u = uSnap.data() as any;
+                const name = `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || u?.email || u?.phone || uid;
+                entries[uid] = name;
+              } else {
+                entries[uid] = uid;
+              }
+            } catch {
+              entries[uid] = uid;
+            }
+          }
+          setUserNames(prev => ({ ...prev, ...entries }));
+        }
+      } catch {}
     } catch (error) {
       console.error("Error fetching assessments: ", error);
       Alert.alert(t('error') || 'Error', t('failed_to_fetch_assessments') || 'Failed to fetch assessments.');
@@ -315,6 +368,26 @@ export default function TaskEarlyAssessmentScreen() {
     fetchAssessments();
     // Optionally, fetch user role here if needed
   }, [userRole, sortAsc]);
+
+  // Temporary DBG header label (centered, toggleable)
+  useEffect(() => {
+    if (!debugHeaderEnabled) {
+      navigation.setOptions?.({ headerTitle: undefined });
+      return;
+    }
+    const uid = auth.currentUser?.uid || '';
+    const shortUid = uid ? `${uid.slice(0,4)}…${uid.slice(-4)}` : '—';
+    const resolveUser = (u?: string) => (u ? (userNames[u] || u) : '—');
+    const ba = detailsVisible && detailsItem ? resolveUser(detailsItem.assignedToBA) : undefined;
+    const tl = detailsVisible && detailsItem ? resolveUser(detailsItem.assignedToTL) : undefined;
+    const label = `role:${userRole || '—'} | uid:${shortUid}` + (ba || tl ? ` | BA:${ba || '—'} | TL:${tl || '—'}` : '');
+    navigation.setOptions?.({
+      headerTitleAlign: 'center',
+      headerTitle: () => (
+        <Text style={{ color: '#ef4444', fontSize: 10 }} numberOfLines={1} ellipsizeMode="tail">{label}</Text>
+      ),
+    });
+  }, [userRole, auth.currentUser?.uid, detailsVisible, detailsItem, userNames, debugHeaderEnabled]);
 
   // Auto-open details when navigated with an assessmentId (AM review)
   const [autoOpened, setAutoOpened] = useState(false);
@@ -468,18 +541,24 @@ export default function TaskEarlyAssessmentScreen() {
   const status = item.status || '';
   const tone = getToneForEAStatus(status) as any;
     const isExpanded = !!expanded[item.id];
+    const resolveUser = (uid?: string) => (uid ? (userNames[uid] || uid) : '-');
+    const resolveOutletName = (outletId?: string, fallbackName?: string) => {
+      const resolved = outlets.find(o => o.id === outletId)?.outletName;
+      return resolved || fallbackName || outletId || '-';
+    };
     return (
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1, shadowOpacity: 0 } : {}]}>
         <View style={styles.cardHeader}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{item.outletName || 'Outlet'}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{resolveOutletName(item.outletId, item.outletName) || 'Outlet'}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <StatusPill label={status} tone={tone as any} />
           </View>
         </View>
-        <Text style={[styles.meta, { color: colors.muted }]}>Assigned BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
-        <Text style={[styles.meta, { color: colors.muted }]}>Assigned TL: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToTL || '-'}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Assigned BA: <Text style={[styles.metaValue, { color: colors.text }]}>{resolveUser(item.assignedToBA)}</Text></Text>
+        <Text style={[styles.meta, { color: colors.muted }]}>Assigned TL: <Text style={[styles.metaValue, { color: colors.text }]}>{resolveUser(item.assignedToTL)}</Text></Text>
         <Text style={[styles.meta, { color: colors.muted }]}>Created: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
-        <Text style={[styles.meta, { color: colors.muted }]}>Task ID: <Text style={[styles.metaValue, { color: colors.text }]}>{item.tasksId || '-'}</Text></Text>
+        {/* Hide raw IDs in UI where not needed for users */}
+        {/* <Text style={[styles.meta, { color: colors.muted }]}>Task ID: <Text style={[styles.metaValue, { color: colors.text }]}>{item.tasksId || '-'}</Text></Text> */}
         {isExpanded && (
           <View style={{ marginTop: spacing(3) }}>
             <Text style={[styles.meta, { color: colors.muted }]}>KEGS Avail: <Text style={[styles.metaValue, { color: colors.text }]}>{item.kegsAvailable ? 'Yes' : 'No'}</Text></Text>
@@ -530,16 +609,21 @@ export default function TaskEarlyAssessmentScreen() {
   const renderReviewModal = () => {
     if (!selectedAssessment) return null;
     const item = selectedAssessment;
+    const resolveUser = (uid?: string) => (uid ? (userNames[uid] || uid) : '-');
+    const resolveOutletName = (outletId?: string, fallbackName?: string) => {
+      const resolved = outlets.find(o => o.id === outletId)?.outletName;
+      return resolved || fallbackName || outletId || '-';
+    };
     return (
       <Modal visible={isReviewModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsReviewModalVisible(false)}>
         <ScrollView contentContainerStyle={styles.modalContainer}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, isDark ? { borderWidth: 1 } : {}]}>
             <Text style={[styles.title, { color: colors.text }]}>Assess by Area Manager</Text>
             <Text style={styles.sectionTitle}>Personnel Information</Text>
-            <Text>Assigned to BA ID: {item.assignedToBA}</Text>
-            <Text>Assigned to TL : {item.assignedToTL}</Text>
+            <Text>Assigned to BA: {resolveUser(item.assignedToBA)}</Text>
+            <Text>Assigned to TL: {resolveUser(item.assignedToTL)}</Text>
             <Text style={styles.sectionTitle}>Outlet/Venue Details</Text>
-            <Text>Outlet ID: {item.outletId}</Text>
+            <Text>Outlet: {resolveOutletName(item.outletId, item.outletName)}</Text>
             <Text>Province: {outletDetails?.outletProvince || '-'}</Text>
             <Text>City: {outletDetails?.outletCity || '-'}</Text>
             <Text>Outlet Type: {outletDetails?.outletType || '-'}</Text>
@@ -704,10 +788,10 @@ export default function TaskEarlyAssessmentScreen() {
           )}
 
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('personal_info')}</Text>
-          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {formData.assignedToBA}</Text>
-          <Text style={{ color: colors.text }}>{t('assigned_tl')}: {formData.assignedToTL}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {userNames[formData.assignedToBA] || formData.assignedToBA || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_tl')}: {userNames[formData.assignedToTL] || formData.assignedToTL || '-'}</Text>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('outlet_venue')}</Text>
-          <Text style={{ color: colors.text }}>{t('outlet_id')}: {formData.outletId}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet_id')}: {outlets.find(o => o.id === formData.outletId)?.outletName || formData.outletName || formData.outletId || '-'}</Text>
           <Text style={{ color: colors.text }}>{t('province')}: {outletDetails?.outletProvince || '-'}</Text>
           <Text style={{ color: colors.text }}>{t('city')}: {outletDetails?.outletCity || '-'}</Text>
           <Text style={{ color: colors.text }}>{t('type')}: {outletDetails?.outletType || '-'}</Text>
@@ -983,14 +1067,9 @@ export default function TaskEarlyAssessmentScreen() {
                 <Button
                   title={formData.activityStoutiePhotos ? 'Change Photo' : 'Pick Photo'}
                   onPress={async () => {
-                    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                    if (permissionResult.granted === false) {
-                      alert('Permission to access camera roll is required!');
-                      return;
-                    }
-                    const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
-                    if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                      const localUri = pickerResult.assets[0].uri;
+                    const pickerResult = await pickImage();
+                    if (!pickerResult.canceled && pickerResult.uri) {
+                      const localUri = pickerResult.uri;
                       const downloadUrl = await uploadImageAndGetUrl(localUri, 'activityStoutiePhotos');
                       if (downloadUrl) {
                         setFormData({ ...formData, activityStoutiePhotos: downloadUrl });
@@ -1019,14 +1098,9 @@ export default function TaskEarlyAssessmentScreen() {
             <Button
               title={formData.baFullBodyPhoto ? 'Change Photo' : 'Pick Photo'}
               onPress={async () => {
-                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (permissionResult.granted === false) {
-                  alert('Permission to access camera roll is required!');
-                  return;
-                }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
-                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  const localUri = pickerResult.assets[0].uri;
+                const pickerResult = await pickImage();
+                if (!pickerResult.canceled && pickerResult.uri) {
+                  const localUri = pickerResult.uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'baFullBodyPhoto');
                   if (downloadUrl) {
                     setFormData({ ...formData, baFullBodyPhoto: downloadUrl });
@@ -1057,14 +1131,9 @@ export default function TaskEarlyAssessmentScreen() {
             <Button
               title={formData.outletVisibilityPhotos ? 'Change Photo' : 'Pick Photo'}
               onPress={async () => {
-                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (permissionResult.granted === false) {
-                  alert('Permission to access camera roll is required!');
-                  return;
-                }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
-                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  const localUri = pickerResult.assets[0].uri;
+                const pickerResult = await pickImage();
+                if (!pickerResult.canceled && pickerResult.uri) {
+                  const localUri = pickerResult.uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'outletVisibilityPhotos');
                   if (downloadUrl) {
                     setFormData({ ...formData, outletVisibilityPhotos: downloadUrl });
@@ -1093,14 +1162,9 @@ export default function TaskEarlyAssessmentScreen() {
             <Button
               title={formData.posmPhotos ? 'Change Photo' : 'Pick Photo'}
               onPress={async () => {
-                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (permissionResult.granted === false) {
-                  alert('Permission to access camera roll is required!');
-                  return;
-                }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
-                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  const localUri = pickerResult.assets[0].uri;
+                const pickerResult = await pickImage();
+                if (!pickerResult.canceled && pickerResult.uri) {
+                  const localUri = pickerResult.uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'posmPhotos');
                   if (downloadUrl) {
                     setFormData({ ...formData, posmPhotos: downloadUrl });
@@ -1119,14 +1183,9 @@ export default function TaskEarlyAssessmentScreen() {
             <Button
               title={formData.merchandiseAvailablePhoto ? 'Change Photo' : 'Pick Photo'}
               onPress={async () => {
-                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (permissionResult.granted === false) {
-                  alert('Permission to access camera roll is required!');
-                  return;
-                }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
-                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  const localUri = pickerResult.assets[0].uri;
+                const pickerResult = await pickImage();
+                if (!pickerResult.canceled && pickerResult.uri) {
+                  const localUri = pickerResult.uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'merchandiseAvailablePhoto');
                   if (downloadUrl) {
                     setFormData({ ...formData, merchandiseAvailablePhoto: downloadUrl });
@@ -1165,14 +1224,9 @@ export default function TaskEarlyAssessmentScreen() {
             <Button
               title={formData.guinnessPromotionDisplayedDescriptionPhoto ? 'Change Photo' : 'Pick Photo'}
               onPress={async () => {
-                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (permissionResult.granted === false) {
-                  alert('Permission to access camera roll is required!');
-                  return;
-                }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
-                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  const localUri = pickerResult.assets[0].uri;
+                const pickerResult = await pickImage();
+                if (!pickerResult.canceled && pickerResult.uri) {
+                  const localUri = pickerResult.uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'guinnessPromotionDisplayedDescriptionPhoto');
                   if (downloadUrl) {
                     setFormData({ ...formData, guinnessPromotionDisplayedDescriptionPhoto: downloadUrl });
@@ -1206,14 +1260,9 @@ export default function TaskEarlyAssessmentScreen() {
             <Button
               title={formData.digitalActivityEngagementPhoto ? 'Change Photo' : 'Pick Photo'}
               onPress={async () => {
-                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (permissionResult.granted === false) {
-                  alert('Permission to access camera roll is required!');
-                  return;
-                }
-                const pickerResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7 });
-                if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-                  const localUri = pickerResult.assets[0].uri;
+                const pickerResult = await pickImage();
+                if (!pickerResult.canceled && pickerResult.uri) {
+                  const localUri = pickerResult.uri;
                   const downloadUrl = await uploadImageAndGetUrl(localUri, 'digitalActivityEngagementPhoto');
                   if (downloadUrl) {
                     setFormData({ ...formData, digitalActivityEngagementPhoto: downloadUrl });
@@ -1277,7 +1326,9 @@ export default function TaskEarlyAssessmentScreen() {
       <TaskEarlyAssessmentDetailsModal
         visible={detailsVisible}
         item={detailsItem}
-        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildTaskEarlyAssessmentText(detailsItem, 'text')); Alert.alert('Copied to clipboard'); } : undefined}
+        userNames={userNames as any}
+        outlets={outlets as any}
+        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildTaskEarlyAssessmentText(detailsItem as any, 'text', { userNames, outlets } as any)); Alert.alert('Copied to clipboard'); } : undefined}
         onClose={() => setDetailsVisible(false)}
       />
       {renderModal()}

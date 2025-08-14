@@ -2,7 +2,7 @@ import { useI18n } from '@/components/I18n';
 import { useEffectiveScheme } from '@/components/ThemePreference';
 import { useState, useEffect, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Alert, RefreshControl, TouchableOpacity, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import SalesReportModal from '../../components/SalesReportModal';
@@ -10,7 +10,7 @@ import SalesReportDetailsModal, { buildSalesReportText } from '../../components/
 import { db, auth } from '../../firebaseConfig';
 import { collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, DocumentSnapshot, query, where, orderBy, startAfter, limit } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { StatusPill } from '../../components/ui/StatusPill';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
@@ -21,6 +21,7 @@ import FilterHeader from '../../components/ui/FilterHeader';
 import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
 import { Roles, isAdminRole, isBAish, isTLish } from '../../constants/roles';
+import { useAppSettings } from '@/components/AppSettings';
 
 
 export default function SalesReportDetailScreen() {
@@ -81,6 +82,9 @@ export default function SalesReportDetailScreen() {
   };
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Resolver caches
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [outlets, setOutlets] = useState<Array<{ id: string; outletName?: string }>>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'add' | 'edit' | 'review'>('add');
   const [selectedReport, setSelectedReport] = useState<any>(null);
@@ -89,6 +93,7 @@ export default function SalesReportDetailScreen() {
   // Unified details modal
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [detailsMode, setDetailsMode] = useState<'review' | 'description'>('description');
+  const navigation: any = useNavigation();
   // Track expanded items in the list (to show full details like old UI)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   // Sort toggle (default newest first)
@@ -97,6 +102,7 @@ export default function SalesReportDetailScreen() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const debouncedSearch = useDebouncedValue(search, 300);
+  const { debugHeaderEnabled } = useAppSettings();
   const filteredReports = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
     return reports.filter(r => {
@@ -264,6 +270,26 @@ export default function SalesReportDetailScreen() {
     }
   }, [userRole, isFocused, sortAsc]);
 
+  // Temporary DBG header label (toggleable)
+  useEffect(() => {
+    if (!debugHeaderEnabled) {
+      navigation.setOptions?.({ headerTitle: undefined });
+      return;
+    }
+    const uid = auth.currentUser?.uid || '';
+    const shortUid = uid ? `${uid.slice(0,4)}…${uid.slice(-4)}` : '—';
+    const resolveUser = (u?: string) => (u ? (userNames[u] || u) : '—');
+    const ba = detailsVisible && (selectedReport || descriptionItem) ? resolveUser((selectedReport || descriptionItem)?.assignedToBA) : undefined;
+    const tl = detailsVisible && (selectedReport || descriptionItem) ? resolveUser((selectedReport || descriptionItem)?.assignedToTL) : undefined;
+    const label = `role:${userRole || '—'} | uid:${shortUid}` + (ba || tl ? ` | BA:${ba || '—'} | TL:${tl || '—'}` : '');
+    navigation.setOptions?.({
+      headerTitleAlign: 'center',
+      headerTitle: () => (
+        <Text style={{ color: '#ef4444', fontSize: 10 }} numberOfLines={1} ellipsizeMode="tail">{label}</Text>
+      ),
+    });
+  }, [userRole, auth.currentUser?.uid, detailsVisible, selectedReport, descriptionItem, userNames, debugHeaderEnabled]);
+
   // Auto-open details when navigated with a detailId (AM review)
   const [autoOpened, setAutoOpened] = useState(false);
   useEffect(() => {
@@ -326,7 +352,9 @@ export default function SalesReportDetailScreen() {
       try {
         const outletsSnapshot = await getDocs(collection(db, 'outlets'));
         const outletMap: Record<string, any> = {};
-        outletsSnapshot.forEach(doc => { outletMap[doc.id] = doc.data(); });
+        const outletList: Array<{ id: string; outletName?: string }> = [];
+        outletsSnapshot.forEach(doc => { outletMap[doc.id] = doc.data(); outletList.push({ id: doc.id, outletName: (doc.data() as any)?.outletName }); });
+        setOutlets(outletList);
         items = items.map((report: any) => {
           const outlet = outletMap[report.outletId || ''] || {};
           return {
@@ -343,6 +371,29 @@ export default function SalesReportDetailScreen() {
       } else {
         setReports(prev => [...prev, ...items]);
       }
+      // Preload BA/TL display names
+      try {
+        const uids: string[] = Array.from(new Set(items.flatMap((it: any) => [it.assignedToBA, it.assignedToTL]).filter(Boolean)));
+        const missing = uids.filter(uid => !!uid && !userNames[uid]);
+        if (missing.length) {
+          const entries: Record<string, string> = {};
+          for (const uid of missing) {
+            try {
+              const uSnap = await getDoc(doc(db, 'users', uid));
+              if (uSnap.exists()) {
+                const u = uSnap.data() as any;
+                const name = `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || u?.email || u?.phone || uid;
+                entries[uid] = name;
+              } else {
+                entries[uid] = uid;
+              }
+            } catch {
+              entries[uid] = uid;
+            }
+          }
+          setUserNames(prev => ({ ...prev, ...entries }));
+        }
+      } catch {}
       const last = snapshot.docs[snapshot.docs.length - 1] || null;
       setLastDoc(last);
     } catch (err) {
@@ -402,15 +453,14 @@ export default function SalesReportDetailScreen() {
           </Text>
           {isExpanded && (
             <View style={styles.detailsContainer}>
-              <Text style={{ color: colors.text }}>Outlet ID: {item.outletId || '-'}</Text>
-              <Text style={{ color: colors.text }}>Outlet Name: {item.outletName || '-'}</Text>
+              <Text style={{ color: colors.text }}>Outlet: {item.outletName || '-'}</Text>
               <Text style={{ color: colors.text }}>Province: {item.outletProvince || '-'}</Text>
               <Text style={{ color: colors.text }}>City: {item.outletCity || '-'}</Text>
               <Text style={{ color: colors.text }}>Activity Name: {item.activityName || '-'}</Text>
               <Text style={{ color: colors.text }}>Channel: {item.channel || '-'}</Text>
               <Text style={{ color: colors.text }}>Tier: {item.tier || '-'}</Text>
-              <Text style={{ color: colors.text }}>Assigned to BA: {item.assignedToBA || '-'}</Text>
-              <Text style={{ color: colors.text }}>Assigned to TL: {item.assignedToTL || '-'}</Text>
+              <Text style={{ color: colors.text }}>Assigned to BA: {userNames[item.assignedToBA] || item.assignedToBA || '-'}</Text>
+              <Text style={{ color: colors.text }}>Assigned to TL: {userNames[item.assignedToTL] || item.assignedToTL || '-'}</Text>
               <Text style={{ color: colors.text }}>Created At: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text>
               <Text style={{ color: colors.text }}>Created By: {item.createdBy || '-'}</Text>
               <Text style={{ color: colors.text }}>Task ID: {item.tasksId || '-'}</Text>
@@ -469,7 +519,7 @@ export default function SalesReportDetailScreen() {
   };
 
   // (Inlined legacy modal content removed; now handled via SalesReportModal component)
-  const getDescriptionText = (item: any) => buildSalesReportText(item, 'text');
+  const getDescriptionText = (item: any) => buildSalesReportText(item, 'text', { userNames, outlets });
 
   
 
@@ -513,6 +563,8 @@ export default function SalesReportDetailScreen() {
         formData={formData}
         setFormData={setFormData}
         userRole={userRole}
+  userNames={userNames}
+  outlets={outlets}
         assessmentMerchandiseAvailable={assessmentMerchandiseAvailable}
         setAssessmentMerchandiseAvailable={setAssessmentMerchandiseAvailable}
         handleFormSubmit={handleFormSubmit}
@@ -523,6 +575,8 @@ export default function SalesReportDetailScreen() {
         mode={detailsMode}
         item={detailsMode === 'review' ? selectedReport : descriptionItem}
     userRole={userRole}
+  userNames={userNames}
+  outlets={outlets}
     onCopyAll={detailsMode === 'description' && descriptionItem ? async () => { await Clipboard.setStringAsync(getDescriptionText(descriptionItem)); Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard'); } : undefined}
     onDoneByAM={detailsMode === 'review' && userRole === 'area manager' && selectedReport?.id ? async () => {
           try {

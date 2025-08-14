@@ -5,14 +5,31 @@ import { useI18n } from './I18n';
 import { useEffectiveScheme } from './ThemePreference';
 import { palette } from '@/constants/Design';
 
-type Props = { visible: boolean; onClose: () => void; item: any | null; onCopyAll?: () => void };
+type Props = {
+  visible: boolean;
+  onClose: () => void;
+  item: any | null;
+  onCopyAll?: () => void;
+  // Optional resolvers passed from the screen to avoid extra queries
+  userNames?: Record<string, string>;
+  outlets?: Array<{ id: string; outletName?: string }>; 
+};
 
-const TaskEarlyAssessmentDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll }) => {
+const TaskEarlyAssessmentDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll, userNames, outlets }) => {
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
   const textColor = { color: isDark ? '#e5e7eb' : '#111827' };
   const sectionBorder = { borderTopColor: isDark ? '#334155' : '#ccc' };
+  const resolveUserName = (uid?: string | null) => {
+    if (!uid) return '-';
+    return (userNames && userNames[uid]) || uid;
+  };
+  const resolveOutletName = (outletId?: string | null, fallbackName?: string | null) => {
+    if (!outletId && !fallbackName) return '-';
+    const resolved = outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || fallbackName || outletId || '-';
+  };
 
   const Line: React.FC<{ label: string; value: any }> = ({ label, value }) => (
     <Text selectable style={textColor}>{label}: {formatValue(value)}</Text>
@@ -32,16 +49,16 @@ const TaskEarlyAssessmentDetailsModal: React.FC<Props> = ({ visible, onClose, it
             {!item ? <Text style={textColor}>{t('no_data') || 'No data'}</Text> : (
               <>
               <SectionTitle>{t('personnel') || 'Personnel'}</SectionTitle>
-              <Line label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
-              <Line label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
+              <Line label={t('assigned_ba') || 'Assigned BA'} value={resolveUserName(item.assignedToBA)} />
+              <Line label={t('assigned_tl') || 'Assigned TL'} value={resolveUserName(item.assignedToTL)} />
               <Line label={t('status') || 'Status'} value={item.status} />
               <Line label={t('created') || 'Created'} value={tsToLocale(item.createdAt)} />
 
               <SectionTitle>{t('outlet') || 'Outlet'}</SectionTitle>
-              <Line label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
+              <Line label={t('outlet_id') || 'Outlet ID'} value={resolveOutletName(item.outletId, item.outletName)} />
               <Line label={t('province') || 'Province'} value={item.locationProvince} />
               <Line label={t('city') || 'City'} value={item.locationCity} />
-              <Line label={t('outlet') || 'Outlet'} value={item.outletName} />
+              <Line label={t('outlet') || 'Outlet'} value={resolveOutletName(item.outletId, item.outletName)} />
               <Line label={t('tier') || 'Tier'} value={item.outletTier} />
               <Line label={t('type') || 'Type'} value={item.outletType} />
 
@@ -100,8 +117,8 @@ const TaskEarlyAssessmentDetailsModal: React.FC<Props> = ({ visible, onClose, it
           </ScrollView>
           <View style={styles.buttonRow}>
             {onCopyAll && <Button title={t('copy') || 'Copy All'} onPress={onCopyAll} />}
-            {item && <Button title={t('copy_md') || 'Copy MD'} onPress={handleCopyMD} />}
-            {item && <Button title={t('share') || 'Share'} onPress={handleShare} />}
+            {item && <Button title={t('copy_md') || 'Copy MD'} onPress={async () => { if (!item) return; await Clipboard.setStringAsync(buildTaskEarlyAssessmentText(item, 'markdown', { userNames, outlets })); Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard'); }} />}
+            {item && <Button title={t('share') || 'Share'} onPress={async () => { if (!item) return; try { await Share.share({ message: buildTaskEarlyAssessmentText(item, 'text', { userNames, outlets }) }); } catch {} }} />}
             <Button title={t('close') || 'Close'} onPress={onClose} />
           </View>
         </View>
@@ -122,22 +139,32 @@ const styles = StyleSheet.create({
 
 export default TaskEarlyAssessmentDetailsModal;
 
-export function buildTaskEarlyAssessmentText(item: any, format: 'text' | 'markdown' = 'text') {
+export function buildTaskEarlyAssessmentText(
+  item: any,
+  format: 'text' | 'markdown' = 'text',
+  opts?: { userNames?: Record<string, string>; outlets?: Array<{ id: string; outletName?: string }> }
+) {
   if (!item) return '';
   const isMD = format === 'markdown';
   const h = (t: string) => (isMD ? `\n## ${t}\n` : `\n${t}\n`);
   const line = (l: string, v: any) => `${l}: ${formatValue(v)}`;
+  const resolveUser = (uid?: string) => (uid ? (opts?.userNames?.[uid] || uid) : '-');
+  const resolveOutlet = (outletId?: string, name?: string) => {
+    if (!outletId && !name) return '-';
+    const resolved = opts?.outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || name || outletId || '-';
+  };
   const out: string[] = [];
   out.push(h('Personnel'));
-  out.push(line('Assigned BA', item.assignedToBA));
-  out.push(line('Assigned TL', item.assignedToTL));
+  out.push(line('Assigned BA', `${resolveUser(item.assignedToBA)}${item.assignedToBA ? ` (${item.assignedToBA})` : ''}`));
+  out.push(line('Assigned TL', `${resolveUser(item.assignedToTL)}${item.assignedToTL ? ` (${item.assignedToTL})` : ''}`));
   out.push(line('Status', item.status));
   out.push(line('Created', tsToLocale(item.createdAt)));
   out.push(h('Outlet'));
-  out.push(line('Outlet ID', item.outletId));
+  out.push(line('Outlet ID', `${resolveOutlet(item.outletId, item.outletName)}${item.outletId ? ` (${item.outletId})` : ''}`));
   out.push(line('Province', item.locationProvince));
   out.push(line('City', item.locationCity));
-  out.push(line('Outlet', item.outletName));
+  out.push(line('Outlet', resolveOutlet(item.outletId, item.outletName)));
   out.push(line('Tier', item.outletTier));
   out.push(line('Type', item.outletType));
   out.push(h('Availability / Stock / Expiry'));

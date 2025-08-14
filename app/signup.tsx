@@ -4,7 +4,7 @@ import { auth, db } from '../firebaseConfig';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from 'expo-router';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { FormField } from '../components/ui/FormField';
 import { PrimaryButton } from '../components/ui/PrimaryButton';
 import { palette, radius, shadow, spacing, typography } from '../constants/Design';

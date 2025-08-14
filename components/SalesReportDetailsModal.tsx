@@ -16,6 +16,9 @@ type Props = {
   onCopyAll?: () => void;
   onDoneByAM?: () => void;
   onReviewBackToTL?: () => void;
+  // Optional helpers for resolving display names without extra queries
+  userNames?: Record<string, string>;
+  outlets?: Array<{ id: string; outletName?: string }>;
 };
 
 const SalesReportDetailsModal: React.FC<Props> = ({
@@ -27,7 +30,18 @@ const SalesReportDetailsModal: React.FC<Props> = ({
   onCopyAll,
   onDoneByAM,
   onReviewBackToTL,
+  userNames,
+  outlets,
 }) => {
+  const resolveUserName = (uid?: string | null) => {
+    if (!uid) return '-';
+    return (userNames && userNames[uid]) || uid;
+  };
+  const resolveOutletName = (outletId?: string | null, fallbackName?: string | null) => {
+    if (!outletId && !fallbackName) return '-';
+    const resolved = outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || fallbackName || outletId || '-';
+  };
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -50,14 +64,14 @@ const SalesReportDetailsModal: React.FC<Props> = ({
   );
   const handleCopyMarkdown = async () => {
     if (!item) return;
-    const md = buildSalesReportText(item, 'markdown');
+  const md = buildSalesReportText(item, 'markdown', { userNames, outlets });
     await Clipboard.setStringAsync(md);
     Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard');
   };
 
   const handleShare = async () => {
     if (!item) return;
-    const text = buildSalesReportText(item, 'text');
+  const text = buildSalesReportText(item, 'text', { userNames, outlets });
     try {
       await Share.share({ message: text });
     } catch {}
@@ -73,8 +87,8 @@ const SalesReportDetailsModal: React.FC<Props> = ({
           ) : (
             <>
               <SectionTitle>{t('personnel_information') || 'Personnel Information'}</SectionTitle>
-              <Line label={t('assigned_to_ba') || 'Assigned to BA'} value={item.assignedToBA} />
-              <Line label={t('assigned_to_tl') || 'Assigned to TL'} value={item.assignedToTL} />
+              <Line label={t('assigned_to_ba') || 'Assigned to BA'} value={resolveUserName(item.assignedToBA)} />
+              <Line label={t('assigned_to_tl') || 'Assigned to TL'} value={resolveUserName(item.assignedToTL)} />
               <Line label={t('ba_count') || 'BA Count'} value={item.baCount} />
               <Line label={t('crew_canvasser_count') || 'Crew Canvasser Count'} value={item.crewCanvasserCount} />
               <Line label={t('team_leader_name') || 'Team Leader Name'} value={item.teamLeaderName} />
@@ -85,8 +99,8 @@ const SalesReportDetailsModal: React.FC<Props> = ({
               <Line label={t('task_id') || 'Task ID'} value={item.tasksId} />
 
               <SectionTitle>{t('outlet_information') || 'Outlet Information'}</SectionTitle>
-              <Line label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
-              <Line label={t('outlet_name') || 'Outlet Name'} value={item.outletName} />
+              <Line label={t('outlet_id') || 'Outlet ID'} value={resolveOutletName(item.outletId, item.outletName)} />
+              <Line label={t('outlet_name') || 'Outlet Name'} value={resolveOutletName(item.outletId, item.outletName)} />
               <Line label={t('province') || 'Province'} value={item.outletProvince} />
               <Line label={t('city') || 'City'} value={item.outletCity} />
               <Line label={t('activity_name') || 'Activity Name'} value={item.activityName} />
@@ -478,18 +492,25 @@ export default SalesReportDetailsModal;
 // Centralized builder for "Copy All" text. Matches the fields shown above.
 export function buildSalesReportText(
   item: any,
-  format: 'text' | 'markdown' = 'text'
+  format: 'text' | 'markdown' = 'text',
+  opts?: { userNames?: Record<string, string>; outlets?: Array<{ id: string; outletName?: string }> }
 ): string {
   if (!item) return '';
   const isMD = format === 'markdown';
   const h = (title: string) => (isMD ? `\n## ${title}\n` : `\n${title}\n`);
   const line = (label: string, value: any) => `${label}: ${formatValue(value)}`;
   const lines: string[] = [];
+  const resolveUser = (uid?: string) => (uid ? (opts?.userNames?.[uid] || uid) : '-');
+  const resolveOutlet = (outletId?: string, name?: string) => {
+    if (!outletId && !name) return '-';
+    const resolved = opts?.outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || name || outletId || '-';
+  };
 
   // Personnel Information
   lines.push(h('Personnel Information'));
-  lines.push(line('Assigned to BA', item.assignedToBA));
-  lines.push(line('Assigned to TL', item.assignedToTL));
+  lines.push(line('Assigned to BA', `${resolveUser(item.assignedToBA)}${item.assignedToBA ? ` (${item.assignedToBA})` : ''}`));
+  lines.push(line('Assigned to TL', `${resolveUser(item.assignedToTL)}${item.assignedToTL ? ` (${item.assignedToTL})` : ''}`));
   lines.push(line('BA Count', item.baCount));
   lines.push(line('Crew Canvasser Count', item.crewCanvasserCount));
   lines.push(line('Team Leader Name', item.teamLeaderName));
@@ -501,8 +522,8 @@ export function buildSalesReportText(
 
   // Outlet Information
   lines.push(h('Outlet Information'));
-  lines.push(line('Outlet ID', item.outletId));
-  lines.push(line('Outlet Name', item.outletName));
+  lines.push(line('Outlet ID', `${resolveOutlet(item.outletId, item.outletName)}${item.outletId ? ` (${item.outletId})` : ''}`));
+  lines.push(line('Outlet Name', resolveOutlet(item.outletId, item.outletName)));
   lines.push(line('Province', item.outletProvince));
   lines.push(line('City', item.outletCity));
   lines.push(line('Activity Name', item.activityName));

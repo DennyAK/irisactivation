@@ -71,6 +71,27 @@ describe('Firestore UID-only rules', () => {
     await assertFails(updateDoc(doc(baDb, 'task_attendance/att-2'), { taskAttendanceStatus: 'pending' }));
   });
 
+  test('BA assigned can update Attendance check-in fields without changing status', async () => {
+    const ba = testEnv.authenticatedContext('ba-uid', { role: 'Iris - BA' });
+    const baDb = ba.firestore();
+    // Seed data with assignment and empty status
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const adminDb = ctx.firestore();
+      await setDoc(doc(adminDb, 'users/ba-uid'), { role: 'Iris - BA' });
+      await setDoc(doc(adminDb, 'task_attendance/att-geo'), {
+        taskAttendanceStatus: '',
+        assignedToBA: 'ba-uid',
+      });
+    });
+    // Update geolocation + checkIn timestamp without touching status
+    await assertSucceeds(updateDoc(doc(baDb, 'task_attendance/att-geo'), {
+      checkIn: { '.sv': 'timestamp' }, // emu-friendly placeholder, not strictly required
+      checkInLatitude: 1.23,
+      checkInLongitude: 4.56,
+      updatedBy: 'ba-uid',
+    }));
+  });
+
   test('SRD: BA -> TL -> AM happy path', async () => {
     const ba = testEnv.authenticatedContext('ba-uid', { role: 'Iris - BA' });
     const tl = testEnv.authenticatedContext('tl-uid', { role: 'Iris - TL' });

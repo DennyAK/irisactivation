@@ -10,6 +10,9 @@ type Props = {
   onClose: () => void;
   item: any | null;
   onCopyAll?: () => void;
+  // Optional helpers for resolving display names without additional queries
+  userNames?: Record<string, string>;
+  outlets?: Array<{ id: string; outletName?: string }>;
 };
 
 const Line: React.FC<{ label: string; value: any; color: string }> = ({ label, value, color }) => (
@@ -20,7 +23,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode; color: string; border:
   <Text selectable style={[styles.sectionTitle, { color, borderTopColor: border }]}>{children}</Text>
 );
 
-const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll }) => {
+const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll, userNames, outlets }) => {
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -31,14 +34,24 @@ const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item,
     text: isDark ? '#e5e7eb' : '#111827',
     muted: isDark ? '#94a3b8' : '#6b7280',
   };
+  const resolveUserName = (uid?: string | null) => {
+    if (!uid) return '-';
+    return (userNames && userNames[uid]) || uid;
+  };
+  const resolveOutletName = (outletId?: string | null, fallbackName?: string | null) => {
+    if (!outletId && !fallbackName) return '-';
+    const resolved = outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || fallbackName || outletId || '-';
+  };
+
   const handleCopyMD = async () => {
     if (!item) return;
-    await Clipboard.setStringAsync(buildQuickSalesReportText(item, 'markdown'));
+    await Clipboard.setStringAsync(buildQuickSalesReportText(item, 'markdown', { userNames, outlets }));
     Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard');
   };
   const handleShare = async () => {
     if (!item) return;
-    try { await Share.share({ message: buildQuickSalesReportText(item, 'text') }); } catch {}
+    try { await Share.share({ message: buildQuickSalesReportText(item, 'text', { userNames, outlets }) }); } catch {}
   };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -56,14 +69,14 @@ const QuickSalesReportDetailsModal: React.FC<Props> = ({ visible, onClose, item,
             ) : (
               <>
                 <SectionTitle color={colors.muted} border={colors.border}>{t('personnel') || 'Personnel'}</SectionTitle>
-                <Line color={colors.text} label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
-                <Line color={colors.text} label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
+                <Line color={colors.text} label={t('assigned_ba') || 'Assigned BA'} value={resolveUserName(item.assignedToBA)} />
+                <Line color={colors.text} label={t('assigned_tl') || 'Assigned TL'} value={resolveUserName(item.assignedToTL)} />
                 <Line color={colors.text} label={t('status') || 'Status'} value={item.taskSalesReportQuickStatus} />
                 <Line color={colors.text} label={t('created') || 'Created'} value={tsToLocale(item.createdAt)} />
 
                 <SectionTitle color={colors.muted} border={colors.border}>{t('outlet_venue') || 'Outlet / Venue'}</SectionTitle>
-                <Line color={colors.text} label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
-                <Line color={colors.text} label={t('outlet') || 'Outlet'} value={item.outletName} />
+                <Line color={colors.text} label={t('outlet_id') || 'Outlet ID'} value={resolveOutletName(item.outletId, item.outletName)} />
+                <Line color={colors.text} label={t('outlet') || 'Outlet'} value={resolveOutletName(item.outletId, item.outletName)} />
                 <Line color={colors.text} label={t('province') || 'Province'} value={item.outletProvince} />
                 <Line color={colors.text} label={t('city') || 'City'} value={item.outletCity} />
                 <Line color={colors.text} label={t('tier') || 'Tier'} value={item.outletTier} />
@@ -111,20 +124,30 @@ const styles = StyleSheet.create({
 
 export default QuickSalesReportDetailsModal;
 
-export function buildQuickSalesReportText(item: any, format: 'text' | 'markdown' = 'text') {
+export function buildQuickSalesReportText(
+  item: any,
+  format: 'text' | 'markdown' = 'text',
+  opts?: { userNames?: Record<string, string>; outlets?: Array<{ id: string; outletName?: string }> }
+) {
   if (!item) return '';
   const isMD = format === 'markdown';
   const h = (t: string) => (isMD ? `\n## ${t}\n` : `\n${t}\n`);
   const line = (l: string, v: any) => `${l}: ${formatValue(v)}`;
+  const resolveUser = (uid?: string) => (uid ? (opts?.userNames?.[uid] || uid) : '-');
+  const resolveOutlet = (outletId?: string, name?: string) => {
+    if (!outletId && !name) return '-';
+    const resolved = opts?.outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || name || outletId || '-';
+  };
   const out: string[] = [];
   out.push(h('Personnel'));
-  out.push(line('Assigned BA', item.assignedToBA));
-  out.push(line('Assigned TL', item.assignedToTL));
+  out.push(line('Assigned BA', `${resolveUser(item.assignedToBA)}${item.assignedToBA ? ` (${item.assignedToBA})` : ''}`));
+  out.push(line('Assigned TL', `${resolveUser(item.assignedToTL)}${item.assignedToTL ? ` (${item.assignedToTL})` : ''}`));
   out.push(line('Status', item.taskSalesReportQuickStatus));
   out.push(line('Created', tsToLocale(item.createdAt)));
   out.push(h('Outlet / Venue'));
-  out.push(line('Outlet ID', item.outletId));
-  out.push(line('Outlet', item.outletName));
+  out.push(line('Outlet ID', `${resolveOutlet(item.outletId, item.outletName)}${item.outletId ? ` (${item.outletId})` : ''}`));
+  out.push(line('Outlet', resolveOutlet(item.outletId, item.outletName)));
   out.push(line('Province', item.outletProvince));
   out.push(line('City', item.outletCity));
   out.push(line('Tier', item.outletTier));

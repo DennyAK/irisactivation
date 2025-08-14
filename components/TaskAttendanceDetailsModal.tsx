@@ -5,9 +5,17 @@ import { useI18n } from './I18n';
 import { useEffectiveScheme } from './ThemePreference';
 import { palette } from '@/constants/Design';
 
-type Props = { visible: boolean; onClose: () => void; item: any | null; onCopyAll?: () => void };
+type Props = {
+  visible: boolean;
+  onClose: () => void;
+  item: any | null;
+  onCopyAll?: () => void;
+  // Optional helpers for resolving display names without additional queries
+  userNames?: Record<string, string>;
+  outlets?: Array<{ id: string; outletName?: string }>;
+};
 
-const TaskAttendanceDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll }) => {
+const TaskAttendanceDetailsModal: React.FC<Props> = ({ visible, onClose, item, onCopyAll, userNames, outlets }) => {
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -23,10 +31,20 @@ const TaskAttendanceDetailsModal: React.FC<Props> = ({ visible, onClose, item, o
 
   const handleCopyMD = async () => {
     if (!item) return;
-    await Clipboard.setStringAsync(buildTaskAttendanceText(item, 'markdown'));
+    await Clipboard.setStringAsync(buildTaskAttendanceText(item, 'markdown', { userNames, outlets }));
     Alert.alert(t('copied_to_clipboard') || 'Copied to clipboard');
   };
-  const handleShare = async () => { if (!item) return; try { await Share.share({ message: buildTaskAttendanceText(item, 'text') }); } catch {} };
+  const handleShare = async () => { if (!item) return; try { await Share.share({ message: buildTaskAttendanceText(item, 'text', { userNames, outlets }) }); } catch {} };
+
+  const resolveUserName = (uid?: string | null) => {
+    if (!uid) return '-';
+    return (userNames && userNames[uid]) || uid;
+  };
+  const resolveOutletName = (outletId?: string | null, fallbackName?: string | null) => {
+    if (!outletId && !fallbackName) return '-';
+    const resolved = outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || fallbackName || outletId || '-';
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -37,8 +55,8 @@ const TaskAttendanceDetailsModal: React.FC<Props> = ({ visible, onClose, item, o
             {!item ? <Text style={textColor}>{t('no_data') || 'No data'}</Text> : (
               <>
               <SectionTitle>{t('personnel') || 'Personnel'}</SectionTitle>
-              <Line label={t('assigned_ba') || 'Assigned BA'} value={item.assignedToBA} />
-              <Line label={t('assigned_tl') || 'Assigned TL'} value={item.assignedToTL} />
+              <Line label={t('assigned_ba') || 'Assigned BA'} value={resolveUserName(item.assignedToBA)} />
+              <Line label={t('assigned_tl') || 'Assigned TL'} value={resolveUserName(item.assignedToTL)} />
               <Line label={t('status') || 'Status'} value={item.status} />
               <Line label={t('created') || 'Created'} value={tsToLocale(item.createdAt)} />
 
@@ -51,10 +69,10 @@ const TaskAttendanceDetailsModal: React.FC<Props> = ({ visible, onClose, item, o
               <Line label={t('check_out_location') || 'Check-out Location'} value={formatLatLng(item.checkOutLat, item.checkOutLng)} />
 
               <SectionTitle>{t('outlet') || 'Outlet'}</SectionTitle>
-              <Line label={t('outlet_id') || 'Outlet ID'} value={item.outletId} />
+              <Line label={t('outlet_id') || 'Outlet ID'} value={resolveOutletName(item.outletId, item.outletName)} />
               <Line label={t('province') || 'Province'} value={item.locationProvince} />
               <Line label={t('city') || 'City'} value={item.locationCity} />
-              <Line label={t('outlet') || 'Outlet'} value={item.outletName} />
+              <Line label={t('outlet') || 'Outlet'} value={resolveOutletName(item.outletId, item.outletName)} />
 
               <SectionTitle>{t('photos') || 'Photos'}</SectionTitle>
               {item.checkInPhotoUrl ? <Image source={{ uri: item.checkInPhotoUrl }} style={styles.photo} /> : <Line label={t('check_in_photo') || 'Check-in Photo'} value="-" />}
@@ -90,15 +108,25 @@ const styles = StyleSheet.create({
 
 export default TaskAttendanceDetailsModal;
 
-export function buildTaskAttendanceText(item: any, format: 'text' | 'markdown' = 'text') {
+export function buildTaskAttendanceText(
+  item: any,
+  format: 'text' | 'markdown' = 'text',
+  opts?: { userNames?: Record<string, string>; outlets?: Array<{ id: string; outletName?: string }> }
+) {
   if (!item) return '';
   const isMD = format === 'markdown';
   const h = (t: string) => (isMD ? `\n## ${t}\n` : `\n${t}\n`);
   const line = (l: string, v: any) => `${l}: ${formatValue(v)}`;
   const out: string[] = [];
+  const resolveUser = (uid?: string) => (uid ? (opts?.userNames?.[uid] || uid) : '-');
+  const resolveOutlet = (outletId?: string, name?: string) => {
+    if (!outletId && !name) return '-';
+    const resolved = opts?.outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || name || outletId || '-';
+  };
   out.push(h('Personnel'));
-  out.push(line('Assigned BA', item.assignedToBA));
-  out.push(line('Assigned TL', item.assignedToTL));
+  out.push(line('Assigned BA', `${resolveUser(item.assignedToBA)}${item.assignedToBA ? ` (${item.assignedToBA})` : ''}`));
+  out.push(line('Assigned TL', `${resolveUser(item.assignedToTL)}${item.assignedToTL ? ` (${item.assignedToTL})` : ''}`));
   out.push(line('Status', item.status));
   out.push(line('Created', tsToLocale(item.createdAt)));
   out.push(h('Shift'));
@@ -109,10 +137,10 @@ export function buildTaskAttendanceText(item: any, format: 'text' | 'markdown' =
   out.push(line('Check-in Location', formatLatLng(item.checkInLat, item.checkInLng)));
   out.push(line('Check-out Location', formatLatLng(item.checkOutLat, item.checkOutLng)));
   out.push(h('Outlet'));
-  out.push(line('Outlet ID', item.outletId));
+  out.push(line('Outlet ID', `${resolveOutlet(item.outletId, item.outletName)}${item.outletId ? ` (${item.outletId})` : ''}`));
   out.push(line('Province', item.locationProvince));
   out.push(line('City', item.locationCity));
-  out.push(line('Outlet', item.outletName));
+  out.push(line('Outlet', resolveOutlet(item.outletId, item.outletName)));
   out.push(h('Notes'));
   out.push(line('Notes', item.notes || item.issuesNotes));
   return out.join('\n');

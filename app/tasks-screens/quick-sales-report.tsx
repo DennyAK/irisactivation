@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Modal, TextInput, Alert, ScrollView, Switch, RefreshControl, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 // Phase 4 UI integration
 import { palette, spacing, radius, shadow, typography } from '../../constants/Design';
 import { useI18n } from '@/components/I18n';
@@ -22,6 +22,7 @@ import stateMachine from '../../constants/stateMachine';
 import FilterHeader from '../../components/ui/FilterHeader';
 import useDebouncedValue from '../../components/hooks/useDebouncedValue';
 import EmptyState from '../../components/ui/EmptyState';
+import { useAppSettings } from '@/components/AppSettings';
 
 export default function QuickSalesReportScreen() {
   const params = useLocalSearchParams<{ reportId?: string }>();
@@ -51,6 +52,10 @@ export default function QuickSalesReportScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [detailsItem, setDetailsItem] = useState<any | null>(null);
+  const navigation: any = useNavigation();
+  // Cached resolvers
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [outlets, setOutlets] = useState<Array<{ id: string; outletName?: string }>>([]);
   // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -66,6 +71,7 @@ export default function QuickSalesReportScreen() {
 
   // Sort by date toggle
   const [sortAsc, setSortAsc] = useState(false);
+  const { debugHeaderEnabled } = useAppSettings();
 
   const initialFormData = {
     guardDate: '',
@@ -116,6 +122,26 @@ export default function QuickSalesReportScreen() {
       fetchReports(true);
     }
   }, [userRole, isFocused, sortAsc]);
+
+  // Temporary DBG header label (toggleable)
+  useEffect(() => {
+    if (!debugHeaderEnabled) {
+      navigation.setOptions?.({ headerTitle: undefined });
+      return;
+    }
+    const uid = auth.currentUser?.uid || '';
+    const shortUid = uid ? `${uid.slice(0,4)}…${uid.slice(-4)}` : '—';
+    const resolveUser = (u?: string) => (u ? (userNames[u] || u) : '—');
+    const ba = detailsVisible && detailsItem ? resolveUser(detailsItem.assignedToBA) : undefined;
+    const tl = detailsVisible && detailsItem ? resolveUser(detailsItem.assignedToTL) : undefined;
+    const label = `role:${userRole || '—'} | uid:${shortUid}` + (ba || tl ? ` | BA:${ba || '—'} | TL:${tl || '—'}` : '');
+    navigation.setOptions?.({
+      headerTitleAlign: 'center',
+      headerTitle: () => (
+        <Text style={{ color: '#ef4444', fontSize: 10 }} numberOfLines={1} ellipsizeMode="tail">{label}</Text>
+      ),
+    });
+  }, [userRole, auth.currentUser?.uid, detailsVisible, detailsItem, userNames, debugHeaderEnabled]);
 
   // Auto-open details when navigated with a reportId (AM review)
   const [autoOpened, setAutoOpened] = useState(false);
@@ -180,9 +206,12 @@ export default function QuickSalesReportScreen() {
       // Fetch all outlets and build a map
       const outletsSnapshot = await getDocs(collection(db, 'outlets'));
       const outletMap: Record<string, any> = {};
+      const outletList: Array<{ id: string; outletName?: string }> = [];
       outletsSnapshot.forEach(doc => {
         outletMap[doc.id] = doc.data();
+        outletList.push({ id: doc.id, outletName: (doc.data() as any)?.outletName });
       });
+      setOutlets(outletList);
 
       // Merge outlet info into each report
       list = list.map(report => {
@@ -201,6 +230,29 @@ export default function QuickSalesReportScreen() {
       } else {
         setReports(prev => [...prev, ...list]);
       }
+      // Preload user display names for BA/TL
+      try {
+        const uids: string[] = Array.from(new Set(list.flatMap((it: any) => [it.assignedToBA, it.assignedToTL]).filter(Boolean)));
+        const missing = uids.filter(uid => !!uid && !userNames[uid]);
+        if (missing.length) {
+          const entries: Record<string, string> = {};
+          for (const uid of missing) {
+            try {
+              const uSnap = await getDoc(doc(db, 'users', uid));
+              if (uSnap.exists()) {
+                const u = uSnap.data() as any;
+                const name = `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || u?.email || u?.phone || uid;
+                entries[uid] = name;
+              } else {
+                entries[uid] = uid;
+              }
+            } catch {
+              entries[uid] = uid;
+            }
+          }
+          setUserNames(prev => ({ ...prev, ...entries }));
+        }
+      } catch {}
       const last = snapshot.docs[snapshot.docs.length - 1] || null;
       setLastDoc(last);
     } catch (error) {
@@ -282,13 +334,13 @@ export default function QuickSalesReportScreen() {
           <Text style={[styles.cardTitle, { color: colors.text }]}>{item.outletName || '-'}</Text>
           <StatusPill label={status || '—'} tone={statusTone as any} />
         </View>
-        <Text style={[styles.metaText, { color: colors.muted }]}>Outlet ID: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletId || '-'}</Text></Text>
+  <Text style={[styles.metaText, { color: colors.muted }]}>Outlet: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletName || '-'}</Text></Text>
         <Text style={[styles.metaText, { color: colors.muted }]}>Date: <Text style={[styles.metaValue, { color: colors.text }]}>{item.guardDate?.toDate ? item.guardDate.toDate().toLocaleDateString() : '-'}</Text></Text>
         <Text style={[styles.metaText, { color: colors.muted }]}>Province: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletProvince || '-'}</Text></Text>
         <Text style={[styles.metaText, { color: colors.muted }]}>City: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletCity || '-'}</Text></Text>
         <Text style={[styles.metaText, { color: colors.muted }]}>Tier: <Text style={[styles.metaValue, { color: colors.text }]}>{item.outletTier || '-'}</Text></Text>
-        <Text style={[styles.metaText, { color: colors.muted }]}>BA: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToBA || '-'}</Text></Text>
-        <Text style={[styles.metaText, { color: colors.muted }]}>TL: <Text style={[styles.metaValue, { color: colors.text }]}>{item.assignedToTL || '-'}</Text></Text>
+  <Text style={[styles.metaText, { color: colors.muted }]}>BA: <Text style={[styles.metaValue, { color: colors.text }]}>{userNames[item.assignedToBA] || item.assignedToBA || '-'}</Text></Text>
+  <Text style={[styles.metaText, { color: colors.muted }]}>TL: <Text style={[styles.metaValue, { color: colors.text }]}>{userNames[item.assignedToTL] || item.assignedToTL || '-'}</Text></Text>
         <Text style={[styles.metaText, { color: colors.muted }]}>Created: <Text style={[styles.metaValue, { color: colors.text }]}>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : '-'}</Text></Text>
         {isExpanded && (
           <View style={{ marginTop: spacing(3) }}>
@@ -349,12 +401,12 @@ export default function QuickSalesReportScreen() {
           <Text style={[styles.title, { color: colors.text }]}>{modalType === 'add' ? t('add') : t('edit')} {t('sales_report')}</Text>
           
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('personal_info')}</Text>
-          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {formData.assignedToBA || '-'}</Text>
-          <Text style={{ color: colors.text }}>{t('assigned_tl')}: {formData.assignedToTL || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {userNames[formData.assignedToBA] || formData.assignedToBA || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_tl')}: {userNames[formData.assignedToTL] || formData.assignedToTL || '-'}</Text>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('outlet_venue')}</Text>
 
-          <Text style={{ color: colors.text }}>{t('outlet_id')}: {formData.outletId || '-'}</Text>
-          <Text style={[styles.itemTitle, { color: colors.text }]}>{formData.outletName} - {formData.guardDate ? formData.guardDate : '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet_id')}: {outlets.find(o => o.id === formData.outletId)?.outletName || formData.outletName || formData.outletId || '-'}</Text>
+          <Text style={[styles.itemTitle, { color: colors.text }]}>{outlets.find(o => o.id === formData.outletId)?.outletName || formData.outletName || '-'} - {formData.guardDate ? formData.guardDate : '-'}</Text>
           <Text style={{ color: colors.text }}>{t('province')}: {formData.outletProvince || '-'}</Text>
           <Text style={{ color: colors.text }}>{t('city')}: {formData.outletCity || '-'}</Text>
           <Text style={{ color: colors.text }}>{t('tier')}: {formData.outletTier || '-'}</Text>
@@ -464,7 +516,7 @@ export default function QuickSalesReportScreen() {
   <View style={[styles.modalContent, isDark ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border } : undefined]}>
           <Text style={[styles.title, { color: colors.text }]}>{t('qr_review_by_am')}</Text>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('personal_info')}</Text>
-          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {selectedReport?.assignedToBA || '-'} </Text>
+          <Text style={{ color: colors.text }}>{t('assigned_ba')}: {userNames[selectedReport?.assignedToBA || ''] || selectedReport?.assignedToBA || '-'} </Text>
           <Text style={{ color: colors.text }}>{t('assigned_tl')}: {selectedReport?.assignedToTL || '-'} </Text>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('outlet_venue')}</Text>
           <Text style={{ color: colors.text }}>{t('outlet_id')}: {selectedReport?.outletId || '-'} </Text>
@@ -557,7 +609,9 @@ export default function QuickSalesReportScreen() {
       <QuickSalesReportDetailsModal
         visible={detailsVisible}
         item={detailsItem}
-  onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildQuickSalesReportText(detailsItem, 'text')); Alert.alert('Copied to clipboard'); } : undefined}
+        userNames={userNames}
+        outlets={outlets}
+        onCopyAll={detailsItem ? async () => { await Clipboard.setStringAsync(buildQuickSalesReportText(detailsItem, 'text', { userNames, outlets })); Alert.alert('Copied to clipboard'); } : undefined}
         onClose={() => setDetailsVisible(false)}
       />
   {renderModal()}

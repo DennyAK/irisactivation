@@ -55,9 +55,13 @@ service cloud.firestore {
   function canUpdateAttendance(before, after) {
     let statusBefore = before.taskAttendanceStatus == null ? '' : before.taskAttendanceStatus;
     let statusAfter = after.taskAttendanceStatus == null ? statusBefore : after.taskAttendanceStatus;
+    // Allow BA assigned user to update only geo/selfie/audit fields without changing status
+    let changedKeys = request.resource.data.diff(resource.data).changedKeys();
+    let baAllowedOnly = changedKeys.hasOnly(['checkIn','checkInLatitude','checkInLongitude','checkOut','checkOutLatitude','checkOutLongitude','selfieUrl','updatedAt','updatedBy']);
     return (
       isAdmin() ||
       (isBA() && isAssignedToBA(before) && (
+        baAllowedOnly ||
         (statusAfter == statusBefore) ||
         ((statusBefore == '' || statusBefore == 'pending') && statusAfter == 'pending')
       )) ||

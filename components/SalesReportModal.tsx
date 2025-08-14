@@ -16,6 +16,9 @@ type SalesReportModalProps = {
   assessmentMerchandiseAvailable: boolean | null;
   setAssessmentMerchandiseAvailable: React.Dispatch<React.SetStateAction<boolean | null>>;
   handleFormSubmit: () => void;
+  // Optional name/outlet resolvers for cleaner UI labels
+  userNames?: Record<string, string>;
+  outlets?: Array<{ id: string; outletName?: string }>;
 };
 
 const WEATHER_STATUS_OPTIONS_I18N = (t: (k: string) => string) => [
@@ -34,7 +37,18 @@ const SalesReportModal: React.FC<SalesReportModalProps> = ({
   assessmentMerchandiseAvailable,
   setAssessmentMerchandiseAvailable,
   handleFormSubmit,
+  userNames,
+  outlets,
 }) => {
+  const resolveUserName = (uid?: string | null) => {
+    if (!uid) return '-';
+    return (userNames && userNames[uid]) || uid;
+  };
+  const resolveOutletName = (outletId?: string | null, fallbackName?: string | null) => {
+    if (!outletId && !fallbackName) return '-';
+    const resolved = outlets?.find(o => o.id === outletId)?.outletName;
+    return resolved || fallbackName || outletId || '-';
+  };
   const { t } = useI18n();
   const scheme = useEffectiveScheme();
   const isDark = scheme === 'dark';
@@ -52,16 +66,16 @@ const SalesReportModal: React.FC<SalesReportModalProps> = ({
         <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.text }]}>{(modalType === 'add' ? (t('add') || 'Add') : (t('edit') || 'Edit')) + ' ' + (t('sales_report') || 'Report')}</Text>
           <Text style={[styles.sectionTitle, { color: colors.muted, borderTopColor: colors.border }]}>{t('personnel_information') || 'Personnel Information'}</Text>
-          <Text style={{ color: colors.text }}>{t('assigned_to_ba') || 'Assigned to BA'}: {formData.assignedToBA || '-'}</Text>
-          <Text style={{ color: colors.text }}>{t('assigned_to_tl') || 'Assigned to TL'}: {formData.assignedToTL || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_to_ba') || 'Assigned to BA'}: {resolveUserName(formData.assignedToBA)}</Text>
+          <Text style={{ color: colors.text }}>{t('assigned_to_tl') || 'Assigned to TL'}: {resolveUserName(formData.assignedToTL)}</Text>
           <Text style={[styles.inputLabel, { color: colors.muted }]}>no of BA / SPG Guinness in charge (for selling program)</Text>
           <TextInput style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]} value={formData.baCount} onChangeText={text => setFormData((p:any)=>({...p, baCount: text}))} placeholder="# of BA" placeholderTextColor={colors.muted} keyboardType="numeric" />
           <Text style={[styles.inputLabel, { color: colors.muted }]}>no of crew or canvasser in charge (for event or canvasser program)</Text>
           <TextInput style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]} value={formData.crewCanvasserCount} onChangeText={text => setFormData((p:any)=>({...p, crewCanvasserCount: text}))} placeholder="# of Crew/Canvasser" placeholderTextColor={colors.muted} keyboardType="numeric" />
 
           <Text style={[styles.sectionTitle, { color: colors.muted, borderTopColor: colors.border }]}>{t('outlet_information') || 'Outlet Information'}</Text>
-          <Text style={{ color: colors.text }}>{t('outlet_id') || 'Outlet ID'}: {formData.outletId || '-'}</Text>
-          <Text style={{ color: colors.text }}>{t('outlet_name') || 'Outlet Name'}: {formData.outletName || '-'}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet_id') || 'Outlet ID'}: {resolveOutletName(formData.outletId, formData.outletName)}</Text>
+          <Text style={{ color: colors.text }}>{t('outlet_name') || 'Outlet Name'}: {resolveOutletName(formData.outletId, formData.outletName)}</Text>
           <Text style={{ color: colors.text }}>{t('province') || 'Province'}: {formData.outletProvince || '-'}</Text>
           <Text style={{ color: colors.text }}>{t('city') || 'City'}: {formData.outletCity || '-'}</Text>
           <Text style={{ color: colors.text }}>{t('activity_name') || 'Activity Name'}: {formData.activityName || '-'}</Text>

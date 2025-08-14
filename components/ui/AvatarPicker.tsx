@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 import { palette, spacing } from '../../constants/Design';
 
 interface Props {
@@ -12,14 +13,29 @@ interface Props {
 
 export const AvatarPicker: React.FC<Props> = ({ uri, onChange, size = 110 }) => {
   const pick = async () => {
+    if (Platform.OS === 'web') {
+      // Fallback to browser file input
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = () => {
+        const file = (input.files && input.files[0]) || null;
+        if (file) {
+          const url = URL.createObjectURL(file);
+          onChange(url);
+        }
+      };
+      input.click();
+      return;
+    }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.9,
-    });
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+      });
     if (!result.canceled) {
       onChange(result.assets[0].uri);
     }
