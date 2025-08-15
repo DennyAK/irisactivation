@@ -6,6 +6,32 @@
 			"type": "shell",
 			"command": "node -e \"try{require('typescript/bin/tsc');}catch(e){console.log('tsc not found in path');}\"",
 			"group": "build"
+		},
+		{
+			"label": "Build web export",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build:web"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Deploy web preview",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"deploy:web:preview"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }

@@ -2,7 +2,7 @@ export const options = {
   title: "Tasks",
 };
 
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { MenuGrid } from '../../components/ui/MenuCard';
 import { palette, spacing, typography } from '../../constants/Design';
 import { useI18n } from '@/components/I18n';
@@ -72,9 +72,11 @@ export default function TasksMenu() {
   ];
 
   return (
-    <View style={[styles.container, isDark && { backgroundColor: '#0b1220' }]}>
-      <Text style={[styles.header, isDark && { color: '#e5e7eb' }]}>{t('tasks') || 'Tasks'}</Text>
-      <MenuGrid items={menuItems} />
+    <View style={[styles.container, isDark && { backgroundColor: '#0b1220' }]}>      
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing(12) }}>
+        <Text style={[styles.header, isDark && { color: '#e5e7eb' }]}>{t('tasks') || 'Tasks'}</Text>
+        <MenuGrid items={menuItems} />
+      </ScrollView>
     </View>
   );
 }
