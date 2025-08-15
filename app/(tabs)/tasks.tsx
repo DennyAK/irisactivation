@@ -22,7 +22,8 @@ export default function TasksMenu() {
       | '/tasks-screens/task-attendance'
       | '/tasks-screens/task-early-assessment'
       | '/tasks-screens/quick-sales-report'
-      | '/tasks-screens/sales-report-detail';
+  | '/tasks-screens/sales-report-detail'
+  | '/tasks-screens/role-play-video';
   };
 
   const menuItems: MenuItem[] = [
@@ -61,6 +62,12 @@ export default function TasksMenu() {
       icon: 'file-tray-full-outline',
       subtitle: t('sales_detail_subtitle') || 'View and manage Sales Report Detailed',
       href: '/tasks-screens/sales-report-detail',
+    },
+    {
+      label: 'Role Play Video',
+      icon: 'videocam-outline',
+      subtitle: 'Prepare and download your role-play video',
+      href: '/tasks-screens/role-play-video',
     },
   ];
 
